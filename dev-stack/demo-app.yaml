@@ -3,6 +3,7 @@
 # http_request_duration_seconds; /err answers 404. The load pod sends
 # ERROR_PERCENT of its requests to /err, so burn-rate alerts can be driven
 # up and down: kubectl -n demo set env deploy/load ERROR_PERCENT=0
+# Written to pass kyverno-production-policies, which the dev values enforce in demo.
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -13,21 +14,25 @@ kind: Deployment
 metadata:
   name: api
   namespace: demo
+  labels: {app.kubernetes.io/name: api, team: demo}
 spec:
   replicas: 1
   selector:
     matchLabels: {app: api}
   template:
     metadata:
-      labels: {app: api}
+      labels: {app: api, app.kubernetes.io/name: api, team: demo}
     spec:
       containers:
         - name: api
           image: quay.io/brancz/prometheus-example-app:v0.5.0
           ports:
             - {name: http, containerPort: 8080}
+          readinessProbe: {httpGet: {path: /, port: http}}
+          livenessProbe: {httpGet: {path: /, port: http}}
           resources:
             requests: {cpu: 10m, memory: 16Mi}
+            limits: {memory: 64Mi}
 ---
 apiVersion: v1
 kind: Service
@@ -57,13 +62,14 @@ kind: Deployment
 metadata:
   name: load
   namespace: demo
+  labels: {app.kubernetes.io/name: load, team: demo}
 spec:
   replicas: 1
   selector:
     matchLabels: {app: load}
   template:
     metadata:
-      labels: {app: load}
+      labels: {app: load, app.kubernetes.io/name: load, team: demo}
     spec:
       containers:
         - name: load
@@ -80,5 +86,8 @@ spec:
                 curl -s -o /dev/null "http://api.demo.svc$p"
                 sleep 0.1
               done
+          readinessProbe: {exec: {command: ["true"]}}
+          livenessProbe: {exec: {command: ["true"]}}
           resources:
             requests: {cpu: 10m, memory: 16Mi}
+            limits: {memory: 64Mi}
