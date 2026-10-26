@@ -2,7 +2,7 @@ apiVersion: v2
 name: otel-collector-baseline
 description: A production OpenTelemetry Collector layout for Kubernetes as values for the OpenTelemetry Operator - a node agent (OTLP, kubelet and host metrics, container logs, Kubernetes metadata) feeding a gateway (health-check filtering, attribute redaction, tail sampling) that exports to OTLP backends, Google Cloud, Prometheus remote write, Datadog or Elasticsearch, plus auto-instrumentation, RBAC, alerts and a dashboard.
 type: application
-version: 0.1.1
+version: 0.1.2
 appVersion: "0.1.0"
 kubeVersion: ">=1.25.0-0"
 home: https://www.oreonit.com/observability-and-monitoring-consultancy-services/
