@@ -1,0 +1,15 @@
+{{- range $pc := .Values.priorityClasses }}
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: {{ $pc.name }}
+  labels:
+    {{- include "nsb.labels" $ | nindent 4 }}
+value: {{ int $pc.value }}
+globalDefault: {{ $pc.globalDefault | default false }}
+preemptionPolicy: {{ $pc.preemptionPolicy | default "PreemptLowerPriority" }}
+{{- with $pc.description }}
+description: {{ . | quote }}
+{{- end }}
+{{- end }}

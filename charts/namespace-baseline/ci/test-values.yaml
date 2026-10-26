@@ -1,0 +1,71 @@
+defaults:
+  labels:
+    owner: platform
+  networkPolicy:
+    allowIngressFromNamespaces:
+      - ingress-nginx
+      - namespace: monitoring
+        podLabels:
+          app.kubernetes.io/name: prometheus
+        ports:
+          - port: 8080
+            protocol: TCP
+  rbac:
+    viewers: [sre-oncall]
+
+namespaces:
+  - name: team-payments
+    podSecurity:
+      enforce: restricted
+    quota:
+      hard:
+        requests.cpu: "16"
+        requests.memory: 32Gi
+        limits.cpu: "32"
+        limits.memory: 64Gi
+        pods: "200"
+        persistentvolumeclaims: "20"
+        services.loadbalancers: "0"
+    networkPolicy:
+      allowEgressToNamespaces: [shared-db]
+      allowEgressCIDRs:
+        - cidr: 0.0.0.0/0
+          except: [10.0.0.0/8, 169.254.169.254/32]
+          ports:
+            - port: 443
+              protocol: TCP
+    rbac:
+      admins: [platform-team]
+      editors:
+        - payments-developers
+        - kind: ServiceAccount
+          name: deployer
+          namespace: ci
+      viewers: [sre-oncall, finance-readonly]
+    annotations:
+      owner.oreonit.com/contact: payments@example.com
+
+  - name: team-sandbox
+    keepOnUninstall: false
+    podSecurity:
+      enforce: baseline
+      warn: baseline
+      audit: baseline
+    limitRange:
+      enabled: false
+    networkPolicy:
+      enabled: false
+
+priorityClasses:
+  - name: tenant-critical
+    value: 100000
+    description: Customer-facing workloads that must be scheduled first.
+  - name: tenant-batch
+    value: -1000
+    preemptionPolicy: Never
+    description: Batch work that may wait.
+
+monitoring:
+  enabled: true
+  labels:
+    release: kube-prometheus-stack

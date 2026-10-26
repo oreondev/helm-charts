@@ -1,0 +1,50 @@
+sloPeriodDays: 30
+
+prometheusRule:
+  labels:
+    release: kube-prometheus-stack
+
+dashboard:
+  annotations:
+    grafana_folder: SLOs
+
+alerting:
+  labels:
+    team: platform
+  annotations:
+    dashboard_url: https://grafana.example.com/d/oreon-slo-overview
+
+slos:
+  - name: api-availability
+    service: api
+    objective: 99.9
+    description: non-5xx responses over all responses
+    labels:
+      tier: "1"
+    sli:
+      errorQuery: sum(rate(http_requests_total{job="api",code=~"5.."}[$WINDOW]))
+      totalQuery: sum(rate(http_requests_total{job="api"}[$WINDOW]))
+    alerting:
+      annotations:
+        runbook_url: https://runbooks.example.com/api-availability
+
+  - name: api-latency-300ms
+    service: api
+    objective: 95
+    description: requests faster than 300 ms
+    sli:
+      errorQuery: sum(rate(http_request_duration_seconds_count{job="api"}[$WINDOW])) - sum(rate(http_request_duration_seconds_bucket{job="api",le="0.3"}[$WINDOW]))
+      totalQuery: sum(rate(http_request_duration_seconds_count{job="api"}[$WINDOW]))
+    alerting:
+      page:
+        enabled: false
+      ticket:
+        severity: info
+        for: 30m
+
+  - name: checkout-journey
+    service: shop
+    objective: 99.5
+    sli:
+      errorQuery: sum(rate(checkout_journeys_total{result="failed"}[$WINDOW]))
+      totalQuery: sum(rate(checkout_journeys_total[$WINDOW]))

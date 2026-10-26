@@ -1,0 +1,42 @@
+apiVersion: v2
+name: slo-burn-rate-alerts
+description: SLOs as values. Generates Prometheus recording rules, multi-window multi-burn-rate page and ticket alerts, and a Grafana SLO / error-budget dashboard for Prometheus Operator and kube-prometheus-stack.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+kubeVersion: ">=1.25.0-0"
+home: https://www.oreonit.com/observability-and-monitoring-consultancy-services/
+icon: https://raw.githubusercontent.com/oreonit/helm-charts/main/icon.png
+sources:
+  - https://github.com/oreonit/helm-charts
+keywords:
+  - slo
+  - sli
+  - error-budget
+  - burn-rate
+  - sre
+  - prometheus
+  - prometheus-operator
+  - kube-prometheus-stack
+  - alerting
+  - grafana
+  - observability
+maintainers:
+  - name: Oreon IT
+    email: info@oreonit.com
+    url: https://www.oreonit.com/
+annotations:
+  artifacthub.io/license: MIT
+  artifacthub.io/category: monitoring-logging
+  artifacthub.io/prerelease: "false"
+  artifacthub.io/operator: "false"
+  artifacthub.io/links: |
+    - name: How multi-window burn-rate alerts work
+      url: https://www.oreonit.com/advanced-alerting-strategies-how-to-avoid-alert-fatigue-in-monitoring-systems/
+    - name: 12 SLO and SLI examples with PromQL
+      url: https://www.oreonit.com/slo-sli-examples-targets-promql/
+    - name: SRE consulting by the maintainers
+      url: https://www.oreonit.com/site-reliability-engineering-sre-consulting-services/
+  artifacthub.io/changes: |
+    - kind: added
+      description: Initial release

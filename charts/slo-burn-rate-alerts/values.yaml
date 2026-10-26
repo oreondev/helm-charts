@@ -1,0 +1,86 @@
+# Default values for slo-burn-rate-alerts.
+#
+# Define your SLOs under `slos`. Everything else has defaults that work with a
+# kube-prometheus-stack (Prometheus Operator + Grafana sidecar) installation.
+
+# Length of the SLO window in days. All error-budget maths assume this period.
+sloPeriodDays: 30
+
+prometheusRule:
+  # Create a PrometheusRule (needs the Prometheus Operator CRDs on the cluster).
+  enabled: true
+  # Namespace for the PrometheusRule. Empty = release namespace.
+  namespace: ""
+  # Labels the Prometheus Operator uses to select rules.
+  # kube-prometheus-stack default is `release: <its release name>`; alternatively set
+  # `prometheus.prometheusSpec.ruleSelectorNilUsesHelmValues=false` on that chart.
+  labels: {}
+  # Evaluation interval of the generated rule groups.
+  interval: 30s
+
+dashboard:
+  # Create a ConfigMap carrying the SLO dashboard for the Grafana sidecar.
+  enabled: true
+  # Namespace for the ConfigMap. Empty = release namespace.
+  namespace: ""
+  # The kube-prometheus-stack Grafana sidecar imports ConfigMaps with this label.
+  labels:
+    grafana_dashboard: "1"
+  # For example `grafana_folder: SLOs` (the sidecar's folderAnnotation).
+  annotations: {}
+
+alerting:
+  # Alert names become <prefix>BurnRatePage and <prefix>BurnRateTicket.
+  alertNamePrefix: SLO
+  # Extra labels on every alert (routing keys, team, ...).
+  labels: {}
+  # Extra annotations on every alert. `runbook_url` and `dashboard_url` are the usual ones.
+  annotations: {}
+  page:
+    enabled: true
+    severity: critical
+    for: 2m
+    # Windows from the Google SRE Workbook for a 30-day SLO.
+    # factor = period_hours x budget_fraction / long_window_hours
+    windows:
+      - long: 1h
+        short: 5m
+        factor: 14.4   # 2% of the 30-day budget consumed in 1 hour
+      - long: 6h
+        short: 30m
+        factor: 6      # 5% in 6 hours
+  ticket:
+    enabled: true
+    severity: warning
+    for: 15m
+    windows:
+      - long: 1d
+        short: 2h
+        factor: 3      # 10% in 1 day
+      - long: 3d
+        short: 6h
+        factor: 1      # 10% in 3 days
+
+# Your SLOs. Write `$WINDOW` where the range selector goes; the chart fills it in
+# for every alert window (5m, 30m, 1h, 2h, 6h, 1d, 3d) and for the SLO period.
+slos: []
+#  - name: api-availability          # unique; becomes the `slo` label
+#    service: api                    # becomes the `service` label
+#    objective: 99.9                 # percent of good events over the period
+#    description: Non-5xx responses / all responses
+#    labels:                         # extra labels on every rule and alert of this SLO
+#      team: platform
+#    sli:
+#      errorQuery: sum(rate(http_requests_total{job="api",code=~"5.."}[$WINDOW]))
+#      totalQuery: sum(rate(http_requests_total{job="api"}[$WINDOW]))
+#    alerting:                       # optional per-SLO overrides
+#      page:
+#        enabled: true
+#        severity: critical
+#        for: 2m
+#      ticket:
+#        enabled: true
+#        severity: warning
+#        for: 15m
+#      annotations:
+#        runbook_url: https://runbooks.example.com/api-availability

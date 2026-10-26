@@ -1,0 +1,26 @@
+{{ .Chart.Name }} {{ .Chart.Version }} installed as release "{{ .Release.Name }}".
+{{- if .Values.slos }}
+
+SLOs ({{ len .Values.slos }}), {{ .Values.sloPeriodDays }}-day window:
+{{- range .Values.slos }}
+  - {{ .name }}: {{ .objective }}%{{ if .service }}  (service: {{ .service }}){{ end }}
+{{- end }}
+{{- else }}
+
+No SLOs defined, so no rules were generated. Add them under `slos:` (see the README for the format).
+{{- end }}
+{{- if and .Values.prometheusRule.enabled .Values.slos }}
+
+PrometheusRule "{{ include "slo.fullname" . }}" in namespace "{{ .Values.prometheusRule.namespace | default .Release.Namespace }}".
+Prometheus only loads it if its ruleSelector matches the rule's labels. With kube-prometheus-stack either set
+  prometheusRule.labels: {release: <kube-prometheus-stack release name>}
+on this chart, or set prometheus.prometheusSpec.ruleSelectorNilUsesHelmValues=false on that one.
+
+Alerts: {{ .Values.alerting.alertNamePrefix }}BurnRatePage (severity {{ .Values.alerting.page.severity }}) and {{ .Values.alerting.alertNamePrefix }}BurnRateTicket (severity {{ .Values.alerting.ticket.severity }}), labelled slo, service and slo_alert_type.
+Check:  kubectl -n {{ .Values.prometheusRule.namespace | default .Release.Namespace }} get prometheusrule {{ include "slo.fullname" . }} -o yaml
+{{- end }}
+{{- if .Values.dashboard.enabled }}
+
+Dashboard ConfigMap "{{ include "slo.fullname" . }}-dashboard" in namespace "{{ .Values.dashboard.namespace | default .Release.Namespace }}".
+The Grafana sidecar imports it as "SLO overview and burn rates" (uid oreon-slo-overview).
+{{- end }}

@@ -1,0 +1,109 @@
+{{- if and .Values.prometheusRule.enabled .Values.slos }}
+{{- $windows := splitList "," (include "slo.windows" .) }}
+{{- $periodDays := int .Values.sloPeriodDays }}
+{{- $period := printf "%dd" $periodDays }}
+{{- $periodHours := mulf (float64 $periodDays) 24 }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "slo.fullname" . }}
+  namespace: {{ .Values.prometheusRule.namespace | default .Release.Namespace }}
+  labels:
+    {{- include "slo.labels" . | nindent 4 }}
+    {{- with .Values.prometheusRule.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  groups:
+  {{- range $s := .Values.slos }}
+  {{- $objective := divf (float64 $s.objective) 100 }}
+  {{- $budget := subf 1 $objective }}
+  {{- $objStr := printf "%.9g" $objective }}
+  {{- $budgetStr := printf "%.9g" $budget }}
+  {{- $sel := printf "{slo=%q}" $s.name }}
+  - name: slo-{{ $s.name }}-recording
+    {{- with $.Values.prometheusRule.interval }}
+    interval: {{ . }}
+    {{- end }}
+    rules:
+    {{- range $w := append $windows $period }}
+    - record: slo:sli_error:ratio_rate{{ $w }}
+      expr: |
+        (
+          {{ $s.sli.errorQuery | replace "$WINDOW" $w }}
+        )
+        /
+        (
+          {{ $s.sli.totalQuery | replace "$WINDOW" $w }}
+        )
+      labels:
+        {{- include "slo.ruleLabels" $s | nindent 8 }}
+    - record: slo:error_budget_burn_rate:ratio_rate{{ $w }}
+      expr: slo:sli_error:ratio_rate{{ $w }}{{ $sel }} / {{ $budgetStr }}
+      labels:
+        {{- include "slo.ruleLabels" $s | nindent 8 }}
+    {{- end }}
+    - record: slo:objective:ratio
+      expr: vector({{ $objStr }})
+      labels:
+        {{- include "slo.ruleLabels" $s | nindent 8 }}
+    - record: slo:error_budget:ratio
+      expr: vector({{ $budgetStr }})
+      labels:
+        {{- include "slo.ruleLabels" $s | nindent 8 }}
+    - record: slo:period:days
+      expr: vector({{ $periodDays }})
+      labels:
+        {{- include "slo.ruleLabels" $s | nindent 8 }}
+    - record: slo:error_budget_remaining:ratio
+      expr: 1 - (slo:sli_error:ratio_rate{{ $period }}{{ $sel }} / {{ $budgetStr }})
+      labels:
+        {{- include "slo.ruleLabels" $s | nindent 8 }}
+  {{- $a := $s.alerting | default dict }}
+  {{- $page := mergeOverwrite (deepCopy $.Values.alerting.page) (deepCopy ($a.page | default dict)) }}
+  {{- $ticket := mergeOverwrite (deepCopy $.Values.alerting.ticket) (deepCopy ($a.ticket | default dict)) }}
+  {{- if or $page.enabled $ticket.enabled }}
+  - name: slo-{{ $s.name }}-alerts
+    rules:
+    {{- range $kind, $cfg := dict "page" $page "ticket" $ticket }}
+    {{- if $cfg.enabled }}
+    {{- $first := index $cfg.windows 0 }}
+    {{- $hours := divf $periodHours (float64 $first.factor) }}
+    - alert: {{ $.Values.alerting.alertNamePrefix }}BurnRate{{ $kind | title }}
+      expr: |
+        {{- range $i, $w := $cfg.windows }}
+        {{- if $i }}
+        or
+        {{- end }}
+        (
+          slo:error_budget_burn_rate:ratio_rate{{ $w.long }}{{ $sel }} > {{ $w.factor }}
+          and
+          slo:error_budget_burn_rate:ratio_rate{{ $w.short }}{{ $sel }} > {{ $w.factor }}
+        )
+        {{- end }}
+      for: {{ $cfg.for }}
+      labels:
+        severity: {{ $cfg.severity | quote }}
+        slo_alert_type: {{ $kind | quote }}
+        {{- include "slo.ruleLabels" $s | nindent 8 }}
+        {{- range $k, $v := $.Values.alerting.labels }}
+        {{ $k }}: {{ $v | quote }}
+        {{- end }}
+      annotations:
+        summary: 'SLO {{ `{{ $labels.slo }}` }} is burning error budget at {{ `{{ $value | printf "%.1f" }}` }}x the sustainable rate ({{ $kind }})'
+        description: >-
+          {{ if $s.service }}Service {{ $s.service }}: {{ end }}SLO {{ $s.name }} ({{ printf "%.9g" (float64 $s.objective) }}% over {{ $periodDays }} days)
+          {{- if $s.description }}, {{ $s.description }},{{ end }}
+          is failing faster than its budget allows. At {{ $first.factor }}x the whole {{ $periodDays }}-day budget is gone in about {{ printf "%.0f" $hours }} hours.
+          Windows: {{ range $i, $w := $cfg.windows }}{{ if $i }}, {{ end }}{{ $w.long }}/{{ $w.short }} at {{ $w.factor }}x{{ end }}.
+        {{- range $k, $v := $.Values.alerting.annotations }}
+        {{ $k }}: {{ $v | quote }}
+        {{- end }}
+        {{- range $k, $v := ($a.annotations | default dict) }}
+        {{ $k }}: {{ $v | quote }}
+        {{- end }}
+    {{- end }}
+    {{- end }}
+  {{- end }}
+  {{- end }}
+{{- end }}

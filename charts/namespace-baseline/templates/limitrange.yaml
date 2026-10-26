@@ -1,0 +1,45 @@
+{{- range $ns := .Values.namespaces }}
+{{- $cfg := mergeOverwrite (deepCopy $.Values.defaults) (deepCopy $ns) }}
+{{- if $cfg.limitRange.enabled }}
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: baseline
+  namespace: {{ $ns.name }}
+  labels:
+    {{- include "nsb.labels" $ | nindent 4 }}
+spec:
+  limits:
+    {{- with $cfg.limitRange.container }}
+    {{- $c := . }}
+    - type: Container
+      {{- range $field := list "defaultRequest" "default" "min" "max" "maxLimitRequestRatio" }}
+      {{- with index $c $field }}
+      {{ $field }}:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- end }}
+    {{- end }}
+    {{- with $cfg.limitRange.pod }}
+    {{- $p := . }}
+    - type: Pod
+      {{- range $field := list "min" "max" "maxLimitRequestRatio" }}
+      {{- with index $p $field }}
+      {{ $field }}:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- end }}
+    {{- end }}
+    {{- with $cfg.limitRange.pvc }}
+    {{- $v := . }}
+    - type: PersistentVolumeClaim
+      {{- range $field := list "min" "max" }}
+      {{- with index $v $field }}
+      {{ $field }}:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- end }}
+    {{- end }}
+{{- end }}
+{{- end }}

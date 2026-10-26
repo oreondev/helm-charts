@@ -1,0 +1,27 @@
+{{ .Chart.Name }} {{ .Chart.Version }} installed as release "{{ .Release.Name }}".
+{{- if .Values.namespaces }}
+
+Namespaces ({{ len .Values.namespaces }}):
+{{- range $ns := .Values.namespaces }}
+{{- $cfg := mergeOverwrite (deepCopy $.Values.defaults) (deepCopy $ns) }}
+  - {{ $ns.name }}: {{ if $cfg.create }}created{{ else }}existing{{ end }}
+    {{- if $cfg.podSecurity.enabled }}, PSA enforce={{ $cfg.podSecurity.enforce }}{{ end }}
+    {{- if $cfg.quota.enabled }}, quota{{ end }}
+    {{- if $cfg.limitRange.enabled }}, limitrange{{ end }}
+    {{- if $cfg.networkPolicy.enabled }}, netpol{{ if $cfg.networkPolicy.defaultDeny }} (default deny){{ end }}{{ end }}
+    {{- if $cfg.rbac.enabled }}, rbac{{ end }}
+{{- end }}
+{{- else }}
+
+No namespaces defined. Add them under `namespaces:` (see the README).
+{{- end }}
+
+Reminders
+  - NetworkPolicy only works if your CNI enforces it (Calico, Cilium, GKE Dataplane V2, AKS NPM/Cilium, EKS VPC CNI with network policy enabled).
+  - Namespaces created here carry `helm.sh/resource-policy: keep`; `helm uninstall` leaves them (and their workloads) in place.
+  - To manage a namespace that already exists, let Helm adopt it first:
+      kubectl label ns <name> app.kubernetes.io/managed-by=Helm
+      kubectl annotate ns <name> meta.helm.sh/release-name={{ .Release.Name }} meta.helm.sh/release-namespace={{ .Release.Namespace }}
+{{- if .Values.monitoring.enabled }}
+  - PrometheusRule "{{ .Release.Name }}-namespace-baseline" alerts at {{ .Values.monitoring.nearLimitThreshold | default 0.9 }} and 1.0 of any quota (needs kube-state-metrics).
+{{- end }}

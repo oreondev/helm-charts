@@ -1,0 +1,145 @@
+# Default values for namespace-baseline.
+#
+# `defaults` applies to every namespace in `namespaces`; each namespace entry may
+# override any key (maps are merged, lists are replaced).
+
+defaults:
+  # Create the Namespace object. Set false for namespaces that already exist and
+  # that you do not want Helm to own (then PSA labels are not managed either).
+  create: true
+  # Add `helm.sh/resource-policy: keep` so `helm uninstall` never deletes a
+  # namespace and everything running in it.
+  keepOnUninstall: true
+  # Extra labels and annotations on the Namespace.
+  labels: {}
+  annotations: {}
+
+  # Pod Security Admission levels: privileged | baseline | restricted.
+  podSecurity:
+    enabled: true
+    enforce: baseline
+    enforceVersion: latest
+    audit: restricted
+    warn: restricted
+
+  # Hard limits for the namespace as a whole.
+  quota:
+    enabled: true
+    hard:
+      requests.cpu: "4"
+      requests.memory: 8Gi
+      limits.cpu: "8"
+      limits.memory: 16Gi
+      pods: "50"
+      persistentvolumeclaims: "10"
+      services.loadbalancers: "0"
+
+  # Per-container defaults and bounds, so nothing runs without requests.
+  limitRange:
+    enabled: true
+    container:
+      defaultRequest:
+        cpu: 50m
+        memory: 64Mi
+      default:
+        cpu: 500m
+        memory: 512Mi
+      min:
+        cpu: 10m
+        memory: 16Mi
+      max:
+        cpu: "4"
+        memory: 8Gi
+    pvc:
+      max:
+        storage: 100Gi
+
+  networkPolicy:
+    enabled: true
+    # Deny all ingress and egress, then open only what is listed below.
+    defaultDeny: true
+    # Pods in the namespace may talk to each other.
+    allowSameNamespace: true
+    # Egress to the cluster DNS service.
+    allowDNS:
+      enabled: true
+      namespace: kube-system
+      podLabels:
+        k8s-app: kube-dns
+    # Namespaces whose pods may send traffic in (ingress controller, monitoring, ...).
+    # Strings match `kubernetes.io/metadata.name`; objects may add podLabels and ports.
+    allowIngressFromNamespaces: []
+    #  - ingress-nginx
+    #  - namespace: monitoring
+    #    podLabels:
+    #      app.kubernetes.io/name: prometheus
+    #    ports:
+    #      - port: 8080
+    #        protocol: TCP
+    # Namespaces this namespace may send traffic to.
+    allowEgressToNamespaces: []
+    # CIDRs this namespace may reach (databases, SaaS, the internet).
+    allowEgressCIDRs: []
+    #  - cidr: 0.0.0.0/0
+    #    except:
+    #      - 10.0.0.0/8
+    #      - 169.254.169.254/32
+    #    ports:
+    #      - port: 443
+    #        protocol: TCP
+
+  # RoleBindings to the built-in admin / edit / view ClusterRoles.
+  # Strings are Group names; objects are full subjects ({kind, name, namespace}).
+  rbac:
+    enabled: true
+    admins: []
+    editors: []
+    viewers: []
+
+# One entry per namespace. Only `name` is required.
+namespaces: []
+#  - name: team-payments
+#    podSecurity:
+#      enforce: restricted
+#    quota:
+#      hard:
+#        requests.cpu: "16"
+#        requests.memory: 32Gi
+#        limits.cpu: "32"
+#        limits.memory: 64Gi
+#        pods: "200"
+#    networkPolicy:
+#      allowIngressFromNamespaces: [ingress-nginx, monitoring]
+#      allowEgressCIDRs:
+#        - cidr: 0.0.0.0/0
+#          except: [10.0.0.0/8, 169.254.169.254/32]
+#          ports: [{port: 443, protocol: TCP}]
+#    rbac:
+#      admins: [platform-team]
+#      editors: [payments-developers]
+#      viewers: [sre-oncall]
+#  - name: team-sandbox
+#    podSecurity:
+#      enforce: baseline
+#    networkPolicy:
+#      enabled: false
+
+# Cluster-wide PriorityClasses (optional).
+priorityClasses: []
+#  - name: tenant-critical
+#    value: 100000
+#    description: Customer-facing workloads that must be scheduled first.
+#  - name: tenant-batch
+#    value: -1000
+#    preemptionPolicy: Never
+#    description: Batch work that may wait.
+
+# PrometheusRule alerting on namespaces close to their quota (needs kube-state-metrics
+# and the Prometheus Operator CRDs).
+monitoring:
+  enabled: false
+  # Labels for the Prometheus Operator ruleSelector (kube-prometheus-stack: release: <name>).
+  labels: {}
+  nearLimitThreshold: 0.9
+  nearLimitSeverity: warning
+  exhaustedSeverity: critical

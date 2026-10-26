@@ -1,0 +1,166 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "namespace-baseline values",
+  "type": "object",
+  "properties": {
+    "defaults": { "$ref": "#/definitions/namespaceConfig" },
+    "namespaces": {
+      "type": "array",
+      "items": {
+        "allOf": [
+          { "$ref": "#/definitions/namespaceConfig" },
+          {
+            "type": "object",
+            "required": ["name"],
+            "properties": {
+              "name": { "type": "string", "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$", "maxLength": 63 }
+            }
+          }
+        ]
+      }
+    },
+    "priorityClasses": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "value"],
+        "properties": {
+          "name": { "type": "string" },
+          "value": { "type": "integer" },
+          "globalDefault": { "type": "boolean" },
+          "preemptionPolicy": { "type": "string", "enum": ["PreemptLowerPriority", "Never"] },
+          "description": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "monitoring": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "labels": { "$ref": "#/definitions/stringMap" },
+        "nearLimitThreshold": { "type": "number", "exclusiveMinimum": 0, "exclusiveMaximum": 1 },
+        "nearLimitSeverity": { "type": "string" },
+        "exhaustedSeverity": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "definitions": {
+    "stringMap": { "type": "object", "additionalProperties": { "type": "string" } },
+    "quantityMap": { "type": "object", "additionalProperties": { "type": ["string", "number"] } },
+    "subject": {
+      "oneOf": [
+        { "type": "string" },
+        {
+          "type": "object",
+          "required": ["name"],
+          "properties": {
+            "kind": { "type": "string", "enum": ["Group", "User", "ServiceAccount"] },
+            "name": { "type": "string" },
+            "namespace": { "type": "string" }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "namespacePeer": {
+      "oneOf": [
+        { "type": "string" },
+        {
+          "type": "object",
+          "required": ["namespace"],
+          "properties": {
+            "namespace": { "type": "string" },
+            "podLabels": { "$ref": "#/definitions/stringMap" },
+            "ports": { "type": "array", "items": { "type": "object" } }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "namespaceConfig": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "create": { "type": "boolean" },
+        "keepOnUninstall": { "type": "boolean" },
+        "labels": { "$ref": "#/definitions/stringMap" },
+        "annotations": { "$ref": "#/definitions/stringMap" },
+        "podSecurity": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "enforce": { "type": "string", "enum": ["privileged", "baseline", "restricted"] },
+            "enforceVersion": { "type": "string" },
+            "audit": { "type": "string", "enum": ["privileged", "baseline", "restricted"] },
+            "warn": { "type": "string", "enum": ["privileged", "baseline", "restricted"] }
+          },
+          "additionalProperties": false
+        },
+        "quota": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "hard": { "$ref": "#/definitions/quantityMap" }
+          },
+          "additionalProperties": false
+        },
+        "limitRange": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "container": { "type": "object" },
+            "pod": { "type": "object" },
+            "pvc": { "type": "object" }
+          },
+          "additionalProperties": false
+        },
+        "networkPolicy": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "defaultDeny": { "type": "boolean" },
+            "allowSameNamespace": { "type": "boolean" },
+            "allowDNS": {
+              "type": "object",
+              "properties": {
+                "enabled": { "type": "boolean" },
+                "namespace": { "type": "string" },
+                "podLabels": { "$ref": "#/definitions/stringMap" }
+              },
+              "additionalProperties": false
+            },
+            "allowIngressFromNamespaces": { "type": "array", "items": { "$ref": "#/definitions/namespacePeer" } },
+            "allowEgressToNamespaces": { "type": "array", "items": { "$ref": "#/definitions/namespacePeer" } },
+            "allowEgressCIDRs": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["cidr"],
+                "properties": {
+                  "cidr": { "type": "string" },
+                  "except": { "type": "array", "items": { "type": "string" } },
+                  "ports": { "type": "array", "items": { "type": "object" } }
+                },
+                "additionalProperties": false
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "rbac": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "admins": { "type": "array", "items": { "$ref": "#/definitions/subject" } },
+            "editors": { "type": "array", "items": { "$ref": "#/definitions/subject" } },
+            "viewers": { "type": "array", "items": { "$ref": "#/definitions/subject" } }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

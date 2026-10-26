@@ -1,0 +1,133 @@
+{{- range $ns := .Values.namespaces }}
+{{- $cfg := mergeOverwrite (deepCopy $.Values.defaults) (deepCopy $ns) }}
+{{- $np := $cfg.networkPolicy }}
+{{- if $np.enabled }}
+{{- if $np.defaultDeny }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: {{ $ns.name }}
+  labels:
+    {{- include "nsb.labels" $ | nindent 4 }}
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+{{- end }}
+{{- if $np.allowSameNamespace }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-same-namespace
+  namespace: {{ $ns.name }}
+  labels:
+    {{- include "nsb.labels" $ | nindent 4 }}
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector: {}
+  egress:
+    - to:
+        - podSelector: {}
+{{- end }}
+{{- if $np.allowDNS.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns-egress
+  namespace: {{ $ns.name }}
+  labels:
+    {{- include "nsb.labels" $ | nindent 4 }}
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ $np.allowDNS.namespace | default "kube-system" | quote }}
+          podSelector:
+            matchLabels:
+              {{- toYaml ($np.allowDNS.podLabels | default (dict "k8s-app" "kube-dns")) | nindent 14 }}
+      ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+{{- end }}
+{{- with $np.allowIngressFromNamespaces }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-from-namespaces
+  namespace: {{ $ns.name }}
+  labels:
+    {{- include "nsb.labels" $ | nindent 4 }}
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+  ingress:
+    {{- range $peer := . }}
+    {{- include "nsb.peerRule" (dict "peer" $peer "direction" "from") | nindent 4 }}
+    {{- end }}
+{{- end }}
+{{- with $np.allowEgressToNamespaces }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-egress-to-namespaces
+  namespace: {{ $ns.name }}
+  labels:
+    {{- include "nsb.labels" $ | nindent 4 }}
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    {{- range $peer := . }}
+    {{- include "nsb.peerRule" (dict "peer" $peer "direction" "to") | nindent 4 }}
+    {{- end }}
+{{- end }}
+{{- with $np.allowEgressCIDRs }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-egress-to-cidrs
+  namespace: {{ $ns.name }}
+  labels:
+    {{- include "nsb.labels" $ | nindent 4 }}
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    {{- range $block := . }}
+    - to:
+        - ipBlock:
+            cidr: {{ $block.cidr | quote }}
+            {{- with $block.except }}
+            except:
+              {{- toYaml . | nindent 14 }}
+            {{- end }}
+      {{- with $block.ports }}
+      ports:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

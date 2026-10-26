@@ -1,0 +1,18 @@
+{{- range $ns := .Values.namespaces }}
+{{- $cfg := mergeOverwrite (deepCopy $.Values.defaults) (deepCopy $ns) }}
+{{- if $cfg.quota.enabled }}
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: baseline
+  namespace: {{ $ns.name }}
+  labels:
+    {{- include "nsb.labels" $ | nindent 4 }}
+spec:
+  hard:
+    {{- range $k, $v := $cfg.quota.hard }}
+    {{ $k }}: {{ $v | quote }}
+    {{- end }}
+{{- end }}
+{{- end }}

@@ -1,0 +1,30 @@
+{{- range $ns := .Values.namespaces }}
+{{- $cfg := mergeOverwrite (deepCopy $.Values.defaults) (deepCopy $ns) }}
+{{- if $cfg.create }}
+{{- $ann := dict }}
+{{- if $cfg.keepOnUninstall }}
+{{- $_ := set $ann "helm.sh/resource-policy" "keep" }}
+{{- end }}
+{{- $ann = mergeOverwrite $ann ($cfg.annotations | default dict) }}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ $ns.name }}
+  labels:
+    {{- include "nsb.labels" $ | nindent 4 }}
+    {{- if $cfg.podSecurity.enabled }}
+    pod-security.kubernetes.io/enforce: {{ $cfg.podSecurity.enforce }}
+    pod-security.kubernetes.io/enforce-version: {{ $cfg.podSecurity.enforceVersion | default "latest" }}
+    pod-security.kubernetes.io/audit: {{ $cfg.podSecurity.audit | default $cfg.podSecurity.enforce }}
+    pod-security.kubernetes.io/warn: {{ $cfg.podSecurity.warn | default $cfg.podSecurity.enforce }}
+    {{- end }}
+    {{- with $cfg.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with $ann }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}
+{{- end }}

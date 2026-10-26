@@ -1,0 +1,41 @@
+apiVersion: v2
+name: namespace-baseline
+description: Guardrails for every team namespace from one values file - Pod Security Admission labels, ResourceQuota, LimitRange, default-deny NetworkPolicies with the usual allows (DNS, same namespace, ingress controller, monitoring), RBAC bindings for team groups and optional quota alerts.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+kubeVersion: ">=1.25.0-0"
+home: https://www.oreonit.com/containerization-orchestration-management-kubernetes-openshift/
+icon: https://raw.githubusercontent.com/oreonit/helm-charts/main/icon.png
+sources:
+  - https://github.com/oreonit/helm-charts
+keywords:
+  - namespace
+  - multi-tenancy
+  - network-policy
+  - resource-quota
+  - limit-range
+  - pod-security
+  - pod-security-admission
+  - rbac
+  - platform-engineering
+  - guardrails
+maintainers:
+  - name: Oreon IT
+    email: info@oreonit.com
+    url: https://www.oreonit.com/
+annotations:
+  artifacthub.io/license: MIT
+  artifacthub.io/category: security
+  artifacthub.io/prerelease: "false"
+  artifacthub.io/operator: "false"
+  artifacthub.io/links: |
+    - name: Kubernetes production readiness checklist
+      url: https://www.oreonit.com/kubernetes-production-readiness-checklist/
+    - name: Kubernetes operators every cluster needs
+      url: https://www.oreonit.com/common-kubernetes-operators-every-cluster-needs/
+    - name: Kubernetes consulting by the maintainers
+      url: https://www.oreonit.com/containerization-orchestration-management-kubernetes-openshift/
+  artifacthub.io/changes: |
+    - kind: added
+      description: Initial release

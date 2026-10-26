@@ -1,0 +1,47 @@
+{{- if and .Values.monitoring.enabled .Values.namespaces }}
+{{- $names := list }}
+{{- range .Values.namespaces }}{{ $names = append $names .name }}{{ end }}
+{{- $re := join "|" $names }}
+{{- $threshold := .Values.monitoring.nearLimitThreshold | default 0.9 }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ .Release.Name }}-namespace-baseline
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "nsb.labels" . | nindent 4 }}
+    {{- with .Values.monitoring.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  groups:
+    - name: namespace-baseline-quota
+      rules:
+        - alert: NamespaceQuotaNearLimit
+          expr: |
+            (
+              kube_resourcequota{namespace=~{{ $re | quote }}, type="used"}
+              / ignoring(type)
+              (kube_resourcequota{namespace=~{{ $re | quote }}, type="hard"} > 0)
+            ) > {{ $threshold }}
+            < 1
+          for: 15m
+          labels:
+            severity: {{ .Values.monitoring.nearLimitSeverity | default "warning" | quote }}
+          annotations:
+            summary: 'Namespace {{ `{{ $labels.namespace }}` }} is at {{ `{{ $value | humanizePercentage }}` }} of its {{ `{{ $labels.resource }}` }} quota'
+            description: 'Quota {{ `{{ $labels.resourcequota }}` }} in namespace {{ `{{ $labels.namespace }}` }}: {{ `{{ $labels.resource }}` }} is above {{ printf "%.0f" (mulf (float64 $threshold) 100) }}% of the hard limit. New workloads will be rejected once it reaches 100%.'
+        - alert: NamespaceQuotaExhausted
+          expr: |
+            (
+              kube_resourcequota{namespace=~{{ $re | quote }}, type="used"}
+              / ignoring(type)
+              (kube_resourcequota{namespace=~{{ $re | quote }}, type="hard"} > 0)
+            ) >= 1
+          for: 5m
+          labels:
+            severity: {{ .Values.monitoring.exhaustedSeverity | default "critical" | quote }}
+          annotations:
+            summary: 'Namespace {{ `{{ $labels.namespace }}` }} has exhausted its {{ `{{ $labels.resource }}` }} quota'
+            description: 'Quota {{ `{{ $labels.resourcequota }}` }} in namespace {{ `{{ $labels.namespace }}` }}: {{ `{{ $labels.resource }}` }} is fully used. Pods needing more will stay unscheduled or be rejected by the API server.'
+{{- end }}
