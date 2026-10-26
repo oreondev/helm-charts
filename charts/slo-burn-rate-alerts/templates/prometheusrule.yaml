@@ -46,9 +46,17 @@ spec:
     rules:
     {{- range $w := append $windows $period }}
     - record: slo:sli_error:ratio_rate{{ $w }}
+      # A window without a single error has no error series at all; fall back to 0 x total so the ratio reads 0
+      # (not "no data") whenever there is traffic.
       expr: |
         (
-          {{ $s.sli.errorQuery | replace "$WINDOW" $w }}
+          (
+            {{ $s.sli.errorQuery | replace "$WINDOW" $w }}
+          )
+          or
+          (
+            0 * ({{ $s.sli.totalQuery | replace "$WINDOW" $w }})
+          )
         )
         /
         (
