@@ -1,0 +1,22 @@
+# otel-collector-baseline wired to the dev stack: metrics go to the in-cluster
+# Prometheus (remote write receiver), traces and logs to the debug exporter.
+clusterName: dev
+environment: dev
+image: otel/opentelemetry-collector-contrib:0.163.2
+gateway:
+  replicas: 2
+processing:
+  tailSampling:
+    enabled: true
+backends:
+  prometheusremotewrite:
+    enabled: true
+    endpoint: http://kube-prometheus-stack-prometheus.monitoring.svc:9090/api/v1/write
+  debug:
+    enabled: true
+    signals: [traces, logs]
+monitoring:
+  enabled: true
+  alerts:
+    extraLabels:
+      team: demo

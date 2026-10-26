@@ -1,0 +1,5 @@
+# Probe target for blackbox-slo-probes (its Probe objects point at this Service).
+fullnameOverride: blackbox-exporter
+serviceMonitor:
+  selfMonitor:
+    enabled: true

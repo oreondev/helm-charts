@@ -1,0 +1,14 @@
+# Single replica of each Kyverno controller, with ServiceMonitors.
+admissionController:
+  replicas: 1
+  serviceMonitor:
+    enabled: true
+backgroundController:
+  serviceMonitor:
+    enabled: true
+cleanupController:
+  serviceMonitor:
+    enabled: true
+reportsController:
+  serviceMonitor:
+    enabled: true

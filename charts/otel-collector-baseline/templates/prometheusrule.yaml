@@ -19,9 +19,7 @@ spec:
       rules:
         - alert: OtelCollectorExporterSendFailed
           expr: |
-            sum by (namespace, pod, exporter) (
-              rate({__name__=~"otelcol_exporter_send_failed_(spans|metric_points|log_records)(_total)?", namespace="{{ $ns }}"}[5m])
-            ) > 0
+            {{- include "otel.anyIncreasing" (dict "by" "namespace, pod, exporter" "selector" (printf "namespace=%q" $ns) "window" "5m" "metrics" (list "otelcol_exporter_send_failed_spans" "otelcol_exporter_send_failed_metric_points" "otelcol_exporter_send_failed_log_records")) | nindent 12 }}
           for: {{ $m.alerts.for }}
           labels:
             severity: {{ $m.alerts.severity | quote }}
@@ -47,9 +45,7 @@ spec:
             description: 'The {{ `{{ $labels.exporter }}` }} sending queue is backing up: the backend is slow or down, or the collector needs more replicas or a bigger queue.'
         - alert: OtelCollectorReceiverRefused
           expr: |
-            sum by (namespace, pod, receiver) (
-              rate({__name__=~"otelcol_receiver_refused_(spans|metric_points|log_records)(_total)?", namespace="{{ $ns }}"}[5m])
-            ) > 0
+            {{- include "otel.anyIncreasing" (dict "by" "namespace, pod, receiver" "selector" (printf "namespace=%q" $ns) "window" "5m" "metrics" (list "otelcol_receiver_refused_spans" "otelcol_receiver_refused_metric_points" "otelcol_receiver_refused_log_records")) | nindent 12 }}
           for: {{ $m.alerts.for }}
           labels:
             severity: {{ $m.alerts.severity | quote }}
@@ -61,9 +57,7 @@ spec:
             description: 'Usually the memory limiter: raise the memory limit or the replica count. Refused data is lost unless the sender retries.'
         - alert: OtelCollectorProcessorDropped
           expr: |
-            sum by (namespace, pod, processor) (
-              rate({__name__=~"otelcol_processor_(dropped|refused)_(spans|metric_points|log_records)(_total)?", namespace="{{ $ns }}"}[5m])
-            ) > 0
+            {{- include "otel.anyIncreasing" (dict "by" "namespace, pod, processor" "selector" (printf "namespace=%q" $ns) "window" "5m" "metrics" (list "otelcol_processor_memory_limiter_refused_spans" "otelcol_processor_memory_limiter_refused_metric_points" "otelcol_processor_memory_limiter_refused_log_records" "otelcol_processor_refused_spans" "otelcol_processor_refused_metric_points" "otelcol_processor_refused_log_records" "otelcol_processor_dropped_spans" "otelcol_processor_dropped_metric_points" "otelcol_processor_dropped_log_records")) | nindent 12 }}
           for: {{ $m.alerts.for }}
           labels:
             severity: {{ $m.alerts.severity | quote }}
@@ -72,7 +66,7 @@ spec:
             {{- end }}
           annotations:
             summary: 'Processor {{ `{{ $labels.processor }}` }} on {{ `{{ $labels.pod }}` }} is dropping data'
-            description: 'Dropped or refused by a processor (memory limiter under pressure, or a filter that is broader than intended).'
+            description: 'Refused by the memory limiter (raise the memory limit or the replica count), or dropped by a processor on collectors that still report otelcol_processor_dropped_*.'
         {{- if .Values.agent.enabled }}
         - alert: OtelCollectorAgentPodsUnavailable
           expr: kube_daemonset_status_number_unavailable{namespace="{{ $ns }}", daemonset="{{ $agent }}"} > 0

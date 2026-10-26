@@ -1,0 +1,3 @@
+# Audit everywhere, enforce in the demo namespace, skip system namespaces.
+failureAction: Audit
+enforceNamespaces: [demo]

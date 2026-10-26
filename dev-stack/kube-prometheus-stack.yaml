@@ -1,0 +1,62 @@
+# Lean kube-prometheus-stack for a single-node test cluster.
+# Selectors pick up every ServiceMonitor, PodMonitor, Probe, PrometheusRule and
+# AlertmanagerConfig in every namespace, so the charts in this repo need no
+# "release:" label to be seen.
+crds:
+  enabled: true
+defaultRules:
+  rules:
+    etcd: false
+    kubeControllerManager: false
+    kubeSchedulerAlerting: false
+    kubeSchedulerRecording: false
+    kubeProxy: false
+kubeEtcd:
+  enabled: false
+kubeControllerManager:
+  enabled: false
+kubeScheduler:
+  enabled: false
+kubeProxy:
+  enabled: false
+prometheus:
+  prometheusSpec:
+    retention: 2d
+    scrapeInterval: 30s
+    enableRemoteWriteReceiver: true
+    enableOTLPReceiver: true
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    probeSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+    scrapeConfigSelectorNilUsesHelmValues: false
+    resources:
+      requests: {cpu: 100m, memory: 400Mi}
+      limits: {memory: 1500Mi}
+alertmanager:
+  alertmanagerSpec:
+    alertmanagerConfigMatcherStrategy:
+      type: None
+    alertmanagerConfigSelector: {}
+    alertmanagerConfigNamespaceSelector:
+      matchExpressions:
+        - {key: kubernetes.io/metadata.name, operator: Exists}
+    resources:
+      requests: {cpu: 10m, memory: 50Mi}
+grafana:
+  persistence:
+    enabled: false
+  sidecar:
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+      labelValue: "1"
+      searchNamespace: ALL
+  resources:
+    requests: {cpu: 50m, memory: 150Mi}
+prometheusOperator:
+  resources:
+    requests: {cpu: 20m, memory: 64Mi}
+kube-state-metrics:
+  resources:
+    requests: {cpu: 10m, memory: 64Mi}

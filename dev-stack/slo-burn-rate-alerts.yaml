@@ -1,0 +1,21 @@
+# SLOs on the demo app (dev-stack/demo-app.yaml). /err returns 404, so for
+# the demo a 4xx counts as a failed request.
+sloPeriodDays: 30
+slos:
+  - name: demo-api-availability
+    service: demo-api
+    objective: 99.9
+    description: non-error responses over all responses
+    sli:
+      errorQuery: sum(rate(http_requests_total{namespace="demo",code=~"4..|5.."}[$WINDOW]))
+      totalQuery: sum(rate(http_requests_total{namespace="demo"}[$WINDOW]))
+  - name: demo-api-latency-100ms
+    service: demo-api
+    objective: 99
+    description: requests faster than 100 ms
+    sli:
+      errorQuery: sum(rate(http_request_duration_seconds_count{namespace="demo"}[$WINDOW])) - sum(rate(http_request_duration_seconds_bucket{namespace="demo",le="0.1"}[$WINDOW]))
+      totalQuery: sum(rate(http_request_duration_seconds_count{namespace="demo"}[$WINDOW]))
+alerting:
+  labels:
+    team: demo

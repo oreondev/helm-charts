@@ -1,0 +1,15 @@
+# OpenTelemetry Operator with cert-manager webhooks and the contrib collector
+# as default image (the otel-collector-baseline chart uses contrib-only
+# receivers such as kubeletstats, k8sattributes and filelog).
+manager:
+  collectorImage:
+    repository: otel/opentelemetry-collector-contrib
+  serviceMonitor:
+    enabled: true
+  resources:
+    requests: {cpu: 20m, memory: 64Mi}
+admissionWebhooks:
+  certManager:
+    enabled: true
+crds:
+  create: true

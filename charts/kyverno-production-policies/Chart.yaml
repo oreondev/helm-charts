@@ -2,7 +2,7 @@ apiVersion: v2
 name: kyverno-production-policies
 description: The Kubernetes production-readiness checklist as Kyverno policies - requests and limits, probes, owner labels, no latest tags, PodDisruptionBudgets and spread for multi-replica workloads, no NodePorts, nothing in the default namespace. Audit mode by default, enforce per namespace.
 type: application
-version: 0.1.0
+version: 0.1.1
 appVersion: "0.1.0"
 kubeVersion: ">=1.25.0-0"
 home: https://www.oreonit.com/production-readiness-audit-for-kubernetes/

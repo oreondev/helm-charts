@@ -1,0 +1,19 @@
+# Routing on the dev stack. Both receivers post to the echo server in
+# dev-stack/alert-sink.yaml, whose log shows which receiver got which alert.
+# Teams match on the team label, which the other charts' values add to every
+# alert (SLO alerts have no namespace label: the SLI is a cluster-wide sum).
+receivers:
+  platform-page:
+    webhook:
+      urlSecret: {name: alert-sink, key: page-url}
+  platform-ticket:
+    webhook:
+      urlSecret: {name: alert-sink, key: ticket-url}
+teams:
+  - name: demo
+    matchers:
+      - {name: team, value: demo}
+    page: platform-page
+    ticket: platform-ticket
+fallback:
+  receiver: platform-ticket

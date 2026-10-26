@@ -360,3 +360,20 @@ Processing processors (health-check filter, redaction, tail sampling) as a YAML 
 {{- $config := dict "receivers" $receivers "processors" $processors "exporters" $be.exporters "extensions" (dict "health_check" (dict "endpoint" "0.0.0.0:13133")) "service" (dict "extensions" (list "health_check") "telemetry" (include "otel.telemetry" $root | fromYaml) "pipelines" $pipelines) -}}
 {{- toYaml (mergeOverwrite $config (deepCopy ($g.extraConfig | default dict))) -}}
 {{- end -}}
+
+{{/*
+"Any of these counters is increasing", one term per metric joined with "or".
+A single {__name__=~"a|b"} selector cannot be used: rate() drops the metric
+name, so two counters with the same labels (refused spans and refused log
+records on one receiver) collide and the whole rule fails to evaluate.
+Each metric still matches with and without the _total suffix, since only one
+spelling exists per collector.
+dict: metrics (list), by (string), selector (string), window (string)
+*/}}
+{{- define "otel.anyIncreasing" -}}
+{{- $terms := list }}
+{{- range .metrics }}
+{{- $terms = append $terms (printf "sum by (%s) (rate({__name__=~\"%s(_total)?\", %s}[%s])) > 0" $.by . $.selector $.window) }}
+{{- end }}
+{{- join "\nor\n" $terms }}
+{{- end }}

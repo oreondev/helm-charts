@@ -65,7 +65,7 @@ Enforce everywhere: `--set failureAction=Enforce`.
 
 ## Notes
 
-- `require-pdb` looks up PodDisruptionBudgets through the Kubernetes API (`apiCall` with Kyverno's `label_match`). The chart ships an aggregated ClusterRole for that; if your Kyverno installation does not use the `rbac.kyverno.io/aggregate-to-*` labels, grant the Kyverno controllers `list` on `poddisruptionbudgets.policy` yourself.
+- `require-pdb` looks up PodDisruptionBudgets through the Kubernetes API (`apiCall` with Kyverno's `label_match`). The chart ships an aggregated ClusterRole for that; if your Kyverno installation does not use the `rbac.kyverno.io/aggregate-to-*` labels, grant the Kyverno controllers `list` on `poddisruptionbudgets.policy` yourself. Only `matchLabels` selectors are compared: a PDB that selects with `matchExpressions` alone is not seen, so give such PDBs a `matchLabels` entry or exclude the workload.
 - Audit findings for workloads that existed before the policy appear through background scans; give it a couple of minutes after install.
 - Exceptions: use Kyverno `PolicyException` resources for the one workload that genuinely needs a NodePort, rather than turning the policy off.
 - A clean report is a readiness checklist you can show an auditor. If you would like the rest of the checklist (upgrades, backups, cost, observability) reviewed, that is the [production readiness audit](https://www.oreonit.com/production-readiness-audit-for-kubernetes/).

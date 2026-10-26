@@ -1,0 +1,84 @@
+# Demo service with real request metrics for the SLO charts.
+# prometheus-example-app exposes http_requests_total{code,method} and
+# http_request_duration_seconds; /err answers 404. The load pod sends
+# ERROR_PERCENT of its requests to /err, so burn-rate alerts can be driven
+# up and down: kubectl -n demo set env deploy/load ERROR_PERCENT=0
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: demo
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  namespace: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: api}
+  template:
+    metadata:
+      labels: {app: api}
+    spec:
+      containers:
+        - name: api
+          image: quay.io/brancz/prometheus-example-app:v0.5.0
+          ports:
+            - {name: http, containerPort: 8080}
+          resources:
+            requests: {cpu: 10m, memory: 16Mi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api
+  namespace: demo
+  labels: {app: api}
+spec:
+  selector: {app: api}
+  ports:
+    - {name: http, port: 80, targetPort: http}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: api
+  namespace: demo
+spec:
+  selector:
+    matchLabels: {app: api}
+  endpoints:
+    - port: http
+      interval: 15s
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: load
+  namespace: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: load}
+  template:
+    metadata:
+      labels: {app: load}
+    spec:
+      containers:
+        - name: load
+          image: curlimages/curl:8.11.1
+          env:
+            - {name: ERROR_PERCENT, value: "0"}
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              i=0
+              while true; do
+                i=$((i + 1))
+                if [ $((i % 100)) -lt "$ERROR_PERCENT" ]; then p=/err; else p=/; fi
+                curl -s -o /dev/null "http://api.demo.svc$p"
+                sleep 0.1
+              done
+          resources:
+            requests: {cpu: 10m, memory: 16Mi}

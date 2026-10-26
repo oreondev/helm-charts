@@ -75,7 +75,7 @@ agent:
       - k8s.pod.uid
       - k8s.pod.start_time
       - container.image.name
-      - container.image.tag
+      - container.image.tags   # plural since the k8s semantic conventions update; the singular is no longer emitted
     # Pod labels copied to resource attributes: {tagName: <attribute>, key: <label>, from: pod|namespace|node}.
     extractLabels:
       - tagName: app.kubernetes.io/name
