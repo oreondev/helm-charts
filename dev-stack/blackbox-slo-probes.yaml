@@ -1,0 +1,39 @@
+# blackbox-slo-probes against the dev stack: two healthy in-cluster targets, one that always fails (so the
+# failure panels and ProbeDown have data), and one public site for the TLS-expiry panel.
+blackbox:
+  url: blackbox-exporter.monitoring.svc:9115
+
+probe:
+  interval: 15s
+
+alerting:
+  labels:
+    team: demo
+
+targets:
+  - name: demo-api
+    url: http://api.demo.svc/
+    service: demo-api
+    availability:
+      objective: 99.5
+    latency:
+      objective: 99
+      threshold: 0.5
+  - name: grafana
+    url: http://kube-prometheus-stack-grafana.monitoring.svc/api/health
+    service: grafana
+    availability:
+      objective: 99.9
+  - name: broken
+    url: http://does-not-exist.demo.svc/
+    service: broken-on-purpose
+    availability:
+      objective: 99
+  - name: oreonit
+    url: https://www.oreonit.com/
+    service: website
+    availability:
+      objective: 99.9
+    latency:
+      objective: 95
+      threshold: 1.5

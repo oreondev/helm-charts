@@ -23,6 +23,8 @@ helm upgrade --install slo charts/slo-burn-rate-alerts -n monitoring -f dev-stac
 helm upgrade --install routing charts/alertmanager-routing-baseline -n monitoring -f dev-stack/alertmanager-routing-baseline.yaml
 helm upgrade --install otel charts/otel-collector-baseline -n observability --create-namespace -f dev-stack/otel-collector-baseline.yaml
 helm upgrade --install policies charts/kyverno-production-policies -n kyverno -f dev-stack/kyverno-production-policies.yaml
+helm upgrade --install probes charts/blackbox-slo-probes -n monitoring -f dev-stack/blackbox-slo-probes.yaml
+helm upgrade --install cost charts/k8s-cost-waste-alerts -n monitoring -f dev-stack/k8s-cost-waste-alerts.yaml
 ```
 
 The script refuses to run unless `DEV_STACK_CONTEXT` names the current
