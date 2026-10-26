@@ -33,6 +33,32 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- printf "%s-local" (include "otel.agentName" .) -}}
 {{- end -}}
 
+{{/*
+The app.kubernetes.io/instance label the operator puts on a collector's pods: "<namespace>.<name>" cut to
+63 characters the way its naming.Truncate does (namespace shortened first, then the name, then leading and
+trailing non-alphanumerics removed). Dict: ns, name.
+*/}}
+{{- define "otel.instanceLabel" -}}
+{{- $ns := .ns -}}
+{{- $name := .name -}}
+{{- $excess := int (sub (add (len $ns) (len $name) 1) 63) -}}
+{{- if gt $excess 0 -}}
+{{- if gt (int (len $ns)) $excess -}}
+{{- $ns = substr 0 (int (sub (len $ns) $excess)) $ns -}}
+{{- $excess = 0 -}}
+{{- else -}}
+{{- $excess = int (sub $excess (len $ns)) -}}
+{{- $ns = "" -}}
+{{- end -}}
+{{- if gt $excess 0 -}}
+{{- $name = substr 0 (int (sub (len $name) $excess)) $name -}}
+{{- end -}}
+{{- end -}}
+{{- $s := printf "%s.%s" $ns $name -}}
+{{- $s = regexReplaceAll "[^A-Za-z0-9]+$" $s "" -}}
+{{- regexReplaceAll "^[^A-Za-z0-9]+" $s "" -}}
+{{- end -}}
+
 {{/* OTLP/gRPC address of the gateway Service the operator creates. */}}
 {{- define "otel.gatewayEndpoint" -}}
 {{- printf "%s-collector.%s.svc.cluster.local:4317" (include "otel.gatewayName" .) .Release.Namespace -}}

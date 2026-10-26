@@ -136,8 +136,14 @@ timeIntervals:
       - monday:friday
     start: "09:00"
     end: "18:00"
-  # Raw muteTimeIntervals entries appended as-is (maintenance windows, holidays).
+  # muteTimeIntervals entries appended (maintenance windows, holidays), in the AlertmanagerConfig shape.
+  # Native Alertmanager spellings are converted: daysOfMonth "24:26" or "24" -> {start, end},
+  # times start_time/end_time -> startTime/endTime. weekdays, months and years are strings in both.
   extra: []
+  #  - name: christmas
+  #    timeIntervals:
+  #      - daysOfMonth: ["24:26"]
+  #        months: [december]
 
 # Raw routes inserted before the team routes (first match wins).
 extraRoutes: []

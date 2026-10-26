@@ -138,7 +138,7 @@ spec:
         (dict "weekdays" $bh.weekdays "times" (list (dict "startTime" "00:00" "endTime" $bh.start) (dict "startTime" $bh.end "endTime" "24:00")))
         (dict "weekdays" (list "saturday" "sunday")))) }}
   {{- end }}
-  {{- $intervals = concat $intervals (.Values.timeIntervals.extra | default list) }}
+  {{- $intervals = concat $intervals (include "amr.normalizeIntervals" (.Values.timeIntervals.extra | default list) | fromYamlArray) }}
   {{- with $intervals }}
   muteTimeIntervals:
     {{- toYaml . | nindent 4 }}

@@ -46,6 +46,48 @@ toYaml that quotes bare matchType operators ("=" is a special token for some YAM
 {{- end -}}
 
 {{/*
+Normalise muteTimeIntervals entries into the AlertmanagerConfig CRD shape: daysOfMonth as {start, end}
+objects (native "24:26" / "24" / 24 accepted), times with startTime/endTime (native start_time/end_time accepted).
+Call with the list; returns a YAML list.
+*/}}
+{{- define "amr.normalizeIntervals" -}}
+{{- $out := list -}}
+{{- range $mti := . -}}
+{{- $m := deepCopy $mti -}}
+{{- $tis := list -}}
+{{- range $ti := ($m.timeIntervals | default list) -}}
+{{- $t := deepCopy $ti -}}
+{{- if hasKey $t "daysOfMonth" -}}
+{{- $days := list -}}
+{{- range $d := $t.daysOfMonth -}}
+{{- if eq (kindOf $d) "map" -}}
+{{- $days = append $days $d -}}
+{{- else -}}
+{{- $parts := splitList ":" (toString $d) -}}
+{{- $start := int (index $parts 0) -}}
+{{- $end := $start -}}
+{{- if gt (len $parts) 1 }}{{ $end = int (index $parts 1) }}{{ end -}}
+{{- $days = append $days (dict "start" $start "end" $end) -}}
+{{- end -}}
+{{- end -}}
+{{- $_ := set $t "daysOfMonth" $days -}}
+{{- end -}}
+{{- if hasKey $t "times" -}}
+{{- $times := list -}}
+{{- range $tr := $t.times -}}
+{{- $times = append $times (dict "startTime" ($tr.startTime | default $tr.start_time) "endTime" ($tr.endTime | default $tr.end_time)) -}}
+{{- end -}}
+{{- $_ := set $t "times" $times -}}
+{{- end -}}
+{{- $tis = append $tis $t -}}
+{{- end -}}
+{{- $_ := set $m "timeIntervals" $tis -}}
+{{- $out = append $out $m -}}
+{{- end -}}
+{{- toYaml $out -}}
+{{- end -}}
+
+{{/*
 Fail unless the receiver name exists (or is the null receiver / empty).
 */}}
 {{- define "amr.checkReceiver" -}}
