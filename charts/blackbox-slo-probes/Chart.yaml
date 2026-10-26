@@ -1,0 +1,41 @@
+apiVersion: v2
+name: blackbox-slo-probes
+description: Synthetic monitoring with SLOs - a list of URLs becomes Prometheus Operator Probe objects for the blackbox exporter, availability and latency SLOs with multi-window burn-rate page and ticket alerts, probe-down and TLS-expiry alerts, and a Grafana dashboard.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+kubeVersion: ">=1.25.0-0"
+home: https://www.oreonit.com/observability-and-monitoring-consultancy-services/
+icon: https://raw.githubusercontent.com/oreonit/helm-charts/main/icon.png
+sources:
+  - https://github.com/oreonit/helm-charts
+keywords:
+  - blackbox-exporter
+  - synthetic-monitoring
+  - uptime
+  - probe
+  - slo
+  - burn-rate
+  - tls
+  - prometheus-operator
+  - kube-prometheus-stack
+  - sre
+maintainers:
+  - name: Oreon IT
+    email: info@oreonit.com
+    url: https://www.oreonit.com/
+annotations:
+  artifacthub.io/license: MIT
+  artifacthub.io/category: monitoring-logging
+  artifacthub.io/prerelease: "false"
+  artifacthub.io/operator: "false"
+  artifacthub.io/links: |
+    - name: 12 SLO and SLI examples with PromQL
+      url: https://www.oreonit.com/slo-sli-examples-targets-promql/
+    - name: Disaster recovery plan template (uptime objectives)
+      url: https://www.oreonit.com/disaster-recovery-plan-template-for-cloud-teams/
+    - name: Observability consulting by the maintainers
+      url: https://www.oreonit.com/observability-and-monitoring-consultancy-services/
+  artifacthub.io/changes: |
+    - kind: added
+      description: Initial release

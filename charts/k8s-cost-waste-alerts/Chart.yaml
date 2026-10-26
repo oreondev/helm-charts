@@ -1,0 +1,43 @@
+apiVersion: v2
+name: k8s-cost-waste-alerts
+description: Find the money hiding in a Kubernetes cluster - recording rules, alerts and a Grafana dashboard for requests far above usage, under-committed nodes, idle PersistentVolumeClaims, LoadBalancers with no endpoints, HPAs stuck at max or pinned, containers without requests and workloads scaled to zero for weeks. Priced in your currency. Needs only kube-state-metrics and cAdvisor.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+kubeVersion: ">=1.25.0-0"
+home: https://www.oreonit.com/cloud-cost-optimization-review/
+icon: https://raw.githubusercontent.com/oreonit/helm-charts/main/icon.png
+sources:
+  - https://github.com/oreonit/helm-charts
+keywords:
+  - finops
+  - cost
+  - cost-optimization
+  - kubernetes
+  - right-sizing
+  - waste
+  - prometheus
+  - kube-state-metrics
+  - grafana
+  - alerting
+maintainers:
+  - name: Oreon IT
+    email: info@oreonit.com
+    url: https://www.oreonit.com/
+annotations:
+  artifacthub.io/license: MIT
+  artifacthub.io/category: monitoring-logging
+  artifacthub.io/prerelease: "false"
+  artifacthub.io/operator: "false"
+  artifacthub.io/links: |
+    - name: GKE cost optimisation levers that work
+      url: https://www.oreonit.com/gke-cost-optimization-levers-that-work/
+    - name: EKS cost optimisation, 12 levers
+      url: https://www.oreonit.com/eks-cost-optimization-12-levers-that-actually-work/
+    - name: Cost observability and FinOps
+      url: https://www.oreonit.com/cost-observability-finops/
+    - name: Cloud cost optimisation review by the maintainers
+      url: https://www.oreonit.com/cloud-cost-optimization-review/
+  artifacthub.io/changes: |
+    - kind: added
+      description: Initial release

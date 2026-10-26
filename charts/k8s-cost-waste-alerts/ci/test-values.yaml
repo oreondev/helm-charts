@@ -1,0 +1,32 @@
+prometheusRule:
+  labels:
+    release: kube-prometheus-stack
+  interval: 2m
+
+dashboard:
+  annotations:
+    grafana_folder: Cost
+
+excludeNamespaces: "kube-.*|monitoring"
+
+pricing:
+  currency: GBP
+  cpuCoreHour: 0.026
+  memoryGiBHour: 0.0035
+
+thresholds:
+  cpuWasteRatio: 0.6
+  minCpuRequestCores: 4
+  clusterCpuCommitRatio: 0.5
+
+alerts:
+  idlePvc:
+    enabled: true
+    severity: warning
+    for: 3d
+  scaledToZero:
+    enabled: false
+
+alertLabels:
+  team: platform
+  category: cost

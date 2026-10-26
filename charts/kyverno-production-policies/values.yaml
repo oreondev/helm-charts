@@ -1,0 +1,83 @@
+# Default values for kyverno-production-policies.
+#
+# Everything starts in Audit mode: nothing is blocked, findings appear in
+# PolicyReports. Move to Enforce per namespace with enforceNamespaces, or
+# globally with failureAction. Needs Kyverno 1.13 or newer.
+
+# Prefix for ClusterPolicy names, e.g. "prod-" when installing several copies.
+namePrefix: ""
+
+# Audit (report only) or Enforce (reject). Applies to every policy.
+failureAction: Audit
+
+# Namespaces where every policy enforces even while failureAction is Audit.
+enforceNamespaces: []
+
+# Namespaces no policy looks at. Wildcards allowed.
+excludeNamespaces:
+  - kube-*
+  - kyverno
+  - gmp-*
+  - gke-*
+  - calico-*
+  - tigera-operator
+
+# Scan existing resources too (PolicyReports), not only admission requests.
+background: true
+
+policies:
+  # Every container has CPU and memory requests and a memory limit.
+  requireRequestsLimits:
+    enabled: true
+    # CPU limits cause throttling; most teams leave them off. Require them anyway?
+    requireCpuLimit: false
+
+  # Deployments, StatefulSets and DaemonSets have liveness and readiness probes.
+  requireProbes:
+    enabled: true
+    requireStartupProbe: false
+
+  # Pods carry the labels you route cost, ownership and alerts by.
+  requireLabels:
+    enabled: true
+    labels:
+      - app.kubernetes.io/name
+      - team
+
+  # Images have an explicit tag or digest, and it is not "latest".
+  disallowLatestTag:
+    enabled: true
+
+  # Workloads with minReplicas or more replicas have a matching PodDisruptionBudget.
+  requirePdb:
+    enabled: true
+    minReplicas: 2
+
+  # Workloads with minReplicas or more replicas spread across nodes or zones
+  # (topologySpreadConstraints or podAntiAffinity).
+  requireTopologySpread:
+    enabled: true
+    minReplicas: 2
+
+  # No NodePort services.
+  restrictNodePort:
+    enabled: true
+
+  # Nothing runs in the default namespace.
+  disallowDefaultNamespace:
+    enabled: true
+
+  # Images only from these registries (prefixes). Off until you fill the list.
+  restrictImageRegistries:
+    enabled: false
+    registries: []
+    #  - europe-west2-docker.pkg.dev/my-project/*
+    #  - ghcr.io/my-org/*
+
+  # Containers use a read-only root filesystem. Off by default: many images need a writable /tmp.
+  requireReadOnlyRootFs:
+    enabled: false
+
+rbac:
+  # Let Kyverno list PodDisruptionBudgets (needed by requirePdb) via aggregated ClusterRoles.
+  kyvernoReadPdbs: true

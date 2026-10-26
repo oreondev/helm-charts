@@ -1,0 +1,74 @@
+{{- if and .Values.prometheusRule.enabled .Values.targets }}
+{{- $windows := splitList "," (include "bsp.windows" .) }}
+{{- $periodDays := int .Values.sloPeriodDays }}
+{{- $period := printf "%dd" $periodDays }}
+{{- $job := .Values.probe.jobName }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "bsp.fullname" . }}
+  namespace: {{ .Values.prometheusRule.namespace | default .Release.Namespace }}
+  labels:
+    {{- include "bsp.labels" . | nindent 4 }}
+    {{- with .Values.prometheusRule.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  groups:
+  {{- range $t := .Values.targets }}
+  {{- $probeSel := printf "{job=%q, slo_target=%q}" $job $t.name }}
+  {{- $avail := $t.availability | default dict }}
+  {{- $availObjective := $avail.objective | default 99.9 }}
+  - name: probe-{{ $t.name }}-recording
+    interval: {{ $.Values.prometheusRule.interval }}
+    rules:
+    {{- include "bsp.sloRecording" (dict "root" $ "target" $t "slo" (printf "%s-availability" $t.name) "errorExpr" (printf "1 - avg_over_time(probe_success%s[$WINDOW])" $probeSel) "objective" $availObjective "windows" $windows "period" $period "periodDays" $periodDays) | nindent 4 }}
+    {{- if $t.latency }}
+    - record: probe:slow:bool
+      expr: probe_duration_seconds{{ $probeSel }} > bool {{ $t.latency.threshold }}
+      labels:
+        {{- include "bsp.targetLabels" $t | nindent 8 }}
+    {{- include "bsp.sloRecording" (dict "root" $ "target" $t "slo" (printf "%s-latency" $t.name) "errorExpr" (printf "avg_over_time(probe:slow:bool{slo_target=%q}[$WINDOW])" $t.name) "objective" $t.latency.objective "windows" $windows "period" $period "periodDays" $periodDays) | nindent 4 }}
+    {{- end }}
+  - name: probe-{{ $t.name }}-alerts
+    rules:
+    {{- if $.Values.alerting.probeDown.enabled }}
+    - alert: {{ $.Values.alerting.alertNamePrefix }}Down
+      expr: probe_success{{ $probeSel }} == 0
+      for: {{ $.Values.alerting.probeDown.for }}
+      labels:
+        severity: {{ $.Values.alerting.probeDown.severity | quote }}
+        {{- include "bsp.targetLabels" $t | nindent 8 }}
+        {{- range $k, $v := $.Values.alerting.labels }}
+        {{ $k }}: {{ $v | quote }}
+        {{- end }}
+      annotations:
+        summary: 'Synthetic probe for {{ $t.name }} has been failing for {{ $.Values.alerting.probeDown.for }}'
+        description: '{{ $t.url }} does not pass the {{ $t.module | default $.Values.probe.module }} check from the blackbox exporter. Last HTTP status: {{ "{{ with query `probe_http_status_code" }}{{ $probeSel }}{{ "` }}{{ . | first | value }}{{ else }}n/a{{ end }}" }}.'
+        {{- range $k, $v := $.Values.alerting.annotations }}
+        {{ $k }}: {{ $v | quote }}
+        {{- end }}
+    {{- end }}
+    {{- if $.Values.alerting.tlsExpiry.enabled }}
+    - alert: {{ $.Values.alerting.alertNamePrefix }}TLSCertificateExpiringSoon
+      expr: (probe_ssl_earliest_cert_expiry{{ $probeSel }} - time()) / 86400 < {{ $.Values.alerting.tlsExpiry.days }}
+      for: 1h
+      labels:
+        severity: {{ $.Values.alerting.tlsExpiry.severity | quote }}
+        {{- include "bsp.targetLabels" $t | nindent 8 }}
+        {{- range $k, $v := $.Values.alerting.labels }}
+        {{ $k }}: {{ $v | quote }}
+        {{- end }}
+      annotations:
+        summary: 'TLS certificate for {{ $t.name }} expires in {{ `{{ $value | printf "%.0f" }}` }} days'
+        description: '{{ $t.url }}: renew the certificate before it expires, or check why automatic renewal (cert-manager, ACME) stopped.'
+        {{- range $k, $v := $.Values.alerting.annotations }}
+        {{ $k }}: {{ $v | quote }}
+        {{- end }}
+    {{- end }}
+    {{- include "bsp.sloAlerts" (dict "root" $ "target" $t "slo" (printf "%s-availability" $t.name) "objective" $availObjective "what" "availability" "periodDays" $periodDays) | nindent 4 }}
+    {{- if $t.latency }}
+    {{- include "bsp.sloAlerts" (dict "root" $ "target" $t "slo" (printf "%s-latency" $t.name) "objective" $t.latency.objective "what" "latency" "periodDays" $periodDays) | nindent 4 }}
+    {{- end }}
+  {{- end }}
+{{- end }}

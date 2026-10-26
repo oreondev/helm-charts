@@ -1,0 +1,29 @@
+{{- $p := .Values.policies.requireReadOnlyRootFs }}
+{{- if $p.enabled }}
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: {{ .Values.namePrefix }}require-ro-rootfs
+  labels:
+    {{- include "kpp.labels" . | nindent 4 }}
+  annotations:
+    {{- include "kpp.annotations" (dict "title" "Require a read-only root filesystem" "category" "Pod security" "severity" "medium" "subject" "Pod" "description" "A writable root filesystem lets a compromised process modify the container's binaries. Set securityContext.readOnlyRootFilesystem: true and mount an emptyDir where the application needs to write.") | nindent 4 }}
+spec:
+  background: {{ .Values.background }}
+  rules:
+    - name: root-filesystem-is-read-only
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      {{- include "kpp.exclude" . | nindent 6 }}
+      validate:
+        {{- include "kpp.failure" . | nindent 8 }}
+        message: "securityContext.readOnlyRootFilesystem must be true for every container."
+        pattern:
+          spec:
+            containers:
+              - securityContext:
+                  readOnlyRootFilesystem: true
+{{- end }}

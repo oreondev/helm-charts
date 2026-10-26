@@ -1,0 +1,33 @@
+{{- $p := .Values.policies.disallowDefaultNamespace }}
+{{- if $p.enabled }}
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: {{ .Values.namePrefix }}disallow-default-namespace
+  labels:
+    {{- include "kpp.labels" . | nindent 4 }}
+  annotations:
+    {{- include "kpp.annotations" (dict "title" "Disallow workloads in the default namespace" "category" "Multi-tenancy" "severity" "low" "subject" "Pod, Deployment, StatefulSet, DaemonSet, Job, CronJob" "description" "The default namespace has no quota, no network policy and no owner. Workloads belong in a namespace that has all three.") | nindent 4 }}
+spec:
+  background: {{ .Values.background }}
+  rules:
+    - name: nothing-in-default
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+                - Deployment
+                - StatefulSet
+                - DaemonSet
+                - Job
+                - CronJob
+              namespaces:
+                - default
+      validate:
+        {{- include "kpp.failure" . | nindent 8 }}
+        message: "Workloads may not run in the default namespace."
+        pattern:
+          metadata:
+            namespace: "!default"
+{{- end }}

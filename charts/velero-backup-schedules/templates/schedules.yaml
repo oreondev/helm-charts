@@ -1,0 +1,58 @@
+{{- range $s := .Values.schedules }}
+{{- $cfg := mergeOverwrite (deepCopy $.Values.defaults) (deepCopy $s) }}
+---
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: {{ $s.name }}
+  namespace: {{ $.Values.veleroNamespace }}
+  labels:
+    {{- include "vbs.labels" $ | nindent 4 }}
+spec:
+  schedule: {{ $s.schedule | quote }}
+  useOwnerReferencesInBackup: {{ $cfg.useOwnerReferencesInBackup }}
+  paused: {{ $cfg.paused }}
+  skipImmediately: {{ $cfg.skipImmediately }}
+  template:
+    ttl: {{ $s.ttl | default "720h" }}
+    {{- with $cfg.storageLocation }}
+    storageLocation: {{ . }}
+    {{- end }}
+    {{- with $cfg.volumeSnapshotLocations }}
+    volumeSnapshotLocations:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with $cfg.includedNamespaces }}
+    includedNamespaces:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with $cfg.excludedNamespaces }}
+    excludedNamespaces:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with $cfg.includedResources }}
+    includedResources:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with $cfg.excludedResources }}
+    excludedResources:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- if not (kindIs "invalid" $cfg.includeClusterResources) }}
+    includeClusterResources: {{ $cfg.includeClusterResources }}
+    {{- end }}
+    snapshotVolumes: {{ $cfg.snapshotVolumes }}
+    defaultVolumesToFsBackup: {{ $cfg.defaultVolumesToFsBackup }}
+    {{- with $cfg.labelSelector }}
+    labelSelector:
+      matchLabels:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with $cfg.csiSnapshotTimeout }}
+    csiSnapshotTimeout: {{ . }}
+    {{- end }}
+    {{- with $cfg.hooks }}
+    hooks:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+{{- end }}

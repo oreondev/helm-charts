@@ -1,0 +1,96 @@
+# Default values for blackbox-slo-probes.
+#
+# Needs a blackbox exporter (e.g. the prometheus-community/prometheus-blackbox-exporter
+# chart) and the Prometheus Operator (kube-prometheus-stack). Everything here is
+# Probe objects, a PrometheusRule and a dashboard ConfigMap.
+
+blackbox:
+  # Blackbox exporter address as Prometheus reaches it (host:port, no scheme).
+  url: prometheus-blackbox-exporter.monitoring.svc:9115
+  scheme: http
+  path: /probe
+
+probe:
+  # Job label on the probe metrics.
+  jobName: blackbox-slo
+  interval: 30s
+  scrapeTimeout: 10s
+  # Default blackbox module; override per target.
+  module: http_2xx
+  # Namespace for the Probe objects. Empty = release namespace.
+  namespace: ""
+  # Labels for the Prometheus Operator probeSelector
+  # (kube-prometheus-stack: release: <its release name>, or set probeSelectorNilUsesHelmValues=false there).
+  labels: {}
+
+# SLO window in days.
+sloPeriodDays: 30
+
+prometheusRule:
+  enabled: true
+  namespace: ""
+  labels: {}
+  interval: 30s
+
+dashboard:
+  enabled: true
+  namespace: ""
+  labels:
+    grafana_dashboard: "1"
+  annotations: {}
+
+alerting:
+  alertNamePrefix: Probe
+  # Extra labels / annotations on every alert.
+  labels: {}
+  annotations: {}
+  page:
+    enabled: true
+    severity: critical
+    for: 2m
+    windows:
+      - long: 1h
+        short: 5m
+        factor: 14.4
+      - long: 6h
+        short: 30m
+        factor: 6
+  ticket:
+    enabled: true
+    severity: warning
+    for: 15m
+    windows:
+      - long: 1d
+        short: 2h
+        factor: 3
+      - long: 3d
+        short: 6h
+        factor: 1
+  # The probe has failed continuously (independent of the SLO maths).
+  probeDown:
+    enabled: true
+    severity: critical
+    for: 3m
+  # The TLS certificate expires within this many days.
+  tlsExpiry:
+    enabled: true
+    severity: warning
+    days: 14
+
+# One entry per URL. availability is always measured; latency only when set.
+targets: []
+#  - name: website                 # unique; SLOs are named <name>-availability and <name>-latency
+#    url: https://www.example.com/
+#    service: website              # service label (defaults to name)
+#    module: http_2xx              # blackbox module override
+#    labels:                       # extra labels on probe metrics, rules and alerts
+#      team: platform
+#    availability:
+#      objective: 99.9
+#    latency:
+#      objective: 99
+#      threshold: 1.0              # seconds; a probe slower than this is a bad event
+#  - name: api-health
+#    url: https://api.example.com/healthz
+#    availability:
+#      objective: 99.95

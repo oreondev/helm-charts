@@ -1,0 +1,16 @@
+{{ .Chart.Name }} {{ .Chart.Version }} installed as release "{{ .Release.Name }}".
+
+AlertmanagerConfig "{{ .Values.name }}" in namespace "{{ .Release.Namespace }}".
+Teams: {{ if .Values.teams }}{{ range $i, $t := .Values.teams }}{{ if $i }}, {{ end }}{{ $t.name }}{{ end }}{{ else }}none (everything goes to the fallback receiver){{ end }}
+Receivers: {{ if .Values.receivers }}{{ keys .Values.receivers | sortAlpha | join ", " }}{{ else }}none defined{{ end }}
+Fallback: {{ .Values.fallback.receiver | default .Values.nullReceiver }}
+
+Scope reminder: the Prometheus Operator restricts an AlertmanagerConfig to alerts from its own
+namespace unless you either
+  - set alertmanager.alertmanagerSpec.alertmanagerConfigMatcherStrategy.type=None (kube-prometheus-stack), or
+  - make this the global config: alertmanager.alertmanagerSpec.alertmanagerConfiguration.name={{ .Values.name }}
+    (this release must then be in the Alertmanager's namespace).
+
+Check the generated config:
+  kubectl -n {{ .Release.Namespace }} get alertmanagerconfig {{ .Values.name }} -o yaml
+  kubectl -n <alertmanager namespace> get secret alertmanager-<name>-generated -o jsonpath='{.data.alertmanager\.yaml\.gz}' | base64 -d | gunzip

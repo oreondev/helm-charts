@@ -1,0 +1,32 @@
+{{- $p := .Values.policies.restrictImageRegistries }}
+{{- if and $p.enabled $p.registries }}
+{{- $allowed := join " | " $p.registries }}
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: {{ .Values.namePrefix }}restrict-image-registries
+  labels:
+    {{- include "kpp.labels" . | nindent 4 }}
+  annotations:
+    {{- include "kpp.annotations" (dict "title" "Restrict image registries" "category" "Supply chain" "severity" "high" "subject" "Pod" "description" (printf "Images may only come from registries you control and scan. Allowed: %s." (join ", " $p.registries))) | nindent 4 }}
+spec:
+  background: {{ .Values.background }}
+  rules:
+    - name: images-from-allowed-registries
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      {{- include "kpp.exclude" . | nindent 6 }}
+      validate:
+        {{- include "kpp.failure" . | nindent 8 }}
+        message: >-
+          Images must come from one of: {{ join ", " $p.registries }}.
+        pattern:
+          spec:
+            containers:
+              - image: {{ $allowed | quote }}
+            =(initContainers):
+              - image: {{ $allowed | quote }}
+{{- end }}

@@ -1,0 +1,56 @@
+{{- with .Values.storageLocation }}
+{{- if .create }}
+{{- if not .bucket }}{{ fail "storageLocation.bucket is required when storageLocation.create is true" }}{{ end }}
+apiVersion: velero.io/v1
+kind: BackupStorageLocation
+metadata:
+  name: {{ .name }}
+  namespace: {{ $.Values.veleroNamespace }}
+  labels:
+    {{- include "vbs.labels" $ | nindent 4 }}
+spec:
+  provider: {{ .provider }}
+  default: {{ .default }}
+  accessMode: {{ .accessMode }}
+  objectStorage:
+    bucket: {{ .bucket | quote }}
+    {{- with .prefix }}
+    prefix: {{ . | quote }}
+    {{- end }}
+  {{- with .config }}
+  config:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .credential }}
+  credential:
+    name: {{ .name }}
+    key: {{ .key }}
+  {{- end }}
+  {{- with .backupSyncPeriod }}
+  backupSyncPeriod: {{ . }}
+  {{- end }}
+{{- end }}
+{{- end }}
+{{- with .Values.volumeSnapshotLocation }}
+{{- if .create }}
+---
+apiVersion: velero.io/v1
+kind: VolumeSnapshotLocation
+metadata:
+  name: {{ .name }}
+  namespace: {{ $.Values.veleroNamespace }}
+  labels:
+    {{- include "vbs.labels" $ | nindent 4 }}
+spec:
+  provider: {{ .provider }}
+  {{- with .config }}
+  config:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .credential }}
+  credential:
+    name: {{ .name }}
+    key: {{ .key }}
+  {{- end }}
+{{- end }}
+{{- end }}

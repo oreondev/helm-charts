@@ -1,0 +1,111 @@
+# Default values for velero-backup-schedules.
+#
+# Velero must already be installed (vmware-tanzu/velero chart) with a working
+# BackupStorageLocation, unless you create one here. This chart only adds the
+# policy: schedules, retention, a restore test and alerts.
+
+# Namespace where Velero runs (Schedules and locations are created there).
+veleroNamespace: velero
+
+storageLocation:
+  # Create a BackupStorageLocation. Leave false to use the one Velero was installed with.
+  create: false
+  name: default
+  # aws | gcp | azure (matches the Velero plugin you installed)
+  provider: aws
+  bucket: ""
+  prefix: ""
+  # Provider config, e.g. {region: eu-west-2} for aws, {} for gcp, {resourceGroup: ..., storageAccount: ...} for azure.
+  config: {}
+  # Secret holding the credentials file, e.g. {name: cloud-credentials, key: cloud}. Empty = Velero's default secret.
+  credential: {}
+  default: true
+  accessMode: ReadWrite
+  # How often Velero re-syncs backups from the bucket (empty = Velero default).
+  backupSyncPeriod: ""
+
+volumeSnapshotLocation:
+  create: false
+  name: default
+  provider: aws
+  config: {}
+  credential: {}
+
+# Applied to every schedule; each schedule may override any key.
+defaults:
+  # Empty = Velero's default BackupStorageLocation.
+  storageLocation: ""
+  volumeSnapshotLocations: []
+  includedNamespaces:
+    - "*"
+  excludedNamespaces:
+    - kube-system
+    - kube-public
+    - kube-node-lease
+    - velero
+  excludedResources:
+    - events
+    - events.events.k8s.io
+  # null = let Velero decide (cluster resources included only for full-cluster backups).
+  includeClusterResources: null
+  snapshotVolumes: true
+  # Back up every pod volume with file-system backup (Kopia) instead of snapshots.
+  defaultVolumesToFsBackup: false
+  # Only back up resources carrying these labels (matchLabels). Empty = everything.
+  labelSelector: {}
+  # e.g. 20m when CSI snapshots are slow.
+  csiSnapshotTimeout: ""
+  useOwnerReferencesInBackup: false
+  paused: false
+  # Skip the backup Velero would otherwise take immediately on creation.
+  skipImmediately: false
+  # Hours since the last successful backup after which VeleroBackupTooOld fires (monitoring).
+  maxAgeHours: 26
+
+schedules:
+  - name: daily
+    schedule: "0 2 * * *"
+    ttl: 168h
+    maxAgeHours: 26
+  - name: weekly
+    schedule: "0 3 * * 0"
+    ttl: 720h
+    maxAgeHours: 192
+  - name: monthly
+    schedule: "0 4 1 * *"
+    ttl: 2160h
+    maxAgeHours: 768
+
+# A CronJob that restores the latest backup of one schedule into a scratch
+# namespace, waits for the pods to become Ready, then deletes the namespace.
+# Fails (and alerts) if the restore or the pods do not come up.
+restoreTest:
+  enabled: false
+  schedule: "0 6 1 * *"
+  fromSchedule: daily
+  # Namespace to restore (required when enabled).
+  namespace: ""
+  # Where to restore it. Empty = <namespace>-restore-test
+  targetNamespace: ""
+  waitTimeout: 30m
+  # The test passes only if at least this many pods become Ready.
+  minReadyPods: 1
+  # Delete the scratch namespace and the Restore object afterwards.
+  cleanup: true
+  image: bitnami/kubectl:1.31
+  serviceAccount:
+    create: true
+    name: ""
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      memory: 256Mi
+
+# PrometheusRule for Velero's metrics (enable metrics.serviceMonitor on the Velero chart).
+monitoring:
+  enabled: false
+  labels: {}
+  severity: critical
+  partialFailureSeverity: warning

@@ -1,0 +1,23 @@
+{{ .Chart.Name }} {{ .Chart.Version }} installed as release "{{ .Release.Name }}" (Velero namespace: {{ .Values.veleroNamespace }}).
+
+Schedules:
+{{- range $s := .Values.schedules }}
+{{- $cfg := mergeOverwrite (deepCopy $.Values.defaults) (deepCopy $s) }}
+  - {{ $s.name }}: "{{ $s.schedule }}", keep {{ $s.ttl | default "720h" }}{{ with $cfg.storageLocation }}, location {{ . }}{{ end }}{{ if $cfg.paused }} (PAUSED){{ end }}
+{{- end }}
+{{- if .Values.storageLocation.create }}
+BackupStorageLocation "{{ .Values.storageLocation.name }}" ({{ .Values.storageLocation.provider }}, bucket {{ .Values.storageLocation.bucket }}). Check it is Available:
+  kubectl -n {{ .Values.veleroNamespace }} get backupstoragelocations.velero.io
+{{- end }}
+{{- if .Values.restoreTest.enabled }}
+Restore test: CronJob "{{ include "vbs.restoreTestName" . }}" ("{{ .Values.restoreTest.schedule }}") restores the latest "{{ .Values.restoreTest.fromSchedule }}" backup of namespace "{{ .Values.restoreTest.namespace }}" into "{{ .Values.restoreTest.targetNamespace | default (printf "%s-restore-test" .Values.restoreTest.namespace) }}". Run it now:
+  kubectl -n {{ .Values.veleroNamespace }} create job --from=cronjob/{{ include "vbs.restoreTestName" . }} restore-test-manual
+{{- end }}
+{{- if .Values.monitoring.enabled }}
+Alerts: VeleroBackupFailed, VeleroBackupPartiallyFailed, VeleroBackupTooOld / VeleroBackupNeverRan per schedule{{ if .Values.restoreTest.enabled }}, VeleroRestoreTestFailed{{ end }}. They need Velero's metrics scraped (metrics.serviceMonitor.enabled on the Velero chart) and kube-state-metrics.
+{{- end }}
+
+Next: watch the first run.
+  velero schedule get -n {{ .Values.veleroNamespace }}
+  velero backup get -n {{ .Values.veleroNamespace }}
+A backup nobody has restored is a hope, not a backup: enable restoreTest.

@@ -1,0 +1,109 @@
+name: routing
+labels:
+  alertmanagerConfig: main
+
+route:
+  groupBy: [alertname, namespace, slo]
+  pageRepeatInterval: 30m
+
+receivers:
+  platform-slack:
+    slack:
+      apiURL:
+        name: alertmanager-secrets
+        key: platform-slack-webhook
+      channel: "#platform-alerts"
+  platform-pager:
+    pagerduty:
+      routingKey:
+        name: alertmanager-secrets
+        key: platform-pagerduty-routing-key
+      severity: critical
+  payments-slack:
+    slack:
+      apiURL:
+        name: alertmanager-secrets
+        key: payments-slack-webhook
+      channel: "#payments-alerts"
+      title: "Payments: {{ .CommonLabels.alertname }}"
+    email:
+      to: payments-oncall@example.com
+      from: alertmanager@example.com
+      smarthost: smtp.example.com:587
+      authUsername: alertmanager@example.com
+      authPassword:
+        name: alertmanager-secrets
+        key: smtp-password
+  ops-genie:
+    opsgenie:
+      apiKey:
+        name: alertmanager-secrets
+        key: opsgenie-api-key
+      priority: P2
+  teams-channel:
+    msteams:
+      webhookUrl:
+        name: alertmanager-secrets
+        key: teams-webhook
+  deadman:
+    webhook:
+      urlSecret:
+        name: alertmanager-secrets
+        key: deadman-url
+
+teams:
+  - name: platform
+    matchers:
+      - team=platform
+    page: platform-pager
+    ticket: platform-slack
+  - name: payments
+    matchers:
+      - name: namespace
+        value: payments|checkout
+        matchType: "=~"
+    page: platform-pager
+    ticket: payments-slack
+    info: teams-channel
+    muteTicketsOutsideBusinessHours: true
+  - name: data
+    matchers:
+      - 'team =~ "data|analytics"'
+    ticket: ops-genie
+
+fallback:
+  receiver: platform-slack
+  page: platform-pager
+
+watchdog:
+  receiver: deadman
+
+inhibit:
+  extra:
+    - sourceMatch:
+        - name: alertname
+          value: KubeNodeNotReady
+          matchType: "="
+      targetMatch:
+        - name: alertname
+          value: KubePodNotReady
+          matchType: "="
+      equal: [node]
+
+timeIntervals:
+  businessHours:
+    start: "08:00"
+    end: "19:00"
+  extra:
+    - name: christmas
+      timeIntervals:
+        - daysOfMonth: ["24:26"]
+          months: ["december"]
+
+extraRoutes:
+  - receiver: platform-slack
+    matchers:
+      - name: alertname
+        value: InfoInhibitor
+        matchType: "="
+    continue: false

@@ -1,0 +1,42 @@
+{{- $p := .Values.policies.requirePdb }}
+{{- if $p.enabled }}
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: {{ .Values.namePrefix }}require-pdb
+  labels:
+    {{- include "kpp.labels" . | nindent 4 }}
+  annotations:
+    {{- include "kpp.annotations" (dict "title" "Require a PodDisruptionBudget for multi-replica workloads" "severity" "medium" "subject" "Deployment, StatefulSet" "description" (printf "Node upgrades and autoscaler scale-downs evict pods; without a PodDisruptionBudget they can evict all replicas at once. Deployments and StatefulSets with %d or more replicas must have a PodDisruptionBudget whose selector matches their pod labels." (int $p.minReplicas))) | nindent 4 }}
+spec:
+  background: {{ .Values.background }}
+  rules:
+    - name: pdb-exists-for-multi-replica-workloads
+      match:
+        any:
+          - resources:
+              kinds:
+                - Deployment
+                - StatefulSet
+      {{- include "kpp.exclude" . | nindent 6 }}
+      preconditions:
+        all:
+          - key: "{{ "{{ request.object.spec.replicas || `1` }}" }}"
+            operator: GreaterThanOrEquals
+            value: {{ int $p.minReplicas }}
+      context:
+        - name: matchingPdbs
+          apiCall:
+            urlPath: "{{ "/apis/policy/v1/namespaces/{{ request.namespace }}/poddisruptionbudgets" }}"
+            jmesPath: "{{ "items[?label_match(spec.selector, `{{ request.object.spec.template.metadata.labels }}`)] | length(@)" }}"
+      validate:
+        {{- include "kpp.failure" . | nindent 8 }}
+        message: >-
+          Workloads with {{ int $p.minReplicas }} or more replicas need a PodDisruptionBudget whose selector matches their pod labels.
+        deny:
+          conditions:
+            all:
+              - key: "{{ "{{ matchingPdbs }}" }}"
+                operator: Equals
+                value: 0
+{{- end }}

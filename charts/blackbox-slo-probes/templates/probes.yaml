@@ -1,0 +1,28 @@
+{{- range $t := .Values.targets }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: Probe
+metadata:
+  name: {{ include "bsp.fullname" $ }}-{{ $t.name }}
+  namespace: {{ $.Values.probe.namespace | default $.Release.Namespace }}
+  labels:
+    {{- include "bsp.labels" $ | nindent 4 }}
+    {{- with $.Values.probe.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  jobName: {{ $.Values.probe.jobName }}
+  interval: {{ $.Values.probe.interval }}
+  scrapeTimeout: {{ $.Values.probe.scrapeTimeout }}
+  module: {{ $t.module | default $.Values.probe.module }}
+  prober:
+    url: {{ $.Values.blackbox.url }}
+    scheme: {{ $.Values.blackbox.scheme }}
+    path: {{ $.Values.blackbox.path }}
+  targets:
+    staticConfig:
+      static:
+        - {{ $t.url | quote }}
+      labels:
+        {{- include "bsp.targetLabels" $t | nindent 8 }}
+{{- end }}

@@ -1,0 +1,21 @@
+{{ .Chart.Name }} {{ .Chart.Version }} installed as release "{{ .Release.Name }}".
+{{- if .Values.prometheusRule.enabled }}
+
+PrometheusRule "{{ include "cw.fullname" . }}" in namespace "{{ .Values.prometheusRule.namespace | default .Release.Namespace }}".
+Alerts ignore namespaces matching: {{ .Values.excludeNamespaces }}
+{{- if .Values.pricing.enabled }}
+Waste is priced at {{ .Values.pricing.cpuCoreHour }} {{ .Values.pricing.currency }} per core-hour and {{ .Values.pricing.memoryGiBHour }} {{ .Values.pricing.currency }} per GiB-hour. Change pricing.* to your blended rates.
+{{- end }}
+Enabled alerts:
+{{- range $name, $a := .Values.alerts }}
+{{- if $a.enabled }}
+  - {{ $name }} ({{ $a.severity }}, for {{ $a.for }})
+{{- end }}
+{{- end }}
+With kube-prometheus-stack make sure prometheusRule.labels matches its ruleSelector (release: <its release name>).
+{{- end }}
+{{- if .Values.dashboard.enabled }}
+
+Dashboard ConfigMap "{{ include "cw.fullname" . }}-dashboard"; the Grafana sidecar imports it as "Kubernetes cost and waste" (uid oreon-k8s-cost-waste).
+The recording rules need a day of data before the 24h-average alerts can fire; the dashboard shows numbers after a couple of minutes.
+{{- end }}

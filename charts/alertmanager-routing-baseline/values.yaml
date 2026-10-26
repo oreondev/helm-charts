@@ -1,0 +1,146 @@
+# Default values for alertmanager-routing-baseline.
+#
+# One AlertmanagerConfig (monitoring.coreos.com/v1alpha1) built from teams and
+# receivers. Secrets (webhook URLs, integration keys) are referenced from
+# Kubernetes Secrets in the release namespace; nothing sensitive goes in values.
+#
+# READ THIS FIRST: by default the Prometheus Operator prefixes every route of an
+# AlertmanagerConfig with a matcher for the namespace the object lives in, so it
+# only sees alerts from that namespace. For cluster-wide routing either set
+#   alertmanager.alertmanagerSpec.alertmanagerConfigMatcherStrategy.type: None
+# in kube-prometheus-stack, or make this object the global config with
+#   alertmanager.alertmanagerSpec.alertmanagerConfiguration.name: <name below>
+# (the object must then live in the Alertmanager's namespace). See the README.
+
+# Name of the AlertmanagerConfig object.
+name: routing-baseline
+# Labels the Alertmanager CR's alertmanagerConfigSelector matches on.
+labels: {}
+
+route:
+  groupBy:
+    - alertname
+    - namespace
+  groupWait: 30s
+  groupInterval: 5m
+  repeatInterval: 4h
+  # Repeat interval for page-severity alerts.
+  pageRepeatInterval: 1h
+
+severity:
+  # Label that carries severity.
+  label: severity
+  # Values that page (go to the team's page receiver).
+  page:
+    - critical
+  # Values that open a ticket / land in chat (team's ticket receiver).
+  ticket:
+    - warning
+  # Values that are informational (team's info receiver, else ticket receiver).
+  info:
+    - info
+
+# Receivers by name. Each may carry one or more integrations; the value of each
+# integration is the AlertmanagerConfig field set for it (camelCase), e.g.
+# slack -> slackConfigs[0], pagerduty -> pagerdutyConfigs[0]. sendResolved
+# defaults to true; Slack title/text default to the templates below.
+receivers: {}
+#  platform-slack:
+#    slack:
+#      apiURL:
+#        name: alertmanager-secrets
+#        key: platform-slack-webhook
+#      channel: "#platform-alerts"
+#  platform-pager:
+#    pagerduty:
+#      routingKey:
+#        name: alertmanager-secrets
+#        key: platform-pagerduty-routing-key
+#      severity: critical
+#  platform-email:
+#    email:
+#      to: platform@example.com
+#      from: alertmanager@example.com
+#      smarthost: smtp.example.com:587
+#      authUsername: alertmanager@example.com
+#      authPassword:
+#        name: alertmanager-secrets
+#        key: smtp-password
+#  ops-genie:
+#    opsgenie:
+#      apiKey:
+#        name: alertmanager-secrets
+#        key: opsgenie-api-key
+#      priority: P2
+#  teams-channel:
+#    msteams:
+#      webhookUrl:
+#        name: alertmanager-secrets
+#        key: teams-webhook
+#  hook:
+#    webhook:
+#      urlSecret:
+#        name: alertmanager-secrets
+#        key: hook-url
+
+# Default Slack message templates (Alertmanager/Go templating, applied when a
+# slack receiver sets no title/text of its own).
+slackDefaults:
+  title: '[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] {{ .CommonLabels.alertname }}{{ if .CommonLabels.namespace }} ({{ .CommonLabels.namespace }}){{ end }}'
+  text: '{{ range .Alerts }}*{{ .Labels.severity | toUpper }}* {{ .Annotations.summary }}{{ if .Annotations.description }}\n{{ .Annotations.description }}{{ end }}{{ if .Annotations.runbook_url }}\n<{{ .Annotations.runbook_url }}|Runbook>{{ end }}{{ if .Annotations.dashboard_url }} · <{{ .Annotations.dashboard_url }}|Dashboard>{{ end }}\n{{ end }}'
+
+# Teams: matchers select the team's alerts; page/ticket/info name receivers above.
+teams: []
+#  - name: platform
+#    matchers:
+#      - name: team
+#        value: platform
+#    page: platform-pager
+#    ticket: platform-slack
+#    info: ""                               # falls back to ticket
+#    muteTicketsOutsideBusinessHours: false
+#  - name: payments
+#    matchers:
+#      - name: namespace
+#        value: payments|checkout
+#        matchType: "=~"
+#    page: platform-pager
+#    ticket: payments-slack
+
+# Where alerts go when no team matches.
+fallback:
+  # Receiver for everything unmatched (required when any receiver exists).
+  receiver: ""
+  # Receiver for unmatched page-severity alerts; empty = fallback.receiver.
+  page: ""
+
+# The kube-prometheus-stack Watchdog alert fires permanently as a liveness check.
+# Route it to a dead-man's-switch receiver, or to the built-in null receiver.
+watchdog:
+  enabled: true
+  alertname: Watchdog
+  receiver: ""
+
+inhibit:
+  # A critical alert silences warning/info alerts with the same alertname and namespace.
+  criticalInhibitsWarning: true
+  # An SLO page alert silences the ticket alert of the same SLO (slo-burn-rate-alerts labels).
+  pageInhibitsTicket: true
+  # Raw AlertmanagerConfig inhibitRules appended as-is.
+  extra: []
+
+timeIntervals:
+  businessHours:
+    # Used for muteTicketsOutsideBusinessHours. Times are in UTC.
+    weekdays:
+      - monday:friday
+    start: "09:00"
+    end: "18:00"
+  # Raw muteTimeIntervals entries appended as-is (maintenance windows, holidays).
+  extra: []
+
+# Raw routes inserted before the team routes (first match wins).
+extraRoutes: []
+
+# Name of the receiver that drops alerts.
+nullReceiver: "null"

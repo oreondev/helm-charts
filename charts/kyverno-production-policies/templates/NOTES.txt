@@ -1,0 +1,16 @@
+{{ .Chart.Name }} {{ .Chart.Version }} installed as release "{{ .Release.Name }}".
+
+Mode: {{ .Values.failureAction }}{{ with .Values.enforceNamespaces }}, Enforce in: {{ join ", " . }}{{ end }}
+Excluded namespaces: {{ join ", " .Values.excludeNamespaces }}
+
+Policies:
+{{- range $name, $p := .Values.policies }}
+  - {{ $name }}: {{ if $p.enabled }}on{{ else }}off{{ end }}
+{{- end }}
+
+See the findings (background scans take a minute or two to fill):
+  kubectl get clusterpolicyreport,policyreport -A
+  kubectl get policyreport -A -o json | jq -r '.items[] | .metadata.namespace as $ns | .results[]? | select(.result=="fail") | [$ns, .policy, .resources[0].kind, .resources[0].name] | @tsv' | sort | uniq -c | sort -rn
+
+Move to Enforce one namespace at a time:
+  helm upgrade {{ .Release.Name }} <chart> --reuse-values --set 'enforceNamespaces={staging}'

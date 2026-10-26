@@ -1,0 +1,20 @@
+{{ .Chart.Name }} {{ .Chart.Version }} installed as release "{{ .Release.Name }}".
+{{- if .Values.targets }}
+
+Probes ({{ len .Values.targets }}) via {{ .Values.blackbox.scheme }}://{{ .Values.blackbox.url }}{{ .Values.blackbox.path }}, every {{ .Values.probe.interval }}:
+{{- range .Values.targets }}
+  - {{ .name }}: {{ .url }}  availability {{ (.availability | default dict).objective | default 99.9 }}%{{ if .latency }}, latency {{ .latency.objective }}% under {{ .latency.threshold }}s{{ end }}
+{{- end }}
+
+The Prometheus Operator only scrapes Probe objects its probeSelector matches. With kube-prometheus-stack set
+  probe.labels: {release: <kube-prometheus-stack release name>}
+(and prometheusRule.labels likewise), or set probeSelectorNilUsesHelmValues / ruleSelectorNilUsesHelmValues to false there.
+{{- else }}
+
+No targets defined. Add them under `targets:` (see the README).
+{{- end }}
+{{- if .Values.dashboard.enabled }}
+
+Dashboard: "Synthetic probes and SLOs" (uid oreon-blackbox-slo-probes), imported by the Grafana sidecar.
+{{- end }}
+Check:  kubectl -n {{ .Values.probe.namespace | default .Release.Namespace }} get probes.monitoring.coreos.com

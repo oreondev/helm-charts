@@ -1,0 +1,40 @@
+apiVersion: v2
+name: kyverno-production-policies
+description: The Kubernetes production-readiness checklist as Kyverno policies - requests and limits, probes, owner labels, no latest tags, PodDisruptionBudgets and spread for multi-replica workloads, no NodePorts, nothing in the default namespace. Audit mode by default, enforce per namespace.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+kubeVersion: ">=1.25.0-0"
+home: https://www.oreonit.com/production-readiness-audit-for-kubernetes/
+icon: https://raw.githubusercontent.com/oreonit/helm-charts/main/icon.png
+sources:
+  - https://github.com/oreonit/helm-charts
+keywords:
+  - kyverno
+  - policy
+  - policy-as-code
+  - production-readiness
+  - best-practices
+  - kubernetes
+  - governance
+  - guardrails
+  - audit
+maintainers:
+  - name: Oreon IT
+    email: info@oreonit.com
+    url: https://www.oreonit.com/
+annotations:
+  artifacthub.io/license: MIT
+  artifacthub.io/category: security
+  artifacthub.io/prerelease: "false"
+  artifacthub.io/operator: "false"
+  artifacthub.io/links: |
+    - name: Kubernetes production readiness checklist (the list these policies implement)
+      url: https://www.oreonit.com/kubernetes-production-readiness-checklist/
+    - name: Kubernetes operators every cluster needs
+      url: https://www.oreonit.com/common-kubernetes-operators-every-cluster-needs/
+    - name: Production readiness audit by the maintainers
+      url: https://www.oreonit.com/production-readiness-audit-for-kubernetes/
+  artifacthub.io/changes: |
+    - kind: added
+      description: Initial release

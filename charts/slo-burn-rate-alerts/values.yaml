@@ -6,8 +6,19 @@
 # Length of the SLO window in days. All error-budget maths assume this period.
 sloPeriodDays: 30
 
+# Where the rules go:
+#   prometheus-operator -> a PrometheusRule (monitoring.coreos.com/v1), for Prometheus Operator / kube-prometheus-stack
+#   gmp                 -> Google Cloud Managed Service for Prometheus rules (monitoring.googleapis.com/v1), for GKE managed collection
+rulesBackend: prometheus-operator
+
+gmp:
+  # Rules (namespace-scoped: only metrics from that namespace), ClusterRules (whole cluster) or GlobalRules (whole project).
+  kind: ClusterRules
+  # Namespace for kind Rules. Empty = release namespace. Ignored for ClusterRules and GlobalRules.
+  namespace: ""
+
 prometheusRule:
-  # Create a PrometheusRule (needs the Prometheus Operator CRDs on the cluster).
+  # Render the rules object (PrometheusRule or GMP rules, see rulesBackend).
   enabled: true
   # Namespace for the PrometheusRule. Empty = release namespace.
   namespace: ""

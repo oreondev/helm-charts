@@ -74,7 +74,9 @@ Why these numbers: a burn rate of 14.4 on a 30-day SLO spends 2 % of the budget 
 | Key | Default | Description |
 |---|---|---|
 | `sloPeriodDays` | `30` | SLO window in days |
-| `prometheusRule.enabled` | `true` | Render the PrometheusRule |
+| `rulesBackend` | `prometheus-operator` | `prometheus-operator` (PrometheusRule) or `gmp` (Google Managed Prometheus rules) |
+| `gmp.kind` | `ClusterRules` | `Rules`, `ClusterRules` or `GlobalRules` when `rulesBackend: gmp` |
+| `prometheusRule.enabled` | `true` | Render the rules object |
 | `prometheusRule.namespace` | release namespace | Where to put it |
 | `prometheusRule.labels` | `{}` | Labels for the Prometheus Operator ruleSelector |
 | `prometheusRule.interval` | `30s` | Rule group evaluation interval |
@@ -87,6 +89,18 @@ Why these numbers: a burn rate of 14.4 on a 30-day SLO spends 2 % of the budget 
 | `slos[]` | `[]` | name, service, objective, description, labels, sli.errorQuery, sli.totalQuery, alerting overrides |
 
 Per-SLO `alerting.page` / `alerting.ticket` may override `enabled`, `severity` and `for`; `alerting.annotations` adds annotations (a `runbook_url` per SLO is the usual one).
+
+## Google Managed Prometheus (GKE managed collection)
+
+Managed collection does not read `PrometheusRule`. Set `rulesBackend: gmp` and the chart renders the same groups as a `ClusterRules` object (`monitoring.googleapis.com/v1`) that the managed rule evaluator loads by itself:
+
+```yaml
+rulesBackend: gmp
+gmp:
+  kind: ClusterRules      # or Rules (one namespace) / GlobalRules (whole project)
+```
+
+Alerts are sent to the Alertmanager named in the `OperatorConfig` (`gmp-public/config`); the dashboard works unchanged against the Managed Service for Prometheus data source in Grafana.
 
 ## Dashboard
 

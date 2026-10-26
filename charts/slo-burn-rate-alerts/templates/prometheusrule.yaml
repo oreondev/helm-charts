@@ -3,6 +3,21 @@
 {{- $periodDays := int .Values.sloPeriodDays }}
 {{- $period := printf "%dd" $periodDays }}
 {{- $periodHours := mulf (float64 $periodDays) 24 }}
+{{- if eq .Values.rulesBackend "gmp" }}
+{{- $kind := .Values.gmp.kind | default "ClusterRules" }}
+{{- if not (has $kind (list "Rules" "ClusterRules" "GlobalRules")) }}
+{{- fail (printf "gmp.kind must be Rules, ClusterRules or GlobalRules (got %q)" $kind) }}
+{{- end }}
+apiVersion: monitoring.googleapis.com/v1
+kind: {{ $kind }}
+metadata:
+  name: {{ include "slo.fullname" . }}
+  {{- if eq $kind "Rules" }}
+  namespace: {{ .Values.gmp.namespace | default .Release.Namespace }}
+  {{- end }}
+  labels:
+    {{- include "slo.labels" . | nindent 4 }}
+{{- else if eq .Values.rulesBackend "prometheus-operator" }}
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
 metadata:
@@ -13,6 +28,9 @@ metadata:
     {{- with .Values.prometheusRule.labels }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
+{{- else }}
+{{- fail (printf "rulesBackend must be prometheus-operator or gmp (got %q)" .Values.rulesBackend) }}
+{{- end }}
 spec:
   groups:
   {{- range $s := .Values.slos }}

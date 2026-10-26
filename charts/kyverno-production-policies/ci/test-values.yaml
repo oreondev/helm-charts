@@ -1,0 +1,32 @@
+namePrefix: prod-
+failureAction: Audit
+enforceNamespaces:
+  - payments
+  - checkout
+excludeNamespaces:
+  - kube-*
+  - kyverno
+  - monitoring
+policies:
+  requireRequestsLimits:
+    enabled: true
+    requireCpuLimit: true
+  requireProbes:
+    enabled: true
+    requireStartupProbe: true
+  requireLabels:
+    enabled: true
+    labels:
+      - app.kubernetes.io/name
+      - app.kubernetes.io/part-of
+      - team
+  requirePdb:
+    enabled: true
+    minReplicas: 3
+  restrictImageRegistries:
+    enabled: true
+    registries:
+      - europe-west2-docker.pkg.dev/my-project/*
+      - ghcr.io/my-org/*
+  requireReadOnlyRootFs:
+    enabled: true

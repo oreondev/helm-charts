@@ -1,0 +1,117 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "velero-backup-schedules values",
+  "type": "object",
+  "properties": {
+    "veleroNamespace": { "type": "string", "minLength": 1 },
+    "storageLocation": {
+      "type": "object",
+      "properties": {
+        "create": { "type": "boolean" },
+        "name": { "type": "string" },
+        "provider": { "type": "string" },
+        "bucket": { "type": "string" },
+        "prefix": { "type": "string" },
+        "config": { "$ref": "#/definitions/stringMap" },
+        "credential": { "$ref": "#/definitions/secretRef" },
+        "default": { "type": "boolean" },
+        "accessMode": { "type": "string", "enum": ["ReadWrite", "ReadOnly"] },
+        "backupSyncPeriod": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "volumeSnapshotLocation": {
+      "type": "object",
+      "properties": {
+        "create": { "type": "boolean" },
+        "name": { "type": "string" },
+        "provider": { "type": "string" },
+        "config": { "$ref": "#/definitions/stringMap" },
+        "credential": { "$ref": "#/definitions/secretRef" }
+      },
+      "additionalProperties": false
+    },
+    "defaults": { "$ref": "#/definitions/scheduleConfig" },
+    "schedules": {
+      "type": "array",
+      "items": {
+        "allOf": [
+          { "$ref": "#/definitions/scheduleConfig" },
+          {
+            "type": "object",
+            "required": ["name", "schedule"],
+            "properties": {
+              "name": { "type": "string", "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$" },
+              "schedule": { "type": "string", "minLength": 9 },
+              "ttl": { "type": "string", "pattern": "^[0-9]+(h|m|s)$" }
+            }
+          }
+        ]
+      }
+    },
+    "restoreTest": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "schedule": { "type": "string" },
+        "fromSchedule": { "type": "string" },
+        "namespace": { "type": "string" },
+        "targetNamespace": { "type": "string" },
+        "waitTimeout": { "type": "string", "pattern": "^[0-9]+(s|m|h|d)$" },
+        "minReadyPods": { "type": "integer", "minimum": 0 },
+        "cleanup": { "type": "boolean" },
+        "image": { "type": "string" },
+        "serviceAccount": {
+          "type": "object",
+          "properties": { "create": { "type": "boolean" }, "name": { "type": "string" } },
+          "additionalProperties": false
+        },
+        "resources": { "type": "object" }
+      },
+      "additionalProperties": false
+    },
+    "monitoring": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "labels": { "$ref": "#/definitions/stringMap" },
+        "severity": { "type": "string" },
+        "partialFailureSeverity": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "definitions": {
+    "stringMap": { "type": "object", "additionalProperties": { "type": "string" } },
+    "secretRef": {
+      "type": "object",
+      "properties": { "name": { "type": "string" }, "key": { "type": "string" } },
+      "additionalProperties": false
+    },
+    "scheduleConfig": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "schedule": { "type": "string" },
+        "ttl": { "type": "string" },
+        "storageLocation": { "type": "string" },
+        "volumeSnapshotLocations": { "type": "array", "items": { "type": "string" } },
+        "includedNamespaces": { "type": "array", "items": { "type": "string" } },
+        "excludedNamespaces": { "type": "array", "items": { "type": "string" } },
+        "includedResources": { "type": "array", "items": { "type": "string" } },
+        "excludedResources": { "type": "array", "items": { "type": "string" } },
+        "includeClusterResources": { "type": ["boolean", "null"] },
+        "snapshotVolumes": { "type": "boolean" },
+        "defaultVolumesToFsBackup": { "type": "boolean" },
+        "labelSelector": { "$ref": "#/definitions/stringMap" },
+        "csiSnapshotTimeout": { "type": "string" },
+        "useOwnerReferencesInBackup": { "type": "boolean" },
+        "paused": { "type": "boolean" },
+        "skipImmediately": { "type": "boolean" },
+        "maxAgeHours": { "type": "number", "exclusiveMinimum": 0 },
+        "hooks": { "type": "object" }
+      },
+      "additionalProperties": false
+    }
+  }
+}

@@ -1,0 +1,145 @@
+{{- $root := . }}
+{{- $sev := .Values.severity }}
+{{- $null := .Values.nullReceiver }}
+{{- $fallback := .Values.fallback.receiver | default $null }}
+{{- $fallbackPage := .Values.fallback.page | default $fallback }}
+{{- $businessHoursName := "outside-business-hours" }}
+{{- include "amr.checkReceiver" (dict "root" $root "name" .Values.fallback.receiver "where" "fallback.receiver") }}
+{{- include "amr.checkReceiver" (dict "root" $root "name" .Values.fallback.page "where" "fallback.page") }}
+{{- include "amr.checkReceiver" (dict "root" $root "name" .Values.watchdog.receiver "where" "watchdog.receiver") }}
+{{- range .Values.teams }}
+{{- include "amr.checkReceiver" (dict "root" $root "name" .page "where" (printf "teams[%s].page" .name)) }}
+{{- include "amr.checkReceiver" (dict "root" $root "name" .ticket "where" (printf "teams[%s].ticket" .name)) }}
+{{- include "amr.checkReceiver" (dict "root" $root "name" .info "where" (printf "teams[%s].info" .name)) }}
+{{- end }}
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: AlertmanagerConfig
+metadata:
+  name: {{ .Values.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "amr.labels" . | nindent 4 }}
+    {{- with .Values.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  route:
+    receiver: {{ $fallback | quote }}
+    groupBy:
+      {{- toYaml .Values.route.groupBy | nindent 6 }}
+    groupWait: {{ .Values.route.groupWait }}
+    groupInterval: {{ .Values.route.groupInterval }}
+    repeatInterval: {{ .Values.route.repeatInterval }}
+    routes:
+      {{- if .Values.watchdog.enabled }}
+      - receiver: {{ .Values.watchdog.receiver | default $null | quote }}
+        matchers:
+          - name: alertname
+            value: {{ .Values.watchdog.alertname | quote }}
+            matchType: "="
+        groupWait: 0s
+        groupInterval: 1m
+        repeatInterval: 5m
+        continue: false
+      {{- end }}
+      {{- with .Values.extraRoutes }}
+      {{- include "amr.safeYaml" . | nindent 6 }}
+      {{- end }}
+      {{- range $team := .Values.teams }}
+      {{- $ticket := $team.ticket | default $fallback }}
+      {{- $page := $team.page | default $fallbackPage }}
+      {{- $info := $team.info | default $ticket }}
+      - receiver: {{ $ticket | quote }}
+        matchers:
+          {{- include "amr.matchers" $team.matchers | trim | nindent 10 }}
+        continue: false
+        routes:
+          - receiver: {{ $page | quote }}
+            matchers:
+              {{- include "amr.severityMatcher" (dict "label" $sev.label "values" $sev.page) | nindent 14 }}
+            repeatInterval: {{ $root.Values.route.pageRepeatInterval }}
+            continue: false
+          - receiver: {{ $ticket | quote }}
+            matchers:
+              {{- include "amr.severityMatcher" (dict "label" $sev.label "values" $sev.ticket) | nindent 14 }}
+            {{- if $team.muteTicketsOutsideBusinessHours }}
+            muteTimeIntervals:
+              - {{ $businessHoursName }}
+            {{- end }}
+            continue: false
+          - receiver: {{ $info | quote }}
+            matchers:
+              {{- include "amr.severityMatcher" (dict "label" $sev.label "values" $sev.info) | nindent 14 }}
+            repeatInterval: 24h
+            {{- if $team.muteTicketsOutsideBusinessHours }}
+            muteTimeIntervals:
+              - {{ $businessHoursName }}
+            {{- end }}
+            continue: false
+      {{- end }}
+      - receiver: {{ $fallbackPage | quote }}
+        matchers:
+          {{- include "amr.severityMatcher" (dict "label" $sev.label "values" $sev.page) | nindent 10 }}
+        repeatInterval: {{ .Values.route.pageRepeatInterval }}
+        continue: false
+  receivers:
+    - name: {{ $null | quote }}
+    {{- range $name, $r := .Values.receivers }}
+    - name: {{ $name | quote }}
+      {{- with $r.slack }}
+      slackConfigs:
+        - {{- toYaml (mergeOverwrite (dict "sendResolved" true "title" $root.Values.slackDefaults.title "text" $root.Values.slackDefaults.text) .) | nindent 10 }}
+      {{- end }}
+      {{- with $r.pagerduty }}
+      pagerdutyConfigs:
+        - {{- toYaml (mergeOverwrite (dict "sendResolved" true) .) | nindent 10 }}
+      {{- end }}
+      {{- with $r.opsgenie }}
+      opsgenieConfigs:
+        - {{- toYaml (mergeOverwrite (dict "sendResolved" true) .) | nindent 10 }}
+      {{- end }}
+      {{- with $r.email }}
+      emailConfigs:
+        - {{- toYaml (mergeOverwrite (dict "sendResolved" true "requireTLS" true) .) | nindent 10 }}
+      {{- end }}
+      {{- with $r.msteams }}
+      msteamsConfigs:
+        - {{- toYaml (mergeOverwrite (dict "sendResolved" true) .) | nindent 10 }}
+      {{- end }}
+      {{- with $r.webhook }}
+      webhookConfigs:
+        - {{- toYaml (mergeOverwrite (dict "sendResolved" true) .) | nindent 10 }}
+      {{- end }}
+    {{- end }}
+  {{- $inhibits := list }}
+  {{- if .Values.inhibit.criticalInhibitsWarning }}
+  {{- $inhibits = append $inhibits (dict
+        "sourceMatch" (list (dict "name" $sev.label "value" (join "|" $sev.page) "matchType" "=~"))
+        "targetMatch" (list (dict "name" $sev.label "value" (join "|" (concat $sev.ticket $sev.info)) "matchType" "=~"))
+        "equal" (list "alertname" "namespace")) }}
+  {{- end }}
+  {{- if .Values.inhibit.pageInhibitsTicket }}
+  {{- $inhibits = append $inhibits (dict
+        "sourceMatch" (list (dict "name" "slo_alert_type" "value" "page" "matchType" "="))
+        "targetMatch" (list (dict "name" "slo_alert_type" "value" "ticket" "matchType" "="))
+        "equal" (list "slo")) }}
+  {{- end }}
+  {{- $inhibits = concat $inhibits (.Values.inhibit.extra | default list) }}
+  {{- with $inhibits }}
+  inhibitRules:
+    {{- include "amr.safeYaml" . | nindent 4 }}
+  {{- end }}
+  {{- $needsBusinessHours := false }}
+  {{- range .Values.teams }}{{ if .muteTicketsOutsideBusinessHours }}{{ $needsBusinessHours = true }}{{ end }}{{ end }}
+  {{- $intervals := list }}
+  {{- if $needsBusinessHours }}
+  {{- $bh := .Values.timeIntervals.businessHours }}
+  {{- $intervals = append $intervals (dict "name" $businessHoursName "timeIntervals" (list
+        (dict "weekdays" $bh.weekdays "times" (list (dict "startTime" "00:00" "endTime" $bh.start) (dict "startTime" $bh.end "endTime" "24:00")))
+        (dict "weekdays" (list "saturday" "sunday")))) }}
+  {{- end }}
+  {{- $intervals = concat $intervals (.Values.timeIntervals.extra | default list) }}
+  {{- with $intervals }}
+  muteTimeIntervals:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}

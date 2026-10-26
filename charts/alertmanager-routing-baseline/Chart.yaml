@@ -1,0 +1,41 @@
+apiVersion: v2
+name: alertmanager-routing-baseline
+description: Alertmanager routing from one values file - teams, page and ticket receivers (Slack, PagerDuty, Opsgenie, email, Teams, webhook), severity routing, critical-inhibits-warning and page-inhibits-ticket rules, business-hours mute windows and a Watchdog sink. Rendered as an AlertmanagerConfig for the Prometheus Operator.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+kubeVersion: ">=1.25.0-0"
+home: https://www.oreonit.com/sre-as-a-service/
+icon: https://raw.githubusercontent.com/oreonit/helm-charts/main/icon.png
+sources:
+  - https://github.com/oreonit/helm-charts
+keywords:
+  - alertmanager
+  - alerting
+  - on-call
+  - pagerduty
+  - slack
+  - opsgenie
+  - prometheus-operator
+  - kube-prometheus-stack
+  - sre
+  - incident-response
+maintainers:
+  - name: Oreon IT
+    email: info@oreonit.com
+    url: https://www.oreonit.com/
+annotations:
+  artifacthub.io/license: MIT
+  artifacthub.io/category: monitoring-logging
+  artifacthub.io/prerelease: "false"
+  artifacthub.io/operator: "false"
+  artifacthub.io/links: |
+    - name: Alerting strategies that avoid alert fatigue
+      url: https://www.oreonit.com/advanced-alerting-strategies-how-to-avoid-alert-fatigue-in-monitoring-systems/
+    - name: SLO burn-rate alerts chart (pairs with this one)
+      url: https://artifacthub.io/packages/helm/oreonit/slo-burn-rate-alerts
+    - name: SRE as a service by the maintainers
+      url: https://www.oreonit.com/sre-as-a-service/
+  artifacthub.io/changes: |
+    - kind: added
+      description: Initial release

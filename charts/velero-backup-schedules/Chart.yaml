@@ -1,0 +1,39 @@
+apiVersion: v2
+name: velero-backup-schedules
+description: A backup policy for Velero as values - daily, weekly and monthly Schedules with retention, optional BackupStorageLocation and VolumeSnapshotLocation, a scheduled restore test that restores the latest backup into a scratch namespace and checks the pods come up, and alerts for failed, partial or stale backups. Velero itself is not included.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+kubeVersion: ">=1.25.0-0"
+home: https://www.oreonit.com/disaster-recovery-planning-services/
+icon: https://raw.githubusercontent.com/oreonit/helm-charts/main/icon.png
+sources:
+  - https://github.com/oreonit/helm-charts
+keywords:
+  - velero
+  - backup
+  - disaster-recovery
+  - restore-test
+  - kubernetes
+  - business-continuity
+  - prometheus
+  - alerting
+maintainers:
+  - name: Oreon IT
+    email: info@oreonit.com
+    url: https://www.oreonit.com/
+annotations:
+  artifacthub.io/license: MIT
+  artifacthub.io/category: storage
+  artifacthub.io/prerelease: "false"
+  artifacthub.io/operator: "false"
+  artifacthub.io/links: |
+    - name: Disaster recovery plan template for cloud teams
+      url: https://www.oreonit.com/disaster-recovery-plan-template-for-cloud-teams/
+    - name: Terraform AWS backup baseline (the same idea for AWS Backup)
+      url: https://github.com/oreonit/terraform-aws-backup-baseline
+    - name: Disaster recovery planning by the maintainers
+      url: https://www.oreonit.com/disaster-recovery-planning-services/
+  artifacthub.io/changes: |
+    - kind: added
+      description: Initial release

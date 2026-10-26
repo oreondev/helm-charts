@@ -1,11 +1,16 @@
 # Oreon IT Helm charts
 
-Charts we install on client clusters, published so you can use them too.
+Charts we install on client clusters, published so you can use them too. None of them installs Prometheus, Grafana, Kyverno or Velero: each one packages the configuration that teams otherwise hand-write on top of those tools.
 
-| Chart | What it does |
-|---|---|
-| [slo-burn-rate-alerts](charts/slo-burn-rate-alerts) | Define SLOs in values; get Prometheus recording rules, multi-window multi-burn-rate page/ticket alerts and a Grafana SLO dashboard. For Prometheus Operator / kube-prometheus-stack. |
-| [namespace-baseline](charts/namespace-baseline) | Guardrails for team namespaces: Pod Security Admission labels, ResourceQuota, LimitRange, default-deny NetworkPolicies with the usual allows, RBAC bindings, optional quota alerts. |
+| Chart | What it does | Needs |
+|---|---|---|
+| [slo-burn-rate-alerts](charts/slo-burn-rate-alerts) | SLOs as values: recording rules, multi-window multi-burn-rate page/ticket alerts and an SLO dashboard. Prometheus Operator or Google Managed Prometheus backends. | Prometheus Operator / GMP, Grafana sidecar |
+| [blackbox-slo-probes](charts/blackbox-slo-probes) | URLs become Probe objects plus availability and latency SLOs with the same burn-rate alerts, probe-down and TLS-expiry alerts, and a dashboard. | blackbox exporter, Prometheus Operator |
+| [alertmanager-routing-baseline](charts/alertmanager-routing-baseline) | Teams, page/ticket receivers (Slack, PagerDuty, Opsgenie, email, Teams, webhook), severity routing, inhibition, business-hours muting, Watchdog sink, as an AlertmanagerConfig. | Prometheus Operator |
+| [k8s-cost-waste-alerts](charts/k8s-cost-waste-alerts) | Requests vs usage per namespace priced per month, under-committed clusters, idle PVCs, LoadBalancers without endpoints, HPAs at max or pinned, containers without requests. Rules and a dashboard. | kube-state-metrics, cAdvisor |
+| [kyverno-production-policies](charts/kyverno-production-policies) | The production readiness checklist as Kyverno policies: requests/limits, probes, labels, no latest tags, PDBs and spread for multi-replica workloads, no NodePorts, nothing in default. Audit mode first. | Kyverno 1.13+ |
+| [namespace-baseline](charts/namespace-baseline) | Guardrails per team namespace: Pod Security Admission labels, ResourceQuota, LimitRange, default-deny NetworkPolicies with the usual allows, RBAC bindings, optional quota alerts. | a CNI that enforces NetworkPolicy |
+| [velero-backup-schedules](charts/velero-backup-schedules) | Daily/weekly/monthly Velero Schedules with retention, optional storage locations, a scheduled restore test into a scratch namespace, and backup alerts. | Velero |
 
 ## Use
 
@@ -24,7 +29,7 @@ helm lint charts/slo-burn-rate-alerts -f charts/slo-burn-rate-alerts/ci/test-val
 helm template slo charts/slo-burn-rate-alerts -f charts/slo-burn-rate-alerts/ci/test-values.yaml
 ```
 
-Pull requests run [chart-testing](https://github.com/helm/chart-testing) (lint, then install on a kind cluster). Pushes to `main` that change a chart version are packaged and published to the `gh-pages` branch by [chart-releaser](https://github.com/helm/chart-releaser), which also updates `index.yaml`.
+Pull requests run [chart-testing](https://github.com/helm/chart-testing) (lint, then install on a kind cluster with the Prometheus Operator CRDs). Pushes to `main` that change a chart version are packaged and published to the `gh-pages` branch by [chart-releaser](https://github.com/helm/chart-releaser), which also updates `index.yaml`.
 
 ### First-time publishing checklist
 
@@ -39,4 +44,4 @@ Issues and pull requests are welcome. Keep charts CRD-free where possible, keep 
 
 ## Licence
 
-MIT. Maintained by [Oreon IT](https://www.oreonit.com/), a DevOps, SRE and cloud consultancy in London. If you want [SLOs defined](https://www.oreonit.com/site-reliability-engineering-sre-consulting-services/) or a [multi-team Kubernetes platform](https://www.oreonit.com/containerization-orchestration-management-kubernetes-openshift/) built with you, that is the day job.
+MIT. Maintained by [Oreon IT](https://www.oreonit.com/), a DevOps, SRE and cloud consultancy in London. If you want [SLOs defined](https://www.oreonit.com/site-reliability-engineering-sre-consulting-services/), a [multi-team Kubernetes platform](https://www.oreonit.com/containerization-orchestration-management-kubernetes-openshift/) or a [tested disaster recovery plan](https://www.oreonit.com/disaster-recovery-planning-services/) built with you, that is the day job.

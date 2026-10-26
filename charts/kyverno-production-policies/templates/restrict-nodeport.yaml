@@ -1,0 +1,27 @@
+{{- $p := .Values.policies.restrictNodePort }}
+{{- if $p.enabled }}
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: {{ .Values.namePrefix }}restrict-nodeport
+  labels:
+    {{- include "kpp.labels" . | nindent 4 }}
+  annotations:
+    {{- include "kpp.annotations" (dict "title" "Disallow NodePort services" "category" "Networking" "severity" "medium" "subject" "Service" "description" "NodePort services expose a port on every node, bypass the ingress layer and its TLS and policies, and collide across teams. Use ClusterIP behind an Ingress or Gateway, or a LoadBalancer where exposure is intended.") | nindent 4 }}
+spec:
+  background: {{ .Values.background }}
+  rules:
+    - name: no-nodeport-services
+      match:
+        any:
+          - resources:
+              kinds:
+                - Service
+      {{- include "kpp.exclude" . | nindent 6 }}
+      validate:
+        {{- include "kpp.failure" . | nindent 8 }}
+        message: "Services of type NodePort are not allowed."
+        pattern:
+          spec:
+            =(type): "!NodePort"
+{{- end }}

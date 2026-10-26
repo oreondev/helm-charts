@@ -10,11 +10,18 @@ SLOs ({{ len .Values.slos }}), {{ .Values.sloPeriodDays }}-day window:
 No SLOs defined, so no rules were generated. Add them under `slos:` (see the README for the format).
 {{- end }}
 {{- if and .Values.prometheusRule.enabled .Values.slos }}
+{{- if eq .Values.rulesBackend "gmp" }}
+
+Google Managed Prometheus {{ .Values.gmp.kind }} "{{ include "slo.fullname" . }}"{{ if eq .Values.gmp.kind "Rules" }} in namespace "{{ .Values.gmp.namespace | default .Release.Namespace }}"{{ end }}.
+The managed rule evaluator loads it by itself; alerts go to the Alertmanager named in the OperatorConfig
+(kubectl -n gmp-public get operatorconfig config -o yaml).
+{{- else }}
 
 PrometheusRule "{{ include "slo.fullname" . }}" in namespace "{{ .Values.prometheusRule.namespace | default .Release.Namespace }}".
 Prometheus only loads it if its ruleSelector matches the rule's labels. With kube-prometheus-stack either set
   prometheusRule.labels: {release: <kube-prometheus-stack release name>}
 on this chart, or set prometheus.prometheusSpec.ruleSelectorNilUsesHelmValues=false on that one.
+{{- end }}
 
 Alerts: {{ .Values.alerting.alertNamePrefix }}BurnRatePage (severity {{ .Values.alerting.page.severity }}) and {{ .Values.alerting.alertNamePrefix }}BurnRateTicket (severity {{ .Values.alerting.ticket.severity }}), labelled slo, service and slo_alert_type.
 Check:  kubectl -n {{ .Values.prometheusRule.namespace | default .Release.Namespace }} get prometheusrule {{ include "slo.fullname" . }} -o yaml

@@ -1,0 +1,37 @@
+blackbox:
+  url: blackbox-exporter.monitoring.svc:9115
+
+probe:
+  interval: 15s
+  labels:
+    release: kube-prometheus-stack
+
+prometheusRule:
+  labels:
+    release: kube-prometheus-stack
+
+alerting:
+  labels:
+    team: platform
+  annotations:
+    runbook_url: https://runbooks.example.com/synthetic-probes
+
+targets:
+  - name: website
+    url: https://www.example.com/
+    service: marketing-site
+    labels:
+      tier: "2"
+    availability:
+      objective: 99.9
+    latency:
+      objective: 99
+      threshold: 1.5
+  - name: api-health
+    url: https://api.example.com/healthz
+    module: http_2xx
+    availability:
+      objective: 99.95
+  - name: login-tcp
+    url: db.example.com:5432
+    module: tcp_connect

@@ -80,7 +80,7 @@ spec:
     - Ingress
   ingress:
     {{- range $peer := . }}
-    {{- include "nsb.peerRule" (dict "peer" $peer "direction" "from") | nindent 4 }}
+    {{- include "nsb.peerRule" (dict "peer" $peer "direction" "from") | trim | nindent 4 }}
     {{- end }}
 {{- end }}
 {{- with $np.allowEgressToNamespaces }}
@@ -98,7 +98,7 @@ spec:
     - Egress
   egress:
     {{- range $peer := . }}
-    {{- include "nsb.peerRule" (dict "peer" $peer "direction" "to") | nindent 4 }}
+    {{- include "nsb.peerRule" (dict "peer" $peer "direction" "to") | trim | nindent 4 }}
     {{- end }}
 {{- end }}
 {{- with $np.allowEgressCIDRs }}

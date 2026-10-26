@@ -1,0 +1,80 @@
+# Default values for k8s-cost-waste-alerts.
+#
+# Needs kube-state-metrics and cAdvisor (kubelet) metrics in Prometheus, which
+# kube-prometheus-stack provides. Everything is a PrometheusRule plus a dashboard.
+
+prometheusRule:
+  enabled: true
+  # Empty = release namespace.
+  namespace: ""
+  # Labels for the Prometheus Operator ruleSelector (kube-prometheus-stack: release: <name>).
+  labels: {}
+  interval: 1m
+
+dashboard:
+  enabled: true
+  namespace: ""
+  labels:
+    grafana_dashboard: "1"
+  annotations: {}
+
+# Namespaces the alerts ignore (regex). Recording rules and the dashboard still cover them.
+excludeNamespaces: "kube-.*|gmp-.*|gke-.*|monitoring|kyverno"
+
+# Price the waste. On-demand averages are a fair start; replace with your blended rates.
+pricing:
+  enabled: true
+  # ISO code used for the dashboard unit: USD, GBP or EUR.
+  currency: USD
+  # Price of one vCPU for one hour.
+  cpuCoreHour: 0.032
+  # Price of one GiB of memory for one hour.
+  memoryGiBHour: 0.0043
+
+thresholds:
+  # Alert when, averaged over a day, this share of requested CPU/memory is unused ...
+  cpuWasteRatio: 0.7
+  memoryWasteRatio: 0.7
+  # ... and the namespace requests at least this much (ignore tiny namespaces).
+  minCpuRequestCores: 2
+  minMemoryRequestGiB: 4
+  # Alert when requested/allocatable across the cluster stays below this (nodes oversized, autoscaler not scaling in).
+  clusterCpuCommitRatio: 0.4
+  clusterMemoryCommitRatio: 0.4
+
+alerts:
+  namespaceOverRequested:
+    enabled: true
+    severity: warning
+    for: 1h
+  clusterUnderCommitted:
+    enabled: true
+    severity: info
+    for: 6h
+  idlePvc:
+    enabled: true
+    severity: info
+    for: 7d
+  unusedLoadBalancer:
+    enabled: true
+    severity: warning
+    for: 1d
+  hpaAtMax:
+    enabled: true
+    severity: info
+    for: 2h
+  hpaPinned:
+    enabled: true
+    severity: info
+    for: 1h
+  missingRequests:
+    enabled: true
+    severity: info
+    for: 1h
+  scaledToZero:
+    enabled: true
+    severity: info
+    for: 7d
+
+# Extra labels on every alert (team, routing keys).
+alertLabels: {}

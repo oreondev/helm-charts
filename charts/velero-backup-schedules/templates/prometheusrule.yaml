@@ -1,0 +1,65 @@
+{{- if .Values.monitoring.enabled }}
+{{- $m := .Values.monitoring }}
+{{- $rt := .Values.restoreTest }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "vbs.fullname" . }}
+  namespace: {{ .Values.veleroNamespace }}
+  labels:
+    {{- include "vbs.labels" . | nindent 4 }}
+    {{- with $m.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  groups:
+    - name: velero-backup-schedules
+      rules:
+        - alert: VeleroBackupFailed
+          expr: velero_backup_last_status{schedule!=""} == 0
+          for: 10m
+          labels:
+            severity: {{ $m.severity | quote }}
+          annotations:
+            summary: 'The last Velero backup of schedule {{ `{{ $labels.schedule }}` }} failed'
+            description: 'Run "velero backup describe --details" on the latest backup of the schedule. Common causes: storage location unavailable, expired credentials, a volume snapshot that timed out.'
+        - alert: VeleroBackupPartiallyFailed
+          expr: increase(velero_backup_partial_failure_total{schedule!=""}[2h]) > 0
+          for: 0m
+          labels:
+            severity: {{ $m.partialFailureSeverity | quote }}
+          annotations:
+            summary: 'A Velero backup of schedule {{ `{{ $labels.schedule }}` }} completed with errors'
+            description: 'Some resources or volumes were skipped. "velero backup logs <name>" lists them; a partial backup may not restore what you expect.'
+        {{- range $s := .Values.schedules }}
+        {{- $cfg := mergeOverwrite (deepCopy $.Values.defaults) (deepCopy $s) }}
+        - alert: VeleroBackupTooOld
+          expr: time() - velero_backup_last_successful_timestamp{schedule={{ $s.name | quote }}} > {{ mul (int $cfg.maxAgeHours) 3600 }}
+          for: 30m
+          labels:
+            severity: {{ $m.severity | quote }}
+            schedule: {{ $s.name | quote }}
+          annotations:
+            summary: 'No successful Velero backup for schedule {{ $s.name }} in {{ $cfg.maxAgeHours }} hours'
+            description: 'The schedule may be paused, the Velero server may be down, or every run is failing. Check "velero schedule get" and "velero backup get".'
+        - alert: VeleroBackupNeverRan
+          expr: absent(velero_backup_last_successful_timestamp{schedule={{ $s.name | quote }}})
+          for: {{ $cfg.maxAgeHours }}h
+          labels:
+            severity: {{ $m.severity | quote }}
+            schedule: {{ $s.name | quote }}
+          annotations:
+            summary: 'Velero reports no successful backup at all for schedule {{ $s.name }}'
+            description: 'Either Velero metrics are not scraped (enable metrics.serviceMonitor on the Velero chart) or the schedule has never completed.'
+        {{- end }}
+        {{- if $rt.enabled }}
+        - alert: VeleroRestoreTestFailed
+          expr: kube_job_status_failed{namespace={{ .Values.veleroNamespace | quote }}, job_name=~{{ printf "%s-.*" (include "vbs.restoreTestName" .) | quote }}} > 0
+          for: 5m
+          labels:
+            severity: {{ $m.severity | quote }}
+          annotations:
+            summary: 'The scheduled Velero restore test failed'
+            description: 'The latest backup of schedule {{ $rt.fromSchedule }} did not restore namespace {{ $rt.namespace }} into a working state. Read the job logs: kubectl -n {{ .Values.veleroNamespace }} logs job/{{ `{{ $labels.job_name }}` }}'
+        {{- end }}
+{{- end }}

@@ -17,7 +17,7 @@ roleRef:
   kind: ClusterRole
   name: {{ $role }}
 subjects:
-  {{- include "nsb.subjects" $subjects | nindent 2 }}
+  {{- include "nsb.subjects" $subjects | trim | nindent 2 }}
 {{- end }}
 {{- end }}
 {{- end }}

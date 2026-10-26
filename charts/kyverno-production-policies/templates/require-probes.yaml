@@ -1,0 +1,40 @@
+{{- $p := .Values.policies.requireProbes }}
+{{- if $p.enabled }}
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: {{ .Values.namePrefix }}require-probes
+  labels:
+    {{- include "kpp.labels" . | nindent 4 }}
+  annotations:
+    {{- include "kpp.annotations" (dict "title" "Require liveness and readiness probes" "severity" "medium" "subject" "Deployment, StatefulSet, DaemonSet" "description" "Without a readiness probe, traffic reaches pods that are not ready and rolling updates cannot tell good from bad; without a liveness probe, a hung process stays in the rotation. Long-running workloads must define both.") | nindent 4 }}
+spec:
+  background: {{ .Values.background }}
+  rules:
+    - name: containers-have-probes
+      match:
+        any:
+          - resources:
+              kinds:
+                - Deployment
+                - StatefulSet
+                - DaemonSet
+      {{- include "kpp.exclude" . | nindent 6 }}
+      validate:
+        {{- include "kpp.failure" . | nindent 8 }}
+        message: >-
+          Liveness and readiness probes are required for every container{{ if $p.requireStartupProbe }}, and a startup probe{{ end }}.
+        pattern:
+          spec:
+            template:
+              spec:
+                containers:
+                  - livenessProbe:
+                      periodSeconds: ">0"
+                    readinessProbe:
+                      periodSeconds: ">0"
+                    {{- if $p.requireStartupProbe }}
+                    startupProbe:
+                      periodSeconds: ">0"
+                    {{- end }}
+{{- end }}

@@ -1,0 +1,31 @@
+{{- $p := .Values.policies.requireLabels }}
+{{- if and $p.enabled $p.labels }}
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: {{ .Values.namePrefix }}require-labels
+  labels:
+    {{- include "kpp.labels" . | nindent 4 }}
+  annotations:
+    {{- include "kpp.annotations" (dict "title" "Require ownership labels" "severity" "low" "subject" "Pod" "description" (printf "Cost reports, alert routing and incident response all key on labels. Every pod must carry: %s." (join ", " $p.labels))) | nindent 4 }}
+spec:
+  background: {{ .Values.background }}
+  rules:
+    - name: pods-have-required-labels
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      {{- include "kpp.exclude" . | nindent 6 }}
+      validate:
+        {{- include "kpp.failure" . | nindent 8 }}
+        message: >-
+          The labels {{ join ", " $p.labels }} are required.
+        pattern:
+          metadata:
+            labels:
+              {{- range $p.labels }}
+              {{ . | quote }}: "?*"
+              {{- end }}
+{{- end }}

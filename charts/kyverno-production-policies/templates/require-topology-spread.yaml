@@ -1,0 +1,37 @@
+{{- $p := .Values.policies.requireTopologySpread }}
+{{- if $p.enabled }}
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: {{ .Values.namePrefix }}require-topology-spread
+  labels:
+    {{- include "kpp.labels" . | nindent 4 }}
+  annotations:
+    {{- include "kpp.annotations" (dict "title" "Require spreading of multi-replica workloads" "severity" "medium" "subject" "Deployment, StatefulSet" "description" (printf "Replicas on the same node or zone fail together. Deployments and StatefulSets with %d or more replicas must declare topologySpreadConstraints or podAntiAffinity." (int $p.minReplicas))) | nindent 4 }}
+spec:
+  background: {{ .Values.background }}
+  rules:
+    - name: multi-replica-workloads-are-spread
+      match:
+        any:
+          - resources:
+              kinds:
+                - Deployment
+                - StatefulSet
+      {{- include "kpp.exclude" . | nindent 6 }}
+      preconditions:
+        all:
+          - key: "{{ "{{ request.object.spec.replicas || `1` }}" }}"
+            operator: GreaterThanOrEquals
+            value: {{ int $p.minReplicas }}
+      validate:
+        {{- include "kpp.failure" . | nindent 8 }}
+        message: >-
+          Workloads with {{ int $p.minReplicas }} or more replicas must set topologySpreadConstraints or affinity.podAntiAffinity.
+        deny:
+          conditions:
+            all:
+              - key: "{{ "{{ request.object.spec.template.spec.topologySpreadConstraints || request.object.spec.template.spec.affinity.podAntiAffinity || '' }}" }}"
+                operator: Equals
+                value: ""
+{{- end }}

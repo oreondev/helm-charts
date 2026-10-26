@@ -1,0 +1,40 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "kyverno-production-policies values",
+  "type": "object",
+  "properties": {
+    "namePrefix": { "type": "string", "pattern": "^([a-z0-9][-a-z0-9]*)?$" },
+    "failureAction": { "type": "string", "enum": ["Audit", "Enforce"] },
+    "enforceNamespaces": { "type": "array", "items": { "type": "string" } },
+    "excludeNamespaces": { "type": "array", "items": { "type": "string" } },
+    "background": { "type": "boolean" },
+    "policies": {
+      "type": "object",
+      "properties": {
+        "requireRequestsLimits": { "$ref": "#/definitions/toggle", "properties": { "enabled": { "type": "boolean" }, "requireCpuLimit": { "type": "boolean" } } },
+        "requireProbes": { "$ref": "#/definitions/toggle", "properties": { "enabled": { "type": "boolean" }, "requireStartupProbe": { "type": "boolean" } } },
+        "requireLabels": { "$ref": "#/definitions/toggle", "properties": { "enabled": { "type": "boolean" }, "labels": { "type": "array", "items": { "type": "string" } } } },
+        "disallowLatestTag": { "$ref": "#/definitions/toggle" },
+        "requirePdb": { "$ref": "#/definitions/toggle", "properties": { "enabled": { "type": "boolean" }, "minReplicas": { "type": "integer", "minimum": 2 } } },
+        "requireTopologySpread": { "$ref": "#/definitions/toggle", "properties": { "enabled": { "type": "boolean" }, "minReplicas": { "type": "integer", "minimum": 2 } } },
+        "restrictNodePort": { "$ref": "#/definitions/toggle" },
+        "disallowDefaultNamespace": { "$ref": "#/definitions/toggle" },
+        "restrictImageRegistries": { "$ref": "#/definitions/toggle", "properties": { "enabled": { "type": "boolean" }, "registries": { "type": "array", "items": { "type": "string" } } } },
+        "requireReadOnlyRootFs": { "$ref": "#/definitions/toggle" }
+      },
+      "additionalProperties": false
+    },
+    "rbac": {
+      "type": "object",
+      "properties": { "kyvernoReadPdbs": { "type": "boolean" } },
+      "additionalProperties": false
+    }
+  },
+  "definitions": {
+    "toggle": {
+      "type": "object",
+      "required": ["enabled"],
+      "properties": { "enabled": { "type": "boolean" } }
+    }
+  }
+}

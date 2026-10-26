@@ -1,0 +1,47 @@
+{{- $p := .Values.policies.requireRequestsLimits }}
+{{- if $p.enabled }}
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: {{ .Values.namePrefix }}require-requests-limits
+  labels:
+    {{- include "kpp.labels" . | nindent 4 }}
+  annotations:
+    {{- include "kpp.annotations" (dict "title" "Require resource requests and limits" "severity" "medium" "subject" "Pod" "description" "Containers without requests cannot be scheduled sensibly and are the first to be evicted; containers without memory limits can take a node down. Every container (including init containers) must set CPU and memory requests and a memory limit.") | nindent 4 }}
+spec:
+  background: {{ .Values.background }}
+  rules:
+    - name: containers-have-requests-and-limits
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      {{- include "kpp.exclude" . | nindent 6 }}
+      validate:
+        {{- include "kpp.failure" . | nindent 8 }}
+        message: >-
+          CPU and memory requests and a memory limit are required for every container{{ if $p.requireCpuLimit }}, and a CPU limit{{ end }}.
+        pattern:
+          spec:
+            containers:
+              - resources:
+                  requests:
+                    cpu: "?*"
+                    memory: "?*"
+                  limits:
+                    memory: "?*"
+                    {{- if $p.requireCpuLimit }}
+                    cpu: "?*"
+                    {{- end }}
+            =(initContainers):
+              - resources:
+                  requests:
+                    cpu: "?*"
+                    memory: "?*"
+                  limits:
+                    memory: "?*"
+                    {{- if $p.requireCpuLimit }}
+                    cpu: "?*"
+                    {{- end }}
+{{- end }}

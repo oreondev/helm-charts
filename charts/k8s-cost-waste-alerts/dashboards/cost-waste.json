@@ -1,0 +1,164 @@
+{
+  "uid": "oreon-k8s-cost-waste",
+  "title": "Kubernetes cost and waste",
+  "description": "Requests versus usage per namespace, cluster commitment, idle volumes and load balancers, HPAs at their limits. From the k8s-cost-waste-alerts Helm chart.",
+  "tags": ["cost", "finops", "kubernetes"],
+  "timezone": "browser",
+  "editable": true,
+  "graphTooltip": 1,
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "5m",
+  "time": { "from": "now-7d", "to": "now" },
+  "templating": {
+    "list": [
+      { "name": "datasource", "label": "Data source", "type": "datasource", "query": "prometheus", "current": {}, "hide": 0, "refresh": 1 }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1, "type": "stat", "title": "Wasted spend per month (requests above usage)",
+      "description": "Sum over namespaces of unused requested CPU and memory, priced with the chart's pricing values.",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 0 },
+      "targets": [ { "refId": "A", "expr": "sum(costwaste:namespace_waste_cost:per_month)", "instant": true } ],
+      "fieldConfig": { "defaults": { "unit": "__CURRENCY_UNIT__", "decimals": 0, "color": { "mode": "fixed", "fixedColor": "orange" } }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "area", "textMode": "value" }
+    },
+    {
+      "id": 2, "type": "gauge", "title": "CPU requested / allocatable",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 5, "w": 4, "x": 6, "y": 0 },
+      "targets": [ { "refId": "A", "expr": "costwaste:cluster_cpu_commit:ratio", "instant": true } ],
+      "fieldConfig": { "defaults": { "unit": "percentunit", "min": 0, "max": 1, "thresholds": { "mode": "absolute", "steps": [ { "color": "red", "value": null }, { "color": "orange", "value": 0.4 }, { "color": "green", "value": 0.6 } ] } }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "showThresholdLabels": false, "showThresholdMarkers": true }
+    },
+    {
+      "id": 3, "type": "gauge", "title": "CPU used / allocatable",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 5, "w": 4, "x": 10, "y": 0 },
+      "targets": [ { "refId": "A", "expr": "costwaste:cluster_cpu_use:ratio", "instant": true } ],
+      "fieldConfig": { "defaults": { "unit": "percentunit", "min": 0, "max": 1, "thresholds": { "mode": "absolute", "steps": [ { "color": "red", "value": null }, { "color": "orange", "value": 0.2 }, { "color": "green", "value": 0.4 } ] } }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "showThresholdLabels": false, "showThresholdMarkers": true }
+    },
+    {
+      "id": 4, "type": "gauge", "title": "Memory requested / allocatable",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 5, "w": 5, "x": 14, "y": 0 },
+      "targets": [ { "refId": "A", "expr": "costwaste:cluster_memory_commit:ratio", "instant": true } ],
+      "fieldConfig": { "defaults": { "unit": "percentunit", "min": 0, "max": 1, "thresholds": { "mode": "absolute", "steps": [ { "color": "red", "value": null }, { "color": "orange", "value": 0.4 }, { "color": "green", "value": 0.6 } ] } }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "showThresholdLabels": false, "showThresholdMarkers": true }
+    },
+    {
+      "id": 5, "type": "gauge", "title": "Memory used / allocatable",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 5, "w": 5, "x": 19, "y": 0 },
+      "targets": [ { "refId": "A", "expr": "costwaste:cluster_memory_use:ratio", "instant": true } ],
+      "fieldConfig": { "defaults": { "unit": "percentunit", "min": 0, "max": 1, "thresholds": { "mode": "absolute", "steps": [ { "color": "red", "value": null }, { "color": "orange", "value": 0.2 }, { "color": "green", "value": 0.4 } ] } }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "showThresholdLabels": false, "showThresholdMarkers": true }
+    },
+    {
+      "id": 6, "type": "table", "title": "Namespaces: requested, used, wasted",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 11, "w": 16, "x": 0, "y": 5 },
+      "targets": [
+        { "refId": "A", "expr": "costwaste:namespace_cpu_requests:sum", "instant": true, "format": "table" },
+        { "refId": "B", "expr": "costwaste:namespace_cpu_usage:sum", "instant": true, "format": "table" },
+        { "refId": "C", "expr": "costwaste:namespace_cpu_waste:ratio", "instant": true, "format": "table" },
+        { "refId": "D", "expr": "costwaste:namespace_memory_requests:sum", "instant": true, "format": "table" },
+        { "refId": "E", "expr": "costwaste:namespace_memory_usage:sum", "instant": true, "format": "table" },
+        { "refId": "F", "expr": "costwaste:namespace_memory_waste:ratio", "instant": true, "format": "table" },
+        { "refId": "G", "expr": "costwaste:namespace_waste_cost:per_month", "instant": true, "format": "table" }
+      ],
+      "transformations": [
+        { "id": "merge", "options": {} },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": { "Time": true, "__name__": true, "job": true, "instance": true },
+            "indexByName": { "namespace": 0, "Value #A": 1, "Value #B": 2, "Value #C": 3, "Value #D": 4, "Value #E": 5, "Value #F": 6, "Value #G": 7 },
+            "renameByName": { "Value #A": "CPU req (cores)", "Value #B": "CPU used (cores)", "Value #C": "CPU waste", "Value #D": "Mem req", "Value #E": "Mem used", "Value #F": "Mem waste", "Value #G": "Waste / month" }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "custom": { "align": "auto", "cellOptions": { "type": "auto" } }, "decimals": 2 },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Mem req" }, "properties": [ { "id": "unit", "value": "bytes" } ] },
+          { "matcher": { "id": "byName", "options": "Mem used" }, "properties": [ { "id": "unit", "value": "bytes" } ] },
+          { "matcher": { "id": "byName", "options": "CPU waste" }, "properties": [ { "id": "unit", "value": "percentunit" }, { "id": "decimals", "value": 0 }, { "id": "custom.cellOptions", "value": { "type": "color-background" } }, { "id": "thresholds", "value": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "orange", "value": 0.5 }, { "color": "red", "value": 0.7 } ] } } ] },
+          { "matcher": { "id": "byName", "options": "Mem waste" }, "properties": [ { "id": "unit", "value": "percentunit" }, { "id": "decimals", "value": 0 }, { "id": "custom.cellOptions", "value": { "type": "color-background" } }, { "id": "thresholds", "value": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "orange", "value": 0.5 }, { "color": "red", "value": 0.7 } ] } } ] },
+          { "matcher": { "id": "byName", "options": "Waste / month" }, "properties": [ { "id": "unit", "value": "__CURRENCY_UNIT__" }, { "id": "decimals", "value": 0 } ] }
+        ]
+      },
+      "options": { "showHeader": true, "sortBy": [ { "displayName": "Waste / month", "desc": true } ] }
+    },
+    {
+      "id": 7, "type": "bargauge", "title": "Top 10 namespaces by wasted spend / month",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 11, "w": 8, "x": 16, "y": 5 },
+      "targets": [ { "refId": "A", "expr": "topk(10, costwaste:namespace_waste_cost:per_month)", "instant": true, "legendFormat": "{{namespace}}" } ],
+      "fieldConfig": { "defaults": { "unit": "__CURRENCY_UNIT__", "decimals": 0, "color": { "mode": "continuous-GrYlRd" } }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "orientation": "horizontal", "displayMode": "gradient", "showUnfilled": true }
+    },
+    {
+      "id": 8, "type": "timeseries", "title": "Cluster CPU: allocatable, requested, used (cores)",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "targets": [
+        { "refId": "A", "expr": "costwaste:cluster_cpu_allocatable:sum", "legendFormat": "allocatable" },
+        { "refId": "B", "expr": "sum(costwaste:namespace_cpu_requests:sum)", "legendFormat": "requested" },
+        { "refId": "C", "expr": "sum(costwaste:namespace_cpu_usage:sum)", "legendFormat": "used" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "none", "custom": { "drawStyle": "line", "lineWidth": 1, "fillOpacity": 10, "spanNulls": true } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } }
+    },
+    {
+      "id": 9, "type": "timeseries", "title": "Cluster memory: allocatable, requested, used",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "targets": [
+        { "refId": "A", "expr": "costwaste:cluster_memory_allocatable:sum", "legendFormat": "allocatable" },
+        { "refId": "B", "expr": "sum(costwaste:namespace_memory_requests:sum)", "legendFormat": "requested" },
+        { "refId": "C", "expr": "sum(costwaste:namespace_memory_usage:sum)", "legendFormat": "used" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes", "custom": { "drawStyle": "line", "lineWidth": 1, "fillOpacity": 10, "spanNulls": true } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } }
+    },
+    {
+      "id": 10, "type": "table", "title": "PersistentVolumeClaims not mounted by any pod",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+      "targets": [
+        { "refId": "A", "expr": "(kube_persistentvolumeclaim_info unless on (namespace, persistentvolumeclaim) kube_pod_spec_volumes_persistentvolumeclaims_info) * on (namespace, persistentvolumeclaim) group_left() kube_persistentvolumeclaim_resource_requests_storage_bytes", "instant": true, "format": "table" }
+      ],
+      "transformations": [
+        { "id": "organize", "options": { "excludeByName": { "Time": true, "__name__": true, "job": true, "instance": true, "volumemode": true, "volumename": true }, "indexByName": { "namespace": 0, "persistentvolumeclaim": 1, "storageclass": 2, "Value": 3 }, "renameByName": { "Value": "Size" } } }
+      ],
+      "fieldConfig": { "defaults": { "custom": { "align": "auto", "cellOptions": { "type": "auto" } } }, "overrides": [ { "matcher": { "id": "byName", "options": "Size" }, "properties": [ { "id": "unit", "value": "bytes" } ] } ] },
+      "options": { "showHeader": true, "sortBy": [ { "displayName": "Size", "desc": true } ] }
+    },
+    {
+      "id": 11, "type": "table", "title": "HorizontalPodAutoscalers: min, max, current",
+      "description": "Current equal to max = stuck at the ceiling. Min equal to max = autoscaling switched off.",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
+      "targets": [
+        { "refId": "A", "expr": "kube_horizontalpodautoscaler_spec_min_replicas", "instant": true, "format": "table" },
+        { "refId": "B", "expr": "kube_horizontalpodautoscaler_spec_max_replicas", "instant": true, "format": "table" },
+        { "refId": "C", "expr": "kube_horizontalpodautoscaler_status_current_replicas", "instant": true, "format": "table" }
+      ],
+      "transformations": [
+        { "id": "merge", "options": {} },
+        { "id": "organize", "options": { "excludeByName": { "Time": true, "__name__": true, "job": true, "instance": true }, "indexByName": { "namespace": 0, "horizontalpodautoscaler": 1, "Value #A": 2, "Value #B": 3, "Value #C": 4 }, "renameByName": { "Value #A": "min", "Value #B": "max", "Value #C": "current" } } }
+      ],
+      "fieldConfig": { "defaults": { "custom": { "align": "auto", "cellOptions": { "type": "auto" } } }, "overrides": [] },
+      "options": { "showHeader": true, "sortBy": [ { "displayName": "current", "desc": true } ] }
+    },
+    {
+      "id": 12, "type": "text", "title": "",
+      "gridPos": { "h": 2, "w": 24, "x": 0, "y": 32 },
+      "options": { "mode": "markdown", "content": "Generated by the [k8s-cost-waste-alerts](https://github.com/oreonit/helm-charts) Helm chart. Prices come from the chart values; replace them with your blended rates. Maintained by [Oreon IT](https://www.oreonit.com/)." }
+    }
+  ]
+}

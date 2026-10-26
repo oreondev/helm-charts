@@ -1,0 +1,208 @@
+{{- $rt := .Values.restoreTest }}
+{{- if $rt.enabled }}
+{{- if not $rt.namespace }}{{ fail "restoreTest.namespace is required when restoreTest.enabled is true" }}{{ end }}
+{{- $name := include "vbs.restoreTestName" . }}
+{{- $sa := include "vbs.restoreTestServiceAccount" . }}
+{{- $target := $rt.targetNamespace | default (printf "%s-restore-test" $rt.namespace) }}
+{{- if $rt.serviceAccount.create }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ $sa }}
+  namespace: {{ .Values.veleroNamespace }}
+  labels:
+    {{- include "vbs.labels" . | nindent 4 }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "vbs.labels" . | nindent 4 }}
+rules:
+  - apiGroups: ["velero.io"]
+    resources: ["restores"]
+    verbs: ["create", "get", "list", "watch", "delete"]
+  - apiGroups: ["velero.io"]
+    resources: ["backups", "schedules"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: ["get", "list", "delete"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "vbs.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ $name }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ $sa }}
+    namespace: {{ .Values.veleroNamespace }}
+{{- end }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $name }}
+  namespace: {{ .Values.veleroNamespace }}
+  labels:
+    {{- include "vbs.labels" . | nindent 4 }}
+data:
+  restore-test.sh: |
+    #!/bin/bash
+    # Restore the latest backup of $FROM_SCHEDULE into $TARGET_NS, wait for pods, clean up.
+    set -euo pipefail
+    NAME="restore-test-$(date +%Y%m%d-%H%M%S)"
+    echo "== Restore test: schedule=$FROM_SCHEDULE source=$SOURCE_NS target=$TARGET_NS"
+
+    if kubectl get namespace "$TARGET_NS" >/dev/null 2>&1; then
+      echo "Target namespace $TARGET_NS already exists; deleting it first"
+      kubectl delete namespace "$TARGET_NS" --wait=true --timeout=10m
+    fi
+
+    LATEST=$(kubectl -n "$VELERO_NS" get backups.velero.io -l "velero.io/schedule-name=$FROM_SCHEDULE" \
+      --sort-by=.status.completionTimestamp -o jsonpath='{range .items[?(@.status.phase=="Completed")]}{.metadata.name}{"\n"}{end}' | tail -n 1)
+    if [ -z "$LATEST" ]; then
+      echo "No completed backup found for schedule $FROM_SCHEDULE"; exit 2
+    fi
+    echo "Latest completed backup: $LATEST"
+
+    kubectl -n "$VELERO_NS" apply -f - <<EOF
+    apiVersion: velero.io/v1
+    kind: Restore
+    metadata:
+      name: $NAME
+      labels:
+        app.kubernetes.io/managed-by: velero-backup-schedules
+    spec:
+      backupName: $LATEST
+      includedNamespaces:
+        - $SOURCE_NS
+      namespaceMapping:
+        $SOURCE_NS: $TARGET_NS
+      restorePVs: true
+      excludedResources:
+        - nodes
+        - events
+        - events.events.k8s.io
+        - backups.velero.io
+        - restores.velero.io
+    EOF
+
+    echo "Waiting for restore $NAME (timeout $WAIT_TIMEOUT)"
+    deadline=$(( $(date +%s) + WAIT_SECONDS ))
+    phase=""
+    while [ "$(date +%s)" -lt "$deadline" ]; do
+      phase=$(kubectl -n "$VELERO_NS" get restores.velero.io "$NAME" -o jsonpath='{.status.phase}' 2>/dev/null || true)
+      case "$phase" in
+        Completed) break ;;
+        PartiallyFailed|Failed|FailedValidation) echo "Restore ended in phase $phase"; kubectl -n "$VELERO_NS" get restores.velero.io "$NAME" -o yaml | sed -n '/status:/,$p'; exit 3 ;;
+      esac
+      sleep 15
+    done
+    if [ "$phase" != "Completed" ]; then echo "Restore did not complete within $WAIT_TIMEOUT (phase: $phase)"; exit 4; fi
+    echo "Restore completed"
+
+    echo "Waiting for pods in $TARGET_NS to become Ready"
+    remaining=$(( deadline - $(date +%s) ))
+    [ "$remaining" -gt 60 ] || remaining=60
+    kubectl -n "$TARGET_NS" wait --for=condition=Ready pod --all --timeout="${remaining}s" || true
+    ready=$(kubectl -n "$TARGET_NS" get pods -o jsonpath='{range .items[*]}{range .status.conditions[?(@.type=="Ready")]}{.status}{"\n"}{end}{end}' | grep -c True || true)
+    echo "Ready pods: $ready (required: $MIN_READY_PODS)"
+    kubectl -n "$TARGET_NS" get pods -o wide || true
+
+    rc=0
+    if [ "$ready" -lt "$MIN_READY_PODS" ]; then
+      echo "RESTORE TEST FAILED: fewer than $MIN_READY_PODS pods became Ready"; rc=5
+    else
+      echo "RESTORE TEST PASSED"
+    fi
+
+    if [ "$CLEANUP" = "true" ]; then
+      echo "Cleaning up"
+      kubectl delete namespace "$TARGET_NS" --wait=false || true
+      kubectl -n "$VELERO_NS" delete restores.velero.io "$NAME" --wait=false || true
+    fi
+    exit $rc
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ $name }}
+  namespace: {{ .Values.veleroNamespace }}
+  labels:
+    {{- include "vbs.labels" . | nindent 4 }}
+spec:
+  schedule: {{ $rt.schedule | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: {{ .Chart.Name }}
+            app.kubernetes.io/component: restore-test
+        spec:
+          serviceAccountName: {{ $sa }}
+          restartPolicy: Never
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1001
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: restore-test
+              image: {{ $rt.image }}
+              command: ["/bin/bash", "/scripts/restore-test.sh"]
+              env:
+                - name: VELERO_NS
+                  value: {{ .Values.veleroNamespace | quote }}
+                - name: FROM_SCHEDULE
+                  value: {{ $rt.fromSchedule | quote }}
+                - name: SOURCE_NS
+                  value: {{ $rt.namespace | quote }}
+                - name: TARGET_NS
+                  value: {{ $target | quote }}
+                - name: WAIT_TIMEOUT
+                  value: {{ $rt.waitTimeout | quote }}
+                - name: WAIT_SECONDS
+                  value: {{ include "vbs.seconds" $rt.waitTimeout | quote }}
+                - name: MIN_READY_PODS
+                  value: {{ $rt.minReadyPods | quote }}
+                - name: CLEANUP
+                  value: {{ $rt.cleanup | quote }}
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+              {{- with $rt.resources }}
+              resources:
+                {{- toYaml . | nindent 16 }}
+              {{- end }}
+              volumeMounts:
+                - name: scripts
+                  mountPath: /scripts
+                - name: tmp
+                  mountPath: /tmp
+          volumes:
+            - name: scripts
+              configMap:
+                name: {{ $name }}
+                defaultMode: 0555
+            - name: tmp
+              emptyDir: {}
+{{- end }}

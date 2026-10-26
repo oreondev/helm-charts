@@ -9,6 +9,15 @@
       "maximum": 365,
       "description": "Length of the SLO window in days."
     },
+    "rulesBackend": { "type": "string", "enum": ["prometheus-operator", "gmp"] },
+    "gmp": {
+      "type": "object",
+      "properties": {
+        "kind": { "type": "string", "enum": ["Rules", "ClusterRules", "GlobalRules"] },
+        "namespace": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
     "prometheusRule": {
       "type": "object",
       "properties": {

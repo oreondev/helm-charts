@@ -1,0 +1,63 @@
+veleroNamespace: velero
+
+storageLocation:
+  create: true
+  name: primary
+  provider: aws
+  bucket: acme-velero-backups
+  prefix: prod-cluster
+  config:
+    region: eu-west-2
+  credential:
+    name: cloud-credentials
+    key: cloud
+  backupSyncPeriod: 1h
+
+volumeSnapshotLocation:
+  create: true
+  name: primary
+  provider: aws
+  config:
+    region: eu-west-2
+
+defaults:
+  storageLocation: primary
+  volumeSnapshotLocations: [primary]
+  excludedNamespaces:
+    - kube-system
+    - velero
+    - monitoring
+
+schedules:
+  - name: daily
+    schedule: "0 2 * * *"
+    ttl: 168h
+    maxAgeHours: 26
+  - name: weekly
+    schedule: "0 3 * * 0"
+    ttl: 720h
+    maxAgeHours: 192
+    includeClusterResources: true
+  - name: payments-hourly
+    schedule: "0 * * * *"
+    ttl: 48h
+    maxAgeHours: 2
+    includedNamespaces: [payments]
+    excludedNamespaces: []
+    defaultVolumesToFsBackup: true
+    labelSelector:
+      backup: "true"
+    csiSnapshotTimeout: 20m
+
+restoreTest:
+  enabled: true
+  schedule: "0 6 * * 1"
+  fromSchedule: daily
+  namespace: payments
+  waitTimeout: 20m
+  minReadyPods: 2
+
+monitoring:
+  enabled: true
+  labels:
+    release: kube-prometheus-stack

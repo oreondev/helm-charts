@@ -1,0 +1,191 @@
+{{- if .Values.prometheusRule.enabled }}
+{{- $ex := .Values.excludeNamespaces }}
+{{- $t := .Values.thresholds }}
+{{- $a := .Values.alerts }}
+{{- $minMemBytes := mulf (float64 $t.minMemoryRequestGiB) 1073741824 }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "cw.fullname" . }}
+  namespace: {{ .Values.prometheusRule.namespace | default .Release.Namespace }}
+  labels:
+    {{- include "cw.labels" . | nindent 4 }}
+    {{- with .Values.prometheusRule.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  groups:
+    - name: costwaste-recording
+      interval: {{ .Values.prometheusRule.interval }}
+      rules:
+        - record: costwaste:pod_running:bool
+          expr: max by (namespace, pod) (kube_pod_status_phase{phase="Running"})
+        - record: costwaste:namespace_cpu_requests:sum
+          expr: |
+            sum by (namespace) (
+              kube_pod_container_resource_requests{resource="cpu", container!=""}
+              * on (namespace, pod) group_left() costwaste:pod_running:bool
+            )
+        - record: costwaste:namespace_cpu_usage:sum
+          expr: sum by (namespace) (rate(container_cpu_usage_seconds_total{container!="", container!="POD", image!=""}[5m]))
+        - record: costwaste:namespace_memory_requests:sum
+          expr: |
+            sum by (namespace) (
+              kube_pod_container_resource_requests{resource="memory", container!=""}
+              * on (namespace, pod) group_left() costwaste:pod_running:bool
+            )
+        - record: costwaste:namespace_memory_usage:sum
+          expr: sum by (namespace) (container_memory_working_set_bytes{container!="", container!="POD", image!=""})
+        - record: costwaste:namespace_cpu_waste:cores
+          expr: clamp_min(costwaste:namespace_cpu_requests:sum - costwaste:namespace_cpu_usage:sum, 0)
+        - record: costwaste:namespace_cpu_waste:ratio
+          expr: costwaste:namespace_cpu_waste:cores / costwaste:namespace_cpu_requests:sum
+        - record: costwaste:namespace_memory_waste:bytes
+          expr: clamp_min(costwaste:namespace_memory_requests:sum - costwaste:namespace_memory_usage:sum, 0)
+        - record: costwaste:namespace_memory_waste:ratio
+          expr: costwaste:namespace_memory_waste:bytes / costwaste:namespace_memory_requests:sum
+        {{- if .Values.pricing.enabled }}
+        - record: costwaste:namespace_cpu_waste_cost:per_month
+          expr: costwaste:namespace_cpu_waste:cores * {{ .Values.pricing.cpuCoreHour }} * 730
+        - record: costwaste:namespace_memory_waste_cost:per_month
+          expr: costwaste:namespace_memory_waste:bytes / 1073741824 * {{ .Values.pricing.memoryGiBHour }} * 730
+        - record: costwaste:namespace_waste_cost:per_month
+          expr: costwaste:namespace_cpu_waste_cost:per_month + costwaste:namespace_memory_waste_cost:per_month
+        {{- end }}
+        - record: costwaste:cluster_cpu_allocatable:sum
+          expr: sum(kube_node_status_allocatable{resource="cpu"})
+        - record: costwaste:cluster_memory_allocatable:sum
+          expr: sum(kube_node_status_allocatable{resource="memory"})
+        - record: costwaste:cluster_cpu_commit:ratio
+          expr: sum(costwaste:namespace_cpu_requests:sum) / costwaste:cluster_cpu_allocatable:sum
+        - record: costwaste:cluster_memory_commit:ratio
+          expr: sum(costwaste:namespace_memory_requests:sum) / costwaste:cluster_memory_allocatable:sum
+        - record: costwaste:cluster_cpu_use:ratio
+          expr: sum(costwaste:namespace_cpu_usage:sum) / costwaste:cluster_cpu_allocatable:sum
+        - record: costwaste:cluster_memory_use:ratio
+          expr: sum(costwaste:namespace_memory_usage:sum) / costwaste:cluster_memory_allocatable:sum
+    - name: costwaste-alerts
+      rules:
+        {{- if $a.namespaceOverRequested.enabled }}
+        - alert: NamespaceCPUOverRequested
+          expr: |
+            avg_over_time(costwaste:namespace_cpu_waste:ratio{namespace!~{{ $ex | quote }}}[1d]) > {{ $t.cpuWasteRatio }}
+            and costwaste:namespace_cpu_requests:sum > {{ $t.minCpuRequestCores }}
+          for: {{ $a.namespaceOverRequested.for }}
+          labels:
+            {{- include "cw.alertLabels" (dict "root" $ "severity" $a.namespaceOverRequested.severity) | nindent 12 }}
+          annotations:
+            summary: 'Namespace {{ `{{ $labels.namespace }}` }} leaves {{ `{{ $value | humanizePercentage }}` }} of its CPU requests unused (24h average)'
+            description: 'Requests are sized well above use, so the cluster holds nodes for capacity nobody consumes. Right-size the requests (VPA recommendations or the cost dashboard) and let the autoscaler remove nodes.'
+        - alert: NamespaceMemoryOverRequested
+          expr: |
+            avg_over_time(costwaste:namespace_memory_waste:ratio{namespace!~{{ $ex | quote }}}[1d]) > {{ $t.memoryWasteRatio }}
+            and costwaste:namespace_memory_requests:sum > {{ printf "%.0f" $minMemBytes }}
+          for: {{ $a.namespaceOverRequested.for }}
+          labels:
+            {{- include "cw.alertLabels" (dict "root" $ "severity" $a.namespaceOverRequested.severity) | nindent 12 }}
+          annotations:
+            summary: 'Namespace {{ `{{ $labels.namespace }}` }} leaves {{ `{{ $value | humanizePercentage }}` }} of its memory requests unused (24h average)'
+            description: 'Memory requests far above the working set are the most common Kubernetes cost leak. Right-size them; memory is what usually decides node count.'
+        {{- end }}
+        {{- if $a.clusterUnderCommitted.enabled }}
+        - alert: ClusterCPUUnderCommitted
+          expr: avg_over_time(costwaste:cluster_cpu_commit:ratio[1d]) < {{ $t.clusterCpuCommitRatio }}
+          for: {{ $a.clusterUnderCommitted.for }}
+          labels:
+            {{- include "cw.alertLabels" (dict "root" $ "severity" $a.clusterUnderCommitted.severity) | nindent 12 }}
+          annotations:
+            summary: 'Only {{ `{{ $value | humanizePercentage }}` }} of allocatable CPU is requested across the cluster'
+            description: 'Nodes are oversized or the cluster autoscaler is not scaling in. Check node pool minimums, PodDisruptionBudgets that block scale-down, and system pods pinning nodes.'
+        - alert: ClusterMemoryUnderCommitted
+          expr: avg_over_time(costwaste:cluster_memory_commit:ratio[1d]) < {{ $t.clusterMemoryCommitRatio }}
+          for: {{ $a.clusterUnderCommitted.for }}
+          labels:
+            {{- include "cw.alertLabels" (dict "root" $ "severity" $a.clusterUnderCommitted.severity) | nindent 12 }}
+          annotations:
+            summary: 'Only {{ `{{ $value | humanizePercentage }}` }} of allocatable memory is requested across the cluster'
+            description: 'Nodes are oversized or the cluster autoscaler is not scaling in. Consider smaller machine types or a lower node pool minimum.'
+        {{- end }}
+        {{- if $a.idlePvc.enabled }}
+        - alert: UnusedPersistentVolumeClaim
+          expr: |
+            (
+              kube_persistentvolumeclaim_info{namespace!~{{ $ex | quote }}}
+              unless on (namespace, persistentvolumeclaim) kube_pod_spec_volumes_persistentvolumeclaims_info
+            )
+            * on (namespace, persistentvolumeclaim) group_left() kube_persistentvolumeclaim_resource_requests_storage_bytes
+          for: {{ $a.idlePvc.for }}
+          labels:
+            {{- include "cw.alertLabels" (dict "root" $ "severity" $a.idlePvc.severity) | nindent 12 }}
+          annotations:
+            summary: 'PVC {{ `{{ $labels.namespace }}` }}/{{ `{{ $labels.persistentvolumeclaim }}` }} ({{ `{{ $value | humanize1024 }}` }}B) has not been mounted by any pod for {{ $a.idlePvc.for }}'
+            description: 'The disk is billed whether or not a pod uses it. Snapshot and delete it, or document why it stays.'
+        {{- end }}
+        {{- if $a.unusedLoadBalancer.enabled }}
+        - alert: UnusedLoadBalancerService
+          expr: |
+            (
+              kube_service_spec_type{type="LoadBalancer", namespace!~{{ $ex | quote }}}
+              unless on (namespace, service)
+              (label_replace(sum by (namespace, endpoint) (kube_endpoint_address{ready="true"}), "service", "$1", "endpoint", "(.*)") > 0)
+            )
+            and on () (count(kube_endpoint_address) > 0)
+          for: {{ $a.unusedLoadBalancer.for }}
+          labels:
+            {{- include "cw.alertLabels" (dict "root" $ "severity" $a.unusedLoadBalancer.severity) | nindent 12 }}
+          annotations:
+            summary: 'LoadBalancer service {{ `{{ $labels.namespace }}` }}/{{ `{{ $labels.service }}` }} has had no ready endpoints for {{ $a.unusedLoadBalancer.for }}'
+            description: 'A cloud load balancer is billed per hour whether or not it serves traffic. Fix the selector or delete the service.'
+        {{- end }}
+        {{- if $a.hpaAtMax.enabled }}
+        - alert: HPAAtMaxReplicas
+          expr: |
+            kube_horizontalpodautoscaler_status_current_replicas{namespace!~{{ $ex | quote }}}
+            >= kube_horizontalpodautoscaler_spec_max_replicas
+          for: {{ $a.hpaAtMax.for }}
+          labels:
+            {{- include "cw.alertLabels" (dict "root" $ "severity" $a.hpaAtMax.severity) | nindent 12 }}
+          annotations:
+            summary: 'HPA {{ `{{ $labels.namespace }}` }}/{{ `{{ $labels.horizontalpodautoscaler }}` }} has sat at maxReplicas ({{ `{{ $value }}` }}) for {{ $a.hpaAtMax.for }}'
+            description: 'Either the ceiling is too low (a capacity risk) or load is leaking (a cost). Look at the target metric before raising maxReplicas.'
+        {{- end }}
+        {{- if $a.hpaPinned.enabled }}
+        - alert: HPAMinEqualsMax
+          expr: |
+            kube_horizontalpodautoscaler_spec_min_replicas{namespace!~{{ $ex | quote }}}
+            == kube_horizontalpodautoscaler_spec_max_replicas
+          for: {{ $a.hpaPinned.for }}
+          labels:
+            {{- include "cw.alertLabels" (dict "root" $ "severity" $a.hpaPinned.severity) | nindent 12 }}
+          annotations:
+            summary: 'HPA {{ `{{ $labels.namespace }}` }}/{{ `{{ $labels.horizontalpodautoscaler }}` }} has minReplicas equal to maxReplicas ({{ `{{ $value }}` }})'
+            description: 'Autoscaling is switched off for this workload; it pays for peak capacity all day. Widen the range or remove the HPA.'
+        {{- end }}
+        {{- if $a.missingRequests.enabled }}
+        - alert: ContainersWithoutCPURequests
+          expr: |
+            count by (namespace) (
+              (
+                kube_pod_container_info{namespace!~{{ $ex | quote }}, container!=""}
+                * on (namespace, pod) group_left() costwaste:pod_running:bool > 0
+              )
+              unless on (namespace, pod, container) kube_pod_container_resource_requests{resource="cpu"}
+            ) > 0
+          for: {{ $a.missingRequests.for }}
+          labels:
+            {{- include "cw.alertLabels" (dict "root" $ "severity" $a.missingRequests.severity) | nindent 12 }}
+          annotations:
+            summary: '{{ `{{ $value }}` }} running containers in {{ `{{ $labels.namespace }}` }} have no CPU request'
+            description: 'They are invisible to the scheduler, to the autoscaler and to cost allocation. A LimitRange default request is the quickest fix (see the namespace-baseline chart).'
+        {{- end }}
+        {{- if $a.scaledToZero.enabled }}
+        - alert: DeploymentScaledToZero
+          expr: kube_deployment_spec_replicas{namespace!~{{ $ex | quote }}} == 0
+          for: {{ $a.scaledToZero.for }}
+          labels:
+            {{- include "cw.alertLabels" (dict "root" $ "severity" $a.scaledToZero.severity) | nindent 12 }}
+          annotations:
+            summary: 'Deployment {{ `{{ $labels.namespace }}` }}/{{ `{{ $labels.deployment }}` }} has been scaled to zero for {{ $a.scaledToZero.for }}'
+            description: 'Delete it or document why it stays: its PVCs, Secrets, ConfigMaps and LoadBalancers may still cost money.'
+        {{- end }}
+{{- end }}
