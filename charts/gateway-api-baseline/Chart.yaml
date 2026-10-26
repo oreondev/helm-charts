@@ -6,7 +6,7 @@ version: 0.1.0
 appVersion: "0.1.0"
 kubeVersion: ">=1.25.0-0"
 home: https://www.oreonit.com/containerization-orchestration-management-kubernetes-openshift/
-icon: https://raw.githubusercontent.com/oreonit/helm-charts/main/icon.png
+icon: https://raw.githubusercontent.com/oreondev/helm-charts/main/icon.png
 sources:
   - https://github.com/oreondev/helm-charts
 keywords:
