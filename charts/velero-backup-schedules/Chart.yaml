@@ -8,7 +8,7 @@ kubeVersion: ">=1.25.0-0"
 home: https://www.oreonit.com/disaster-recovery-planning-services/
 icon: https://raw.githubusercontent.com/oreonit/helm-charts/main/icon.png
 sources:
-  - https://github.com/oreonit/helm-charts
+  - https://github.com/oreondev/helm-charts
 keywords:
   - velero
   - backup
@@ -31,7 +31,7 @@ annotations:
     - name: Disaster recovery plan template for cloud teams
       url: https://www.oreonit.com/disaster-recovery-plan-template-for-cloud-teams/
     - name: Terraform AWS backup baseline (the same idea for AWS Backup)
-      url: https://github.com/oreonit/terraform-aws-backup-baseline
+      url: https://github.com/oreondev/terraform-aws-backup-baseline
     - name: Disaster recovery planning by the maintainers
       url: https://www.oreonit.com/disaster-recovery-planning-services/
   artifacthub.io/changes: |

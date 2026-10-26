@@ -10,7 +10,7 @@ A backup *policy* for Velero, as values. Velero (the [vmware-tanzu/velero](https
 ## Install
 
 ```bash
-helm repo add oreonit https://oreonit.github.io/helm-charts
+helm repo add oreonit https://oreondev.github.io/helm-charts
 helm install backups oreonit/velero-backup-schedules -n velero -f backups.yaml
 ```
 
@@ -92,7 +92,7 @@ Things the test cannot see: applications that come up Ready but have lost data, 
 - `includeClusterResources: true` on one schedule (weekly here) captures CRDs, ClusterRoles and StorageClasses for a full-cluster rebuild; leave it unset on the others.
 - The restore-test ClusterRole can delete namespaces. It is bound to one ServiceAccount in the Velero namespace; keep that namespace locked down.
 
-The same approach for cloud-native backups lives in [terraform-aws-backup-baseline](https://github.com/oreonit/terraform-aws-backup-baseline). The plan this slots into is the [disaster recovery plan template](https://www.oreonit.com/disaster-recovery-plan-template-for-cloud-teams/); if you would like the whole plan written and tested, see our [disaster recovery planning](https://www.oreonit.com/disaster-recovery-planning-services/).
+The same approach for cloud-native backups lives in [terraform-aws-backup-baseline](https://github.com/oreondev/terraform-aws-backup-baseline). The plan this slots into is the [disaster recovery plan template](https://www.oreonit.com/disaster-recovery-plan-template-for-cloud-teams/); if you would like the whole plan written and tested, see our [disaster recovery planning](https://www.oreonit.com/disaster-recovery-planning-services/).
 
 ## Licence
 

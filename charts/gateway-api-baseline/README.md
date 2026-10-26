@@ -13,7 +13,7 @@ The chart installs no controller. It works with any conformant implementation; w
 ## Install
 
 ```bash
-helm repo add oreonit https://oreonit.github.io/helm-charts
+helm repo add oreonit https://oreondev.github.io/helm-charts
 kubectl create namespace gateway-system
 helm install gateway oreonit/gateway-api-baseline -n gateway-system -f gateway.yaml
 kubectl label namespace web shared-gateway-access=true

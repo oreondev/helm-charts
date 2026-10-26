@@ -20,7 +20,7 @@ helm install blackbox prometheus-community/prometheus-blackbox-exporter -n monit
 Then:
 
 ```bash
-helm repo add oreonit https://oreonit.github.io/helm-charts
+helm repo add oreonit https://oreondev.github.io/helm-charts
 helm install probes oreonit/blackbox-slo-probes -n monitoring -f probes.yaml
 ```
 

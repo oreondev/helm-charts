@@ -19,7 +19,7 @@ Recording rules (`costwaste:*`) give requested, used and wasted CPU and memory p
 ## Install
 
 ```bash
-helm repo add oreonit https://oreonit.github.io/helm-charts
+helm repo add oreonit https://oreondev.github.io/helm-charts
 helm install cost oreonit/k8s-cost-waste-alerts -n monitoring \
   --set prometheusRule.labels.release=kube-prometheus-stack \
   --set pricing.currency=GBP --set pricing.cpuCoreHour=0.026 --set pricing.memoryGiBHour=0.0035

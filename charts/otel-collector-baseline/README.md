@@ -22,7 +22,7 @@ With no backend enabled everything goes to the `debug` exporter, so a fresh inst
 ## Install
 
 ```bash
-helm repo add oreonit https://oreonit.github.io/helm-charts
+helm repo add oreonit https://oreondev.github.io/helm-charts
 helm install otel oreonit/otel-collector-baseline -n observability --create-namespace -f otel.yaml
 ```
 

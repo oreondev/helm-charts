@@ -17,7 +17,7 @@ Charts we install on client clusters, published so you can use them too. None of
 ## Use
 
 ```bash
-helm repo add oreonit https://oreonit.github.io/helm-charts
+helm repo add oreonit https://oreondev.github.io/helm-charts
 helm repo update
 helm search repo oreonit
 ```
@@ -37,7 +37,7 @@ Pull requests run [chart-testing](https://github.com/helm/chart-testing) (lint, 
 
 1. Create an empty `gh-pages` branch once: `git checkout --orphan gh-pages && git rm -rf . && git commit --allow-empty -m "gh-pages" && git push origin gh-pages && git checkout main`.
 2. Repository settings, Pages: source = branch `gh-pages`, folder `/`.
-3. Push `main`; the release workflow creates a GitHub release per chart and the Helm index at `https://oreonit.github.io/helm-charts/index.yaml`.
+3. Push `main`; the release workflow creates a GitHub release per chart and the Helm index at `https://oreondev.github.io/helm-charts/index.yaml`.
 4. On Artifact Hub, add a Helm repository with that URL. Paste the repository ID it shows into `artifacthub-repo.yml` (the workflow copies the file to `gh-pages`) to get the verified-publisher badge.
 
 ## Contributing

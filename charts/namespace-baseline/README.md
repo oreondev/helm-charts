@@ -17,7 +17,7 @@ It is the chart we install first on every multi-team cluster, instead of copying
 ## Install
 
 ```bash
-helm repo add oreonit https://oreonit.github.io/helm-charts
+helm repo add oreonit https://oreondev.github.io/helm-charts
 helm repo update
 helm install baseline oreonit/namespace-baseline -n platform --create-namespace -f namespaces.yaml
 ```

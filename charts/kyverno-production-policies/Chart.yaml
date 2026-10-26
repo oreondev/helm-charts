@@ -8,7 +8,7 @@ kubeVersion: ">=1.25.0-0"
 home: https://www.oreonit.com/production-readiness-audit-for-kubernetes/
 icon: https://raw.githubusercontent.com/oreonit/helm-charts/main/icon.png
 sources:
-  - https://github.com/oreonit/helm-charts
+  - https://github.com/oreondev/helm-charts
 keywords:
   - kyverno
   - policy

@@ -19,7 +19,7 @@ kubectl -n monitoring create secret generic alertmanager-secrets \
   --from-literal=platform-slack-webhook=https://hooks.slack.com/services/... \
   --from-literal=platform-pagerduty-routing-key=...
 
-helm repo add oreonit https://oreonit.github.io/helm-charts
+helm repo add oreonit https://oreondev.github.io/helm-charts
 helm install routing oreonit/alertmanager-routing-baseline -n monitoring -f routing.yaml
 ```
 

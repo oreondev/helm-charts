@@ -11,7 +11,7 @@ No operator, no CRD of its own, no binary to run. It renders a `PrometheusRule` 
 ## Install
 
 ```bash
-helm repo add oreonit https://oreonit.github.io/helm-charts
+helm repo add oreonit https://oreondev.github.io/helm-charts
 helm repo update
 helm install slo oreonit/slo-burn-rate-alerts -n monitoring -f my-slos.yaml
 ```
