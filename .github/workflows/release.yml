@@ -7,6 +7,8 @@ on:
     paths:
       - "charts/**"
       - "artifacthub-repo.yml"
+      - ".github/workflows/release.yml"
+  workflow_dispatch: {}
 
 permissions:
   contents: write
