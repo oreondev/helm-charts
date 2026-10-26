@@ -11,6 +11,8 @@ Charts we install on client clusters, published so you can use them too. None of
 | [kyverno-production-policies](charts/kyverno-production-policies) | The production readiness checklist as Kyverno policies: requests/limits, probes, labels, no latest tags, PDBs and spread for multi-replica workloads, no NodePorts, nothing in default. Audit mode first. | Kyverno 1.13+ |
 | [namespace-baseline](charts/namespace-baseline) | Guardrails per team namespace: Pod Security Admission labels, ResourceQuota, LimitRange, default-deny NetworkPolicies with the usual allows, RBAC bindings, optional quota alerts. | a CNI that enforces NetworkPolicy |
 | [velero-backup-schedules](charts/velero-backup-schedules) | Daily/weekly/monthly Velero Schedules with retention, optional storage locations, a scheduled restore test into a scratch namespace, and backup alerts. | Velero |
+| [gateway-api-baseline](charts/gateway-api-baseline) | Shared Gateway API ingress: one Gateway with HTTP-to-HTTPS redirect and TLS listeners per hostname, namespace-scoped attachment, HTTPRoutes/GRPCRoutes from values with timeouts and security headers, generated ReferenceGrants, default backend, BackendTLSPolicies. | Gateway API CRDs + any controller (GKE, Envoy Gateway, NGINX Gateway Fabric, Istio, Cilium) |
+| [otel-collector-baseline](charts/otel-collector-baseline) | OpenTelemetry Collector layout: node agent (OTLP, kubelet and host metrics, container logs, Kubernetes metadata) feeding a gateway (health-check filtering, redaction, tail sampling) that exports to OTLP, Google Cloud, Prometheus remote write, Datadog or Elasticsearch; auto-instrumentation, RBAC, alerts, dashboard. | OpenTelemetry Operator |
 
 ## Use
 
@@ -29,7 +31,7 @@ helm lint charts/slo-burn-rate-alerts -f charts/slo-burn-rate-alerts/ci/test-val
 helm template slo charts/slo-burn-rate-alerts -f charts/slo-burn-rate-alerts/ci/test-values.yaml
 ```
 
-Pull requests run [chart-testing](https://github.com/helm/chart-testing) (lint, then install on a kind cluster with the Prometheus Operator CRDs). Pushes to `main` that change a chart version are packaged and published to the `gh-pages` branch by [chart-releaser](https://github.com/helm/chart-releaser), which also updates `index.yaml`.
+Pull requests run [chart-testing](https://github.com/helm/chart-testing) (lint, then install on a kind cluster with the CRDs the charts target: Prometheus Operator, Google Managed Prometheus, Kyverno, Velero, Gateway API, OpenTelemetry Operator). The charts' custom resources are created but nothing reconciles them there; behaviour on a real cluster is tested by hand before a release. Pushes to `main` that change a chart version are packaged and published to the `gh-pages` branch by [chart-releaser](https://github.com/helm/chart-releaser), which also updates `index.yaml`.
 
 ### First-time publishing checklist
 

@@ -1,0 +1,43 @@
+apiVersion: v2
+name: otel-collector-baseline
+description: A production OpenTelemetry Collector layout for Kubernetes as values for the OpenTelemetry Operator - a node agent (OTLP, kubelet and host metrics, container logs, Kubernetes metadata) feeding a gateway (health-check filtering, attribute redaction, tail sampling) that exports to OTLP backends, Google Cloud, Prometheus remote write, Datadog or Elasticsearch, plus auto-instrumentation, RBAC, alerts and a dashboard.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+kubeVersion: ">=1.25.0-0"
+home: https://www.oreonit.com/observability-and-monitoring-consultancy-services/
+icon: https://raw.githubusercontent.com/oreonit/helm-charts/main/icon.png
+sources:
+  - https://github.com/oreonit/helm-charts
+keywords:
+  - opentelemetry
+  - otel-collector
+  - opentelemetry-operator
+  - tracing
+  - logs
+  - metrics
+  - tail-sampling
+  - k8sattributes
+  - grafana-cloud
+  - google-cloud-observability
+  - observability
+  - sre
+maintainers:
+  - name: Oreon IT
+    email: info@oreonit.com
+    url: https://www.oreonit.com/
+annotations:
+  artifacthub.io/license: MIT
+  artifacthub.io/category: monitoring-logging
+  artifacthub.io/prerelease: "false"
+  artifacthub.io/operator: "false"
+  artifacthub.io/links: |
+    - name: 10 observability metrics every DevOps engineer should track
+      url: https://www.oreonit.com/10-essential-observability-metrics-every-devops-engineer-should-track/
+    - name: How to avoid alert fatigue
+      url: https://www.oreonit.com/advanced-alerting-strategies-how-to-avoid-alert-fatigue-in-monitoring-systems/
+    - name: Observability consulting by the maintainers
+      url: https://www.oreonit.com/observability-and-monitoring-consultancy-services/
+  artifacthub.io/changes: |
+    - kind: added
+      description: Initial release

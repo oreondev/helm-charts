@@ -1,0 +1,157 @@
+# Default values for gateway-api-baseline.
+#
+# Needs the Gateway API CRDs (standard channel, 1.2 or newer; 1.4+ for BackendTLSPolicy)
+# and a Gateway controller that owns the GatewayClass below. The chart installs no controller.
+
+# GatewayClass to use (kubectl get gatewayclass). Examples:
+#   GKE:                  gke-l7-global-external-managed, gke-l7-regional-external-managed, gke-l7-rilb
+#   Envoy Gateway:        eg
+#   NGINX Gateway Fabric: nginx
+#   Istio:                istio
+#   Cilium:               cilium
+#   Traefik:              traefik
+gatewayClassName: ""
+
+apiVersions:
+  gateway: gateway.networking.k8s.io/v1
+  # v1beta1 is the storage version on every Gateway API release so far; v1 is only served from 1.5.
+  referenceGrant: gateway.networking.k8s.io/v1beta1
+  # Standard channel from Gateway API 1.4. Older experimental-channel installs: v1alpha3.
+  backendTLSPolicy: gateway.networking.k8s.io/v1
+
+gateway:
+  enabled: true
+  # Empty = release name (plus the chart name unless the release name already contains it).
+  # With enabled: false, name and namespace point routes at a Gateway you manage elsewhere.
+  name: ""
+  # Empty = release namespace. Put the Gateway in a platform namespace (e.g. gateway-system);
+  # application routes live in their own namespaces and attach across the boundary.
+  namespace: ""
+  labels: {}
+  # Controller-specific annotations. Examples:
+  #   cert-manager.io/cluster-issuer: letsencrypt-prod   (cert-manager Gateway solver: one cert per HTTPS listener)
+  #   networking.gke.io/certmap: my-certificate-map       (GKE Certificate Manager)
+  annotations: {}
+  # Handed to the infrastructure the controller creates (cloud load balancer, Service).
+  infrastructure:
+    labels: {}
+    annotations: {}
+    # {group, kind, name} of an implementation-specific config object, e.g. Envoy Gateway's EnvoyProxy.
+    parametersRef: {}
+  # Static addresses: [{type: NamedAddress, value: my-reserved-ip}] on GKE, [{type: IPAddress, value: 10.0.0.5}] elsewhere.
+  addresses: []
+  listeners:
+    http:
+      enabled: true
+      port: 80
+      # Empty = any hostname.
+      hostname: ""
+      # Create an HTTPRoute on this listener that 301-redirects everything to https.
+      # While on, only the redirect route may attach to the HTTP listener (allowedRoutes: Same).
+      redirectToHttps: true
+    https:
+      enabled: true
+      port: 443
+      # Hostnames to terminate TLS for. Empty = one listener named "https" for any hostname, using
+      # tls.certificateRefs. Otherwise one listener per entry; an entry is a string (shares
+      # tls.certificateRefs) or {hostname: app.example.com, certificateRefs: [{name: app-example-com-tls}]}.
+      # Wildcards work: "*.example.com".
+      hostnames: []
+      tls:
+        # Terminate or Passthrough.
+        mode: Terminate
+        # Secrets of type kubernetes.io/tls. A ref in another namespace gets a ReferenceGrant automatically.
+        certificateRefs: []
+        #  - name: wildcard-example-com-tls
+        #    namespace: cert-manager
+        # Implementation-specific TLS options, e.g. gateway.envoyproxy.io/tls-minimum-protocol-version: "1.2".
+        options: {}
+    # Raw listeners appended as-is (TLS passthrough, TCP, UDP...).
+    extra: []
+  # Which namespaces may attach routes to the HTTPS listeners (and the HTTP one when it does not redirect).
+  allowedRoutes:
+    # Same | All | Selector
+    from: Selector
+    selector:
+      matchLabels:
+        shared-gateway-access: "true"
+  # Raw extra fields merged into the Gateway spec (e.g. allowedListeners, tls on Gateway API 1.6+).
+  extraSpec: {}
+
+# Applied to every route unless the route overrides it.
+routeDefaults:
+  # Empty = release namespace. Routes normally live next to their app: set namespace per route.
+  namespace: ""
+  # Listener to attach to. "https" = the chart's HTTPS listener(s) matching the route's hostnames;
+  # "http" = the HTTP listener; any other string is used as a literal listener name; "" = no sectionName.
+  sectionName: https
+  timeouts:
+    # Whole request including proxy retries. "" = unset.
+    request: 30s
+    # One attempt to the backend. "" = unset.
+    backendRequest: ""
+  # Add the headers below to every response of every HTTPRoute rule (redirect rules excepted).
+  securityHeaders: true
+  labels: {}
+  annotations: {}
+
+# Response headers set when securityHeaders is on. Keep Content-Security-Policy out: it is per app.
+securityHeaders:
+  Strict-Transport-Security: "max-age=31536000; includeSubDomains"
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+
+# One HTTPRoute or GRPCRoute each. `rules` is the Gateway API HTTPRouteRule / GRPCRouteRule list,
+# passed through with the defaults (timeouts, security headers) filled in.
+routes: []
+#  - name: web
+#    namespace: web                  # kubectl label namespace web shared-gateway-access=true
+#    hostnames: [www.example.com]
+#    rules:
+#      - matches: [{path: {type: PathPrefix, value: /}}]
+#        backendRefs: [{name: web, port: 80}]
+#      - matches: [{path: {type: PathPrefix, value: /api}}]
+#        backendRefs:
+#          - {name: api, port: 8080, weight: 90}
+#          - {name: api-canary, port: 8080, weight: 10}
+#        timeouts: {request: 10s}
+#  - name: apex-redirect
+#    namespace: web
+#    hostnames: [example.com]
+#    rules:
+#      - filters:
+#          - type: RequestRedirect
+#            requestRedirect: {hostname: www.example.com, statusCode: 301}
+#  - name: grpc-api
+#    kind: GRPCRoute
+#    namespace: api
+#    hostnames: [grpc.example.com]
+#    rules:
+#      - backendRefs: [{name: grpc-api, port: 9000}]
+#    # per-route overrides: sectionName, parentRefs (raw list), timeouts, securityHeaders, labels, annotations
+
+# Send hostnames nobody claims to a fixed backend (a 404 page, a holding page) instead of the controller's default.
+# With allowedRoutes.from: Selector, the Gateway's own namespace needs the label too.
+defaultBackend:
+  enabled: false
+  name: default-backend
+  # Empty = the Gateway's namespace.
+  namespace: ""
+  port: 80
+
+referenceGrants:
+  # Create ReferenceGrants for every cross-namespace reference the chart makes:
+  # Gateway -> TLS Secret in another namespace, Route -> Service in another namespace.
+  auto: true
+  # Extra grants: [{name, namespace, from: [{group, kind, namespace}], to: [{group, kind, name}]}].
+  extra: []
+
+# TLS from the gateway to backends that serve HTTPS (Gateway API 1.4+).
+backendTLSPolicies: []
+#  - name: api-backend-tls
+#    namespace: api
+#    service: api
+#    sectionName: https                      # Service port name; omit for all ports
+#    hostname: api.internal.example.com      # SNI and the name validated in the certificate
+#    wellKnownCACertificates: System         # or caCertificateRefs: [{group: "", kind: ConfigMap, name: internal-ca}]

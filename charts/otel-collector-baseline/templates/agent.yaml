@@ -1,0 +1,53 @@
+{{- if .Values.agent.enabled }}
+{{- include "otel.checkImage" . }}
+{{- $a := .Values.agent }}
+{{- $name := include "otel.agentName" . }}
+{{- $signals := splitList "," (include "otel.signals" .) }}
+{{- $logs := and $a.receivers.filelog.enabled (has "logs" $signals) }}
+{{- $env := list (dict "name" "K8S_NODE_NAME" "valueFrom" (dict "fieldRef" (dict "fieldPath" "spec.nodeName"))) (dict "name" "K8S_NODE_IP" "valueFrom" (dict "fieldRef" (dict "fieldPath" "status.hostIP"))) }}
+{{- $env = concat $env ($a.env | default list) }}
+{{- $volumes := list }}
+{{- $mounts := list }}
+{{- if and $a.receivers.hostmetrics.enabled (has "metrics" $signals) }}
+{{- $volumes = append $volumes (dict "name" "hostfs" "hostPath" (dict "path" "/")) }}
+{{- $mounts = append $mounts (dict "name" "hostfs" "mountPath" "/hostfs" "readOnly" true "mountPropagation" "HostToContainer") }}
+{{- end }}
+{{- if $logs }}
+{{- $volumes = concat $volumes (list (dict "name" "varlogpods" "hostPath" (dict "path" "/var/log/pods")) (dict "name" "varlibdockercontainers" "hostPath" (dict "path" "/var/lib/docker/containers"))) }}
+{{- $mounts = concat $mounts (list (dict "name" "varlogpods" "mountPath" "/var/log/pods" "readOnly" true) (dict "name" "varlibdockercontainers" "mountPath" "/var/lib/docker/containers" "readOnly" true)) }}
+{{- if $a.receivers.filelog.checkpoint }}
+{{- $volumes = append $volumes (dict "name" "filelog-checkpoint" "hostPath" (dict "path" $a.receivers.filelog.checkpointHostPath "type" "DirectoryOrCreate")) }}
+{{- $mounts = append $mounts (dict "name" "filelog-checkpoint" "mountPath" "/var/lib/otelcol/filelog") }}
+{{- end }}
+{{- end }}
+{{- $volumes = concat $volumes ($a.extraVolumes | default list) }}
+{{- $mounts = concat $mounts ($a.extraVolumeMounts | default list) }}
+{{- $sc := $a.securityContext | default dict }}
+{{- if and (not $sc) $logs }}{{ $sc = dict "runAsUser" 0 "runAsGroup" 0 }}{{ end }}
+{{- $spec := dict "mode" "daemonset" "serviceAccount" $name "env" $env "resources" $a.resources "config" (include "otel.agentConfig" . | fromYaml) }}
+{{- with .Values.image }}{{ $_ := set $spec "image" . }}{{ end }}
+{{- with $a.tolerations }}{{ $_ := set $spec "tolerations" . }}{{ end }}
+{{- with $a.nodeSelector }}{{ $_ := set $spec "nodeSelector" . }}{{ end }}
+{{- with $a.priorityClassName }}{{ $_ := set $spec "priorityClassName" . }}{{ end }}
+{{- with $a.podAnnotations }}{{ $_ := set $spec "podAnnotations" . }}{{ end }}
+{{- with $sc }}{{ $_ := set $spec "securityContext" . }}{{ end }}
+{{- with $volumes }}{{ $_ := set $spec "volumes" . }}{{ end }}
+{{- with $mounts }}{{ $_ := set $spec "volumeMounts" . }}{{ end }}
+{{- if and .Values.monitoring.enabled .Values.monitoring.serviceMonitor }}{{ $_ := set $spec "observability" (dict "metrics" (dict "enableMetrics" true)) }}{{ end }}
+{{- $spec = mergeOverwrite $spec (deepCopy ($a.extraSpec | default dict)) }}
+apiVersion: {{ .Values.apiVersions.collector }}
+kind: OpenTelemetryCollector
+metadata:
+  name: {{ $name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "otel.labels" . | nindent 4 }}
+    app.kubernetes.io/component: agent
+    {{- if .Values.monitoring.enabled }}
+    {{- range $k, $v := .Values.monitoring.labels }}
+    {{ $k }}: {{ $v | quote }}
+    {{- end }}
+    {{- end }}
+spec:
+  {{- toYaml $spec | nindent 2 }}
+{{- end }}

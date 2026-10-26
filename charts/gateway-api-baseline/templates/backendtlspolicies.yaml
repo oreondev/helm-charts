@@ -1,0 +1,34 @@
+{{- range $p := .Values.backendTLSPolicies }}
+---
+apiVersion: {{ $.Values.apiVersions.backendTLSPolicy }}
+kind: BackendTLSPolicy
+metadata:
+  name: {{ $p.name | default (printf "%s-backend-tls" (required "backendTLSPolicies entries need a service" $p.service)) }}
+  namespace: {{ $p.namespace | default $.Release.Namespace }}
+  labels:
+    {{- include "gab.labels" $ | nindent 4 }}
+spec:
+  targetRefs:
+    - group: ""
+      kind: Service
+      name: {{ required "backendTLSPolicies entries need a service" $p.service }}
+      {{- with $p.sectionName }}
+      sectionName: {{ . }}
+      {{- end }}
+  validation:
+    hostname: {{ required "backendTLSPolicies entries need a hostname" $p.hostname | quote }}
+    {{- if $p.caCertificateRefs }}
+    caCertificateRefs:
+      {{- toYaml $p.caCertificateRefs | nindent 6 }}
+    {{- else }}
+    wellKnownCACertificates: {{ $p.wellKnownCACertificates | default "System" }}
+    {{- end }}
+    {{- with $p.subjectAltNames }}
+    subjectAltNames:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+  {{- with $p.options }}
+  options:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}

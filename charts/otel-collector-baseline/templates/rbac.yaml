@@ -1,0 +1,53 @@
+{{- if .Values.agent.enabled }}
+{{- $name := include "otel.agentName" . }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ $name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "otel.labels" . | nindent 4 }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ printf "%s-%s" .Release.Namespace $name | trunc 63 | trimSuffix "-" }}
+  labels:
+    {{- include "otel.labels" . | nindent 4 }}
+rules:
+  # k8sattributes: pod metadata, owners, namespaces, nodes
+  - apiGroups: [""]
+    resources: [pods, namespaces, nodes]
+    verbs: [get, list, watch]
+  - apiGroups: [apps]
+    resources: [replicasets]
+    verbs: [get, list, watch]
+  # kubeletstats
+  - apiGroups: [""]
+    resources: [nodes/stats, nodes/proxy, nodes/metrics]
+    verbs: [get]
+  {{- if .Values.processing.tailSampling.enabled }}
+  # loadbalancing exporter: resolve the gateway's headless Service
+  - apiGroups: [""]
+    resources: [endpoints]
+    verbs: [get, list, watch]
+  - apiGroups: [discovery.k8s.io]
+    resources: [endpointslices]
+    verbs: [get, list, watch]
+  {{- end }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ printf "%s-%s" .Release.Namespace $name | trunc 63 | trimSuffix "-" }}
+  labels:
+    {{- include "otel.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ printf "%s-%s" .Release.Namespace $name | trunc 63 | trimSuffix "-" }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ $name }}
+    namespace: {{ .Release.Namespace }}
+{{- end }}

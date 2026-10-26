@@ -1,0 +1,56 @@
+# Single-namespace install (chart-testing creates one namespace and installs there).
+gatewayClassName: test
+
+gateway:
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  infrastructure:
+    annotations:
+      example.com/load-balancer: external
+  listeners:
+    https:
+      tls:
+        certificateRefs:
+          - name: wildcard-example-com-tls
+
+routeDefaults:
+  timeouts:
+    request: 30s
+    backendRequest: 10s
+
+routes:
+  - name: web
+    hostnames: [www.example.com]
+    rules:
+      - matches: [{path: {type: PathPrefix, value: /}}]
+        backendRefs: [{name: web, port: 80}]
+      - matches: [{path: {type: PathPrefix, value: /api}}]
+        backendRefs:
+          - {name: api, port: 8080, weight: 90}
+          - {name: api-canary, port: 8080, weight: 10}
+        timeouts: {request: 10s}
+        filters:
+          - type: ResponseHeaderModifier
+            responseHeaderModifier:
+              set: [{name: X-Frame-Options, value: SAMEORIGIN}]
+              add: [{name: X-Served-By, value: gateway}]
+  - name: apex-redirect
+    hostnames: [example.com]
+    rules:
+      - filters:
+          - type: RequestRedirect
+            requestRedirect: {hostname: www.example.com, statusCode: 301}
+  - name: grpc-api
+    kind: GRPCRoute
+    hostnames: [grpc.example.com]
+    rules:
+      - backendRefs: [{name: grpc-api, port: 9000}]
+
+defaultBackend:
+  enabled: true
+  name: default-backend
+  port: 80
+
+backendTLSPolicies:
+  - service: api
+    hostname: api.internal.example.com

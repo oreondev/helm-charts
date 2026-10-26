@@ -1,0 +1,24 @@
+# Small cluster: no gateway, the agent exports straight to Grafana Cloud over OTLP/HTTP; no log collection.
+clusterName: ci-small
+
+gateway:
+  enabled: false
+
+agent:
+  receivers:
+    filelog:
+      enabled: false
+  env:
+    - name: GRAFANA_CLOUD_AUTH
+      valueFrom:
+        secretKeyRef:
+          name: grafana-cloud
+          key: auth
+          optional: true
+
+backends:
+  otlphttp:
+    enabled: true
+    endpoint: https://otlp-gateway-prod-eu-west-2.grafana.net/otlp
+    headers:
+      Authorization: "Basic ${env:GRAFANA_CLOUD_AUTH}"

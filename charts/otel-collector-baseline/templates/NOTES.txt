@@ -1,0 +1,35 @@
+{{ .Chart.Name }} {{ .Chart.Version }} installed as release "{{ .Release.Name }}".
+{{- $ns := .Release.Namespace }}
+{{- $enabled := list }}
+{{- range $name, $b := .Values.backends }}{{ if $b.enabled }}{{ $enabled = append $enabled $name }}{{ end }}{{ end }}
+
+Collectors (kubectl -n {{ $ns }} get opentelemetrycollectors):
+{{- if .Values.agent.enabled }}
+  agent    DaemonSet {{ include "otel.agentName" . }}-collector{{ if .Values.agent.receivers.otlp.enabled }}  OTLP from pods: {{ include "otel.agentLocalService" . }}.{{ $ns }}.svc:4317 (gRPC) / :4318 (HTTP){{ end }}
+           receivers:{{ if .Values.agent.receivers.otlp.enabled }} otlp{{ end }}{{ if .Values.agent.receivers.kubeletstats.enabled }} kubeletstats{{ end }}{{ if .Values.agent.receivers.hostmetrics.enabled }} hostmetrics{{ end }}{{ if .Values.agent.receivers.filelog.enabled }} filelog{{ end }}
+{{- end }}
+{{- if .Values.gateway.enabled }}
+  gateway  Deployment {{ include "otel.gatewayName" . }}-collector  OTLP: {{ include "otel.gatewayName" . }}-collector.{{ $ns }}.svc:4317 / :4318
+           processing:{{ if .Values.processing.dropHealthChecks.enabled }} drop-health-checks{{ end }}{{ if .Values.processing.redact.enabled }} redact{{ end }}{{ if .Values.processing.tailSampling.enabled }} tail-sampling({{ .Values.processing.tailSampling.percentage }}% + errors + slow){{ end }}
+{{- end }}
+
+Backends: {{ if $enabled }}{{ join ", " $enabled }} (signals: {{ include "otel.signals" . }}){{ else }}NONE ENABLED - everything goes to the debug exporter. Enable one under backends: and set its credentials via gateway.env.{{ end }}
+{{- if .Values.instrumentation.enabled }}
+
+Auto-instrumentation: Instrumentation {{ .Values.instrumentation.namespace | default $ns }}/{{ include "otel.instrumentationName" . }} -> {{ include "otel.instrumentationEndpoint" . }}
+  Annotate a Deployment's pod template:  instrumentation.opentelemetry.io/inject-java: "{{ .Values.instrumentation.namespace | default $ns }}/{{ include "otel.instrumentationName" . }}"
+  (inject-nodejs, inject-python, inject-dotnet, inject-go likewise). Restart the pods.
+{{- end }}
+{{- if .Values.monitoring.enabled }}
+
+Monitoring: {{ if .Values.monitoring.serviceMonitor }}ServiceMonitors by the operator{{ end }}{{ if .Values.monitoring.prometheusRule }}, PrometheusRule {{ include "otel.fullname" . }}{{ end }}{{ if .Values.monitoring.dashboard.enabled }}, dashboard "OpenTelemetry collectors" (uid oreon-otel-collector){{ end }}.
+{{- end }}
+
+First checks:
+  kubectl -n {{ $ns }} get pods -l app.kubernetes.io/managed-by=opentelemetry-operator
+{{- if .Values.agent.enabled }}
+  kubectl -n {{ $ns }} logs ds/{{ include "otel.agentName" . }}-collector --tail=50
+{{- end }}
+{{- if .Values.gateway.enabled }}
+  kubectl -n {{ $ns }} logs deploy/{{ include "otel.gatewayName" . }}-collector --tail=50
+{{- end }}

@@ -1,0 +1,55 @@
+# Platform team owns the Gateway in gateway-system; app teams own routes in their namespaces.
+# Cross-namespace references (TLS Secret in cert-manager, a backend Service in another namespace)
+# get ReferenceGrants generated automatically.
+gatewayClassName: gke-l7-global-external-managed
+
+gateway:
+  namespace: gateway-system
+  addresses:
+    - type: NamedAddress
+      value: prod-gateway-ip
+  listeners:
+    https:
+      hostnames:
+        - "*.example.com"
+        - hostname: example.com
+          certificateRefs: [{name: apex-tls, namespace: cert-manager}]
+      tls:
+        certificateRefs:
+          - name: wildcard-example-com-tls
+            namespace: cert-manager
+
+routes:
+  - name: web
+    namespace: web
+    hostnames: [www.example.com]
+    rules:
+      - matches: [{path: {type: PathPrefix, value: /}}]
+        backendRefs: [{name: web, port: 80}]
+      - matches: [{path: {type: PathPrefix, value: /api}}]
+        backendRefs: [{name: api, namespace: api, port: 8080}]
+  - name: apex
+    namespace: web
+    hostnames: [example.com]
+    rules:
+      - filters:
+          - type: RequestRedirect
+            requestRedirect: {hostname: www.example.com, statusCode: 301}
+  - name: grpc
+    kind: GRPCRoute
+    namespace: api
+    hostnames: [grpc.example.com]
+    rules:
+      - backendRefs: [{name: grpc-api, port: 9000}]
+
+defaultBackend:
+  enabled: true
+  name: not-found
+  namespace: platform-pages
+  port: 80
+
+backendTLSPolicies:
+  - namespace: api
+    service: api
+    sectionName: https
+    hostname: api.internal.example.com

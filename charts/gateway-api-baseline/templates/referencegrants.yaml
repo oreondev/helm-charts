@@ -1,0 +1,82 @@
+{{- $grants := dict }}
+{{- $gwNs := include "gab.gatewayNamespace" . }}
+{{- $gwName := include "gab.gatewayName" . }}
+{{- if .Values.referenceGrants.auto }}
+{{- /* Gateway -> TLS Secrets in other namespaces */}}
+{{- if and .Values.gateway.enabled .Values.gateway.listeners.https.enabled }}
+{{- $https := .Values.gateway.listeners.https }}
+{{- $allRefs := list }}
+{{- range $https.tls.certificateRefs }}{{ $allRefs = append $allRefs . }}{{ end }}
+{{- range $entry := $https.hostnames }}
+{{- if ne (kindOf $entry) "string" }}{{ range ($entry.certificateRefs | default list) }}{{ $allRefs = append $allRefs . }}{{ end }}{{ end }}
+{{- end }}
+{{- range $ref := $allRefs }}
+{{- if and $ref.namespace (ne $ref.namespace $gwNs) }}
+{{- $key := printf "%s|Gateway|%s|Secret" $ref.namespace $gwNs }}
+{{- $g := index $grants $key | default (dict "namespace" $ref.namespace "name" (printf "%s-gateway-to-secrets" $gwName) "fromGroup" "gateway.networking.k8s.io" "fromKind" "Gateway" "fromNs" $gwNs "toGroup" "" "toKind" "Secret" "names" (list)) }}
+{{- $_ := set $g "names" (append $g.names $ref.name) }}
+{{- $_ := set $grants $key $g }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- /* Routes -> Services in other namespaces */}}
+{{- range $route := .Values.routes }}
+{{- $kind := $route.kind | default "HTTPRoute" }}
+{{- $ns := include "gab.routeNamespace" (dict "root" $ "route" $route) }}
+{{- range $rule := ($route.rules | default list) }}
+{{- range $b := ($rule.backendRefs | default list) }}
+{{- if and $b.namespace (ne $b.namespace $ns) }}
+{{- $bk := $b.kind | default "Service" }}
+{{- $key := printf "%s|%s|%s|%s" $b.namespace $kind $ns $bk }}
+{{- $g := index $grants $key | default (dict "namespace" $b.namespace "name" (printf "%s-from-%s-%s" (lower $bk) $ns (lower $kind)) "fromGroup" "gateway.networking.k8s.io" "fromKind" $kind "fromNs" $ns "toGroup" ($b.group | default "") "toKind" $bk "names" (list)) }}
+{{- $_ := set $g "names" (append $g.names $b.name) }}
+{{- $_ := set $grants $key $g }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- /* Default backend in another namespace */}}
+{{- if and .Values.defaultBackend.enabled .Values.defaultBackend.namespace (ne .Values.defaultBackend.namespace $gwNs) }}
+{{- $db := .Values.defaultBackend }}
+{{- $key := printf "%s|HTTPRoute|%s|Service" $db.namespace $gwNs }}
+{{- $g := index $grants $key | default (dict "namespace" $db.namespace "name" (printf "service-from-%s-httproute" $gwNs) "fromGroup" "gateway.networking.k8s.io" "fromKind" "HTTPRoute" "fromNs" $gwNs "toGroup" "" "toKind" "Service" "names" (list)) }}
+{{- $_ := set $g "names" (append $g.names $db.name) }}
+{{- $_ := set $grants $key $g }}
+{{- end }}
+{{- end }}
+{{- range $key, $g := $grants }}
+---
+apiVersion: {{ $.Values.apiVersions.referenceGrant }}
+kind: ReferenceGrant
+metadata:
+  name: {{ $g.name | lower | trunc 63 | trimSuffix "-" }}
+  namespace: {{ $g.namespace }}
+  labels:
+    {{- include "gab.labels" $ | nindent 4 }}
+spec:
+  from:
+    - group: {{ $g.fromGroup }}
+      kind: {{ $g.fromKind }}
+      namespace: {{ $g.fromNs }}
+  to:
+    {{- range $n := ($g.names | uniq | sortAlpha) }}
+    - group: {{ $g.toGroup | quote }}
+      kind: {{ $g.toKind }}
+      name: {{ $n }}
+    {{- end }}
+{{- end }}
+{{- range $x := .Values.referenceGrants.extra }}
+---
+apiVersion: {{ $.Values.apiVersions.referenceGrant }}
+kind: ReferenceGrant
+metadata:
+  name: {{ required "referenceGrants.extra entries need a name" $x.name }}
+  namespace: {{ required "referenceGrants.extra entries need a namespace" $x.namespace }}
+  labels:
+    {{- include "gab.labels" $ | nindent 4 }}
+spec:
+  from:
+    {{- toYaml (required "referenceGrants.extra entries need from" $x.from) | nindent 4 }}
+  to:
+    {{- toYaml (required "referenceGrants.extra entries need to" $x.to) | nindent 4 }}
+{{- end }}

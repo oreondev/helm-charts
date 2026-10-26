@@ -1,0 +1,87 @@
+{{- if .Values.gateway.enabled }}
+{{- $g := .Values.gateway }}
+{{- $allowed := dict "namespaces" (dict "from" $g.allowedRoutes.from) }}
+{{- if eq $g.allowedRoutes.from "Selector" }}{{ $_ := set $allowed.namespaces "selector" $g.allowedRoutes.selector }}{{ end }}
+{{- $sameOnly := dict "namespaces" (dict "from" "Same") }}
+apiVersion: {{ .Values.apiVersions.gateway }}
+kind: Gateway
+metadata:
+  name: {{ include "gab.gatewayName" . }}
+  namespace: {{ include "gab.gatewayNamespace" . }}
+  labels:
+    {{- include "gab.labels" . | nindent 4 }}
+    {{- with $g.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with $g.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  gatewayClassName: {{ required "gatewayClassName is required (kubectl get gatewayclass)" .Values.gatewayClassName }}
+  {{- with $g.addresses }}
+  addresses:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- if or $g.infrastructure.labels $g.infrastructure.annotations $g.infrastructure.parametersRef }}
+  infrastructure:
+    {{- with $g.infrastructure.labels }}
+    labels:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with $g.infrastructure.annotations }}
+    annotations:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with $g.infrastructure.parametersRef }}
+    parametersRef:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+  {{- end }}
+  listeners:
+    {{- if $g.listeners.http.enabled }}
+    - name: http
+      protocol: HTTP
+      port: {{ $g.listeners.http.port }}
+      {{- with $g.listeners.http.hostname }}
+      hostname: {{ . | quote }}
+      {{- end }}
+      allowedRoutes:
+        {{- toYaml (ternary $sameOnly $allowed $g.listeners.http.redirectToHttps) | nindent 8 }}
+    {{- end }}
+    {{- if $g.listeners.https.enabled }}
+    {{- $https := $g.listeners.https }}
+    {{- if not $https.hostnames }}
+    - name: https
+      protocol: HTTPS
+      port: {{ $https.port }}
+      tls:
+        {{- include "gab.tls" (dict "tls" $https.tls "certificateRefs" $https.tls.certificateRefs) | trim | nindent 8 }}
+      allowedRoutes:
+        {{- toYaml $allowed | nindent 8 }}
+    {{- else }}
+    {{- range $entry := $https.hostnames }}
+    {{- $host := $entry }}
+    {{- $refs := $https.tls.certificateRefs }}
+    {{- if ne (kindOf $entry) "string" }}
+    {{- $host = required "every listeners.https.hostnames entry needs a hostname" $entry.hostname }}
+    {{- with $entry.certificateRefs }}{{ $refs = . }}{{ end }}
+    {{- end }}
+    - name: {{ include "gab.listenerName" $host }}
+      protocol: HTTPS
+      port: {{ $https.port }}
+      hostname: {{ $host | quote }}
+      tls:
+        {{- include "gab.tls" (dict "tls" $https.tls "certificateRefs" $refs) | trim | nindent 8 }}
+      allowedRoutes:
+        {{- toYaml $allowed | nindent 8 }}
+    {{- end }}
+    {{- end }}
+    {{- end }}
+    {{- with $g.listeners.extra }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with $g.extraSpec }}
+  {{- toYaml . | nindent 2 }}
+  {{- end }}
+{{- end }}

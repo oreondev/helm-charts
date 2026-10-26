@@ -1,0 +1,35 @@
+{{- range $route := .Values.routes }}
+{{- $kind := $route.kind | default "HTTPRoute" }}
+{{- if not (has $kind (list "HTTPRoute" "GRPCRoute")) }}{{ fail (printf "route %q: kind must be HTTPRoute or GRPCRoute" ($route.name | default "?")) }}{{ end }}
+{{- $ns := include "gab.routeNamespace" (dict "root" $ "route" $route) }}
+{{- $labels := merge (dict) ($route.labels | default dict) ($.Values.routeDefaults.labels | default dict) }}
+{{- $annotations := merge (dict) ($route.annotations | default dict) ($.Values.routeDefaults.annotations | default dict) }}
+---
+apiVersion: {{ $.Values.apiVersions.gateway }}
+kind: {{ $kind }}
+metadata:
+  name: {{ required "every entry in routes needs a name" $route.name }}
+  namespace: {{ $ns }}
+  labels:
+    {{- include "gab.labels" $ | nindent 4 }}
+    {{- range $k, $v := $labels }}
+    {{ $k }}: {{ $v | quote }}
+    {{- end }}
+  {{- with $annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  parentRefs:
+    {{- include "gab.parentRefs" (dict "root" $ "route" $route) | nindent 4 }}
+  {{- with $route.hostnames }}
+  hostnames:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  rules:
+    {{- if eq $kind "HTTPRoute" }}
+    {{- include "gab.httpRules" (dict "root" $ "route" $route) | nindent 4 }}
+    {{- else }}
+    {{- toYaml ($route.rules | default list) | nindent 4 }}
+    {{- end }}
+{{- end }}

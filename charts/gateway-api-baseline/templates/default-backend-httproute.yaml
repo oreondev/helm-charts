@@ -1,0 +1,22 @@
+{{- if .Values.defaultBackend.enabled }}
+{{- $db := .Values.defaultBackend }}
+{{- $gwNs := include "gab.gatewayNamespace" . }}
+{{- $route := dict "name" "default-backend" "namespace" $gwNs "hostnames" (list) }}
+apiVersion: {{ .Values.apiVersions.gateway }}
+kind: HTTPRoute
+metadata:
+  name: {{ include "gab.gatewayName" . }}-default-backend
+  namespace: {{ $gwNs }}
+  labels:
+    {{- include "gab.labels" . | nindent 4 }}
+spec:
+  parentRefs:
+    {{- include "gab.parentRefs" (dict "root" . "route" $route) | nindent 4 }}
+  rules:
+    - backendRefs:
+        - name: {{ $db.name }}
+          {{- if and $db.namespace (ne $db.namespace $gwNs) }}
+          namespace: {{ $db.namespace }}
+          {{- end }}
+          port: {{ $db.port }}
+{{- end }}

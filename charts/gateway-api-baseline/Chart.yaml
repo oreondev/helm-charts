@@ -1,0 +1,43 @@
+apiVersion: v2
+name: gateway-api-baseline
+description: A shared Kubernetes Gateway API ingress baseline - one Gateway per cluster or environment with HTTP-to-HTTPS redirect, TLS listeners per hostname, namespace-scoped route attachment, HTTPRoutes and GRPCRoutes from values with timeouts and security headers filled in, automatic ReferenceGrants, a catch-all backend and BackendTLSPolicies. Works with GKE Gateway, Envoy Gateway, NGINX Gateway Fabric, Istio, Cilium and Traefik.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+kubeVersion: ">=1.25.0-0"
+home: https://www.oreonit.com/containerization-orchestration-management-kubernetes-openshift/
+icon: https://raw.githubusercontent.com/oreonit/helm-charts/main/icon.png
+sources:
+  - https://github.com/oreonit/helm-charts
+keywords:
+  - gateway-api
+  - httproute
+  - grpcroute
+  - ingress
+  - gke-gateway
+  - envoy-gateway
+  - nginx-gateway-fabric
+  - istio
+  - cilium
+  - tls
+  - platform-engineering
+  - kubernetes
+maintainers:
+  - name: Oreon IT
+    email: info@oreonit.com
+    url: https://www.oreonit.com/
+annotations:
+  artifacthub.io/license: MIT
+  artifacthub.io/category: networking
+  artifacthub.io/prerelease: "false"
+  artifacthub.io/operator: "false"
+  artifacthub.io/links: |
+    - name: Kubernetes production readiness checklist
+      url: https://www.oreonit.com/kubernetes-production-readiness-checklist/
+    - name: Production readiness audit for Kubernetes
+      url: https://www.oreonit.com/production-readiness-audit-for-kubernetes/
+    - name: Kubernetes platform engineering by the maintainers
+      url: https://www.oreonit.com/containerization-orchestration-management-kubernetes-openshift/
+  artifacthub.io/changes: |
+    - kind: added
+      description: Initial release

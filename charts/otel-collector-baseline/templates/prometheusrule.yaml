@@ -1,0 +1,114 @@
+{{- if and .Values.monitoring.enabled .Values.monitoring.prometheusRule }}
+{{- $m := .Values.monitoring }}
+{{- $ns := .Release.Namespace }}
+{{- $agent := printf "%s-collector" (include "otel.agentName" .) }}
+{{- $gw := printf "%s-collector" (include "otel.gatewayName" .) }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "otel.fullname" . }}
+  namespace: {{ $ns }}
+  labels:
+    {{- include "otel.labels" . | nindent 4 }}
+    {{- range $k, $v := $m.labels }}
+    {{ $k }}: {{ $v | quote }}
+    {{- end }}
+spec:
+  groups:
+    - name: otel-collector
+      rules:
+        - alert: OtelCollectorExporterSendFailed
+          expr: |
+            sum by (namespace, pod, exporter) (
+              rate({__name__=~"otelcol_exporter_send_failed_(spans|metric_points|log_records)(_total)?", namespace="{{ $ns }}"}[5m])
+            ) > 0
+          for: {{ $m.alerts.for }}
+          labels:
+            severity: {{ $m.alerts.severity | quote }}
+            {{- range $k, $v := $m.alerts.extraLabels }}
+            {{ $k }}: {{ $v | quote }}
+            {{- end }}
+          annotations:
+            summary: 'OpenTelemetry collector {{ `{{ $labels.pod }}` }} cannot export through {{ `{{ $labels.exporter }}` }}'
+            description: 'Exporter {{ `{{ $labels.exporter }}` }} on {{ `{{ $labels.pod }}` }} has been failing for {{ $m.alerts.for }} ({{ `{{ $value | printf "%.1f" }}` }} items/s). Check the backend endpoint, credentials and the collector log; the sending queue will drop data once full.'
+        - alert: OtelCollectorExporterQueueNearFull
+          expr: |
+            max by (namespace, pod, exporter) (
+              otelcol_exporter_queue_size{namespace="{{ $ns }}"} / otelcol_exporter_queue_capacity{namespace="{{ $ns }}"}
+            ) > {{ $m.alerts.queueUtilisation }}
+          for: {{ $m.alerts.for }}
+          labels:
+            severity: {{ $m.alerts.severity | quote }}
+            {{- range $k, $v := $m.alerts.extraLabels }}
+            {{ $k }}: {{ $v | quote }}
+            {{- end }}
+          annotations:
+            summary: 'Exporter queue on {{ `{{ $labels.pod }}` }} is {{ `{{ $value | humanizePercentage }}` }} full'
+            description: 'The {{ `{{ $labels.exporter }}` }} sending queue is backing up: the backend is slow or down, or the collector needs more replicas or a bigger queue.'
+        - alert: OtelCollectorReceiverRefused
+          expr: |
+            sum by (namespace, pod, receiver) (
+              rate({__name__=~"otelcol_receiver_refused_(spans|metric_points|log_records)(_total)?", namespace="{{ $ns }}"}[5m])
+            ) > 0
+          for: {{ $m.alerts.for }}
+          labels:
+            severity: {{ $m.alerts.severity | quote }}
+            {{- range $k, $v := $m.alerts.extraLabels }}
+            {{ $k }}: {{ $v | quote }}
+            {{- end }}
+          annotations:
+            summary: 'Collector {{ `{{ $labels.pod }}` }} is refusing data on {{ `{{ $labels.receiver }}` }}'
+            description: 'Usually the memory limiter: raise the memory limit or the replica count. Refused data is lost unless the sender retries.'
+        - alert: OtelCollectorProcessorDropped
+          expr: |
+            sum by (namespace, pod, processor) (
+              rate({__name__=~"otelcol_processor_(dropped|refused)_(spans|metric_points|log_records)(_total)?", namespace="{{ $ns }}"}[5m])
+            ) > 0
+          for: {{ $m.alerts.for }}
+          labels:
+            severity: {{ $m.alerts.severity | quote }}
+            {{- range $k, $v := $m.alerts.extraLabels }}
+            {{ $k }}: {{ $v | quote }}
+            {{- end }}
+          annotations:
+            summary: 'Processor {{ `{{ $labels.processor }}` }} on {{ `{{ $labels.pod }}` }} is dropping data'
+            description: 'Dropped or refused by a processor (memory limiter under pressure, or a filter that is broader than intended).'
+        {{- if .Values.agent.enabled }}
+        - alert: OtelCollectorAgentPodsUnavailable
+          expr: kube_daemonset_status_number_unavailable{namespace="{{ $ns }}", daemonset="{{ $agent }}"} > 0
+          for: 15m
+          labels:
+            severity: {{ $m.alerts.severity | quote }}
+            {{- range $k, $v := $m.alerts.extraLabels }}
+            {{ $k }}: {{ $v | quote }}
+            {{- end }}
+          annotations:
+            summary: '{{ `{{ $value }}` }} OpenTelemetry agent pod(s) unavailable'
+            description: 'Nodes without a running agent send nothing: no traces from their pods, no logs, no kubelet metrics. kubectl -n {{ $ns }} describe ds {{ $agent }}'
+        {{- end }}
+        {{- if .Values.gateway.enabled }}
+        - alert: OtelCollectorGatewayReplicasUnavailable
+          expr: kube_deployment_status_replicas_unavailable{namespace="{{ $ns }}", deployment="{{ $gw }}"} > 0
+          for: 15m
+          labels:
+            severity: {{ $m.alerts.severity | quote }}
+            {{- range $k, $v := $m.alerts.extraLabels }}
+            {{ $k }}: {{ $v | quote }}
+            {{- end }}
+          annotations:
+            summary: '{{ `{{ $value }}` }} OpenTelemetry gateway replica(s) unavailable'
+            description: 'With every replica down the agents queue and then drop. kubectl -n {{ $ns }} describe deploy {{ $gw }}'
+        {{- end }}
+        - alert: OtelCollectorRestarting
+          expr: |
+            increase(kube_pod_container_status_restarts_total{namespace="{{ $ns }}", pod=~"({{ $agent }}|{{ $gw }})-.*"}[1h]) > 3
+          for: 10m
+          labels:
+            severity: {{ $m.alerts.severity | quote }}
+            {{- range $k, $v := $m.alerts.extraLabels }}
+            {{ $k }}: {{ $v | quote }}
+            {{- end }}
+          annotations:
+            summary: 'OpenTelemetry collector {{ `{{ $labels.pod }}` }} restarted {{ `{{ $value | printf "%.0f" }}` }} times in an hour'
+            description: 'OOM kills (raise limits or lower memory_limiter) or a config the collector rejects: kubectl -n {{ $ns }} logs {{ `{{ $labels.pod }}` }} --previous'
+{{- end }}

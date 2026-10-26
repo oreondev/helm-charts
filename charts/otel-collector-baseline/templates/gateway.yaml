@@ -1,0 +1,39 @@
+{{- if .Values.gateway.enabled }}
+{{- include "otel.checkImage" . }}
+{{- $g := .Values.gateway }}
+{{- $name := include "otel.gatewayName" . }}
+{{- $spec := dict "mode" "deployment" "resources" $g.resources "config" (include "otel.gatewayConfig" . | fromYaml) }}
+{{- with .Values.image }}{{ $_ := set $spec "image" . }}{{ end }}
+{{- if $g.autoscaler.enabled }}
+{{- $_ := set $spec "autoscaler" (dict "minReplicas" (int $g.autoscaler.minReplicas) "maxReplicas" (int $g.autoscaler.maxReplicas) "targetCPUUtilization" (int $g.autoscaler.targetCPUUtilization)) }}
+{{- else }}
+{{- $_ := set $spec "replicas" (int $g.replicas) }}
+{{- end }}
+{{- if $g.podDisruptionBudget.enabled }}{{ $_ := set $spec "podDisruptionBudget" (dict "minAvailable" $g.podDisruptionBudget.minAvailable) }}{{ end }}
+{{- with $g.env }}{{ $_ := set $spec "env" . }}{{ end }}
+{{- with $g.tolerations }}{{ $_ := set $spec "tolerations" . }}{{ end }}
+{{- with $g.nodeSelector }}{{ $_ := set $spec "nodeSelector" . }}{{ end }}
+{{- with $g.affinity }}{{ $_ := set $spec "affinity" . }}{{ end }}
+{{- with $g.topologySpreadConstraints }}{{ $_ := set $spec "topologySpreadConstraints" . }}{{ end }}
+{{- with $g.priorityClassName }}{{ $_ := set $spec "priorityClassName" . }}{{ end }}
+{{- with $g.podAnnotations }}{{ $_ := set $spec "podAnnotations" . }}{{ end }}
+{{- with $g.extraVolumes }}{{ $_ := set $spec "volumes" . }}{{ end }}
+{{- with $g.extraVolumeMounts }}{{ $_ := set $spec "volumeMounts" . }}{{ end }}
+{{- if and .Values.monitoring.enabled .Values.monitoring.serviceMonitor }}{{ $_ := set $spec "observability" (dict "metrics" (dict "enableMetrics" true)) }}{{ end }}
+{{- $spec = mergeOverwrite $spec (deepCopy ($g.extraSpec | default dict)) }}
+apiVersion: {{ .Values.apiVersions.collector }}
+kind: OpenTelemetryCollector
+metadata:
+  name: {{ $name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "otel.labels" . | nindent 4 }}
+    app.kubernetes.io/component: gateway
+    {{- if .Values.monitoring.enabled }}
+    {{- range $k, $v := .Values.monitoring.labels }}
+    {{ $k }}: {{ $v | quote }}
+    {{- end }}
+    {{- end }}
+spec:
+  {{- toYaml $spec | nindent 2 }}
+{{- end }}

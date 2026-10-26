@@ -1,0 +1,40 @@
+# One HTTPS listener per hostname, wildcard included, cert-manager issuing per listener.
+gatewayClassName: test
+
+gateway:
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  listeners:
+    http:
+      redirectToHttps: false
+    https:
+      port: 8443
+      hostnames:
+        - "*.example.com"
+        - hostname: shop.example.net
+          certificateRefs:
+            - name: shop-example-net-tls
+      tls:
+        certificateRefs:
+          - name: wildcard-example-com-tls
+  allowedRoutes:
+    from: Same
+
+routeDefaults:
+  securityHeaders: false
+
+routes:
+  - name: web
+    hostnames: [www.example.com, shop.example.net]
+    rules:
+      - backendRefs: [{name: web, port: 80}]
+  - name: docs
+    hostnames: [docs.example.com]
+    securityHeaders: true
+    rules:
+      - backendRefs: [{name: docs, port: 80}]
+  - name: plain-http
+    sectionName: http
+    hostnames: [internal.example.com]
+    rules:
+      - backendRefs: [{name: internal, port: 80}]

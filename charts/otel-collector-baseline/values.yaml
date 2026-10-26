@@ -1,0 +1,299 @@
+# Default values for otel-collector-baseline.
+#
+# Needs the OpenTelemetry Operator (opentelemetry.io CRDs). The chart creates OpenTelemetryCollector
+# objects (a node agent DaemonSet and a gateway Deployment), their RBAC, an Instrumentation object
+# and optional Prometheus Operator monitoring. It installs no operator and no backend.
+
+# Required. Stamped on every span, metric and log as k8s.cluster.name.
+clusterName: ""
+# deployment.environment.name resource attribute (production, staging...). Empty = not set.
+environment: ""
+
+apiVersions:
+  collector: opentelemetry.io/v1beta1
+  instrumentation: opentelemetry.io/v1alpha1
+
+# Collector image for both collectors. Empty = the operator's default (the opentelemetry-collector-k8s
+# distribution), which carries everything the chart's defaults use. The googlecloud, googlemanagedprometheus,
+# datadog and elasticsearch exporters only exist in contrib: set otel/opentelemetry-collector-contrib:<version>.
+image: ""
+
+# Collector self-telemetry (scraped by the operator's ServiceMonitor when monitoring is on).
+telemetry:
+  metricsPort: 8888
+  # basic | normal | detailed
+  level: normal
+  logLevel: info
+  # true = service.telemetry.metrics.readers (collector 0.123 and newer); false = the older metrics.address form.
+  readers: true
+
+# One collector per node. Receives OTLP from pods on the node, scrapes the kubelet and the host,
+# tails container logs, adds Kubernetes metadata, forwards to the gateway (or straight to the backends
+# when the gateway is disabled).
+agent:
+  enabled: true
+  # Empty = <release>-agent. The operator names the DaemonSet and Service <name>-collector.
+  name: ""
+  receivers:
+    otlp:
+      enabled: true
+    # Node, pod, container and volume metrics from the kubelet.
+    kubeletstats:
+      enabled: true
+      collectionInterval: 30s
+      metricGroups: [node, pod, container, volume]
+      # Kubelet serving certificates are usually self-signed.
+      insecureSkipVerify: true
+    # CPU, memory, disk, filesystem, load and network of the node (mounts the host root read-only at /hostfs).
+    hostmetrics:
+      enabled: true
+      collectionInterval: 30s
+      scrapers: [cpu, memory, disk, filesystem, load, network]
+    # Container logs from /var/log/pods, parsed with the container operator. Turn off on GKE, EKS or AKS
+    # when the cloud logging agent already ships them.
+    filelog:
+      enabled: true
+      # Skip these namespaces entirely.
+      excludeNamespaces: []
+      # Skip the collectors' own logs.
+      excludeCollectorLogs: true
+      # end = only lines written after start; beginning = backfill existing files on the first start.
+      startAt: end
+      # Persist read offsets on the node so a restart neither re-reads nor skips lines.
+      checkpoint: true
+      checkpointHostPath: /var/lib/otelcol/filelog
+  k8sattributes:
+    extractMetadata:
+      - k8s.namespace.name
+      - k8s.deployment.name
+      - k8s.statefulset.name
+      - k8s.daemonset.name
+      - k8s.cronjob.name
+      - k8s.job.name
+      - k8s.node.name
+      - k8s.pod.name
+      - k8s.pod.uid
+      - k8s.pod.start_time
+      - container.image.name
+      - container.image.tag
+    # Pod labels copied to resource attributes: {tagName: <attribute>, key: <label>, from: pod|namespace|node}.
+    extractLabels:
+      - tagName: app.kubernetes.io/name
+        key: app.kubernetes.io/name
+      - tagName: app.kubernetes.io/version
+        key: app.kubernetes.io/version
+      - tagName: app.kubernetes.io/part-of
+        key: app.kubernetes.io/part-of
+    # Same shape, for annotations.
+    extractAnnotations: []
+  # resourcedetection detectors. Add your cloud: gcp | eks | ec2 | aks | azure.
+  resourceDetectors: [env]
+  memoryLimiter:
+    checkInterval: 1s
+    limitPercentage: 80
+    spikeLimitPercentage: 25
+  batch:
+    timeout: 5s
+    sendBatchSize: 8192
+    sendBatchMaxSize: 16384
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 512Mi
+  # Run on every node, control plane and tainted pools included.
+  tolerations:
+    - operator: Exists
+  nodeSelector: {}
+  priorityClassName: ""
+  podAnnotations: {}
+  # Container securityContext. Empty with filelog on = runAsUser/runAsGroup 0 (reading /var/log/pods needs root).
+  securityContext: {}
+  # Extra environment (e.g. secretKeyRef for backend credentials when the gateway is disabled).
+  env: []
+  extraVolumes: []
+  extraVolumeMounts: []
+  # Deep-merged into the generated collector config (add receivers, processors, exporters, pipelines).
+  extraConfig: {}
+  # Deep-merged into the OpenTelemetryCollector spec.
+  extraSpec: {}
+
+# Central collector. Does the cluster-wide processing and holds the backend credentials, so nodes never do.
+gateway:
+  enabled: true
+  # Empty = <release>-gateway. The operator names the Deployment and Service <name>-collector.
+  name: ""
+  replicas: 2
+  autoscaler:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilization: 70
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+  memoryLimiter:
+    checkInterval: 1s
+    limitPercentage: 80
+    spikeLimitPercentage: 25
+  batch:
+    timeout: 10s
+    sendBatchSize: 8192
+    sendBatchMaxSize: 16384
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      memory: 1Gi
+  tolerations: []
+  nodeSelector: {}
+  affinity: {}
+  topologySpreadConstraints: []
+  priorityClassName: ""
+  podAnnotations: {}
+  # Backend credentials go here as secretKeyRef and are referenced as ${env:NAME} in backends.*.
+  env: []
+  #  - name: GRAFANA_CLOUD_AUTH
+  #    valueFrom:
+  #      secretKeyRef:
+  #        name: grafana-cloud
+  #        key: auth
+  extraVolumes: []
+  extraVolumeMounts: []
+  extraConfig: {}
+  extraSpec: {}
+
+# Processing in the gateway (in the agent when the gateway is disabled).
+processing:
+  # Drop spans for health-check endpoints (url.path, http.route or http.target matching one of these).
+  dropHealthChecks:
+    enabled: true
+    paths: [/healthz, /readyz, /livez, /health, /ready, /live, /metrics, /ping]
+  # Keep every trace with an error or slower than slowMs, and a percentage of the rest. Needs the gateway;
+  # agents then route traces by ID to the gateway replicas (loadbalancing exporter).
+  tailSampling:
+    enabled: false
+    decisionWait: 10s
+    numTraces: 100000
+    errorsAlways: true
+    slowMs: 2000
+    percentage: 10
+    # Raw tail_sampling policies appended.
+    extraPolicies: []
+  # Delete these attributes from spans and logs before export.
+  redact:
+    enabled: true
+    attributes:
+      - http.request.header.authorization
+      - http.request.header.cookie
+      - http.request.header.x-api-key
+      - http.response.header.set-cookie
+    # Regular expressions on attribute keys.
+    patterns: []
+  # Extra resource attributes stamped on everything (team, region...).
+  resourceAttributes: {}
+
+# Where it all goes. Any number can be on; each lists the signals it takes. With none enabled everything
+# goes to the debug exporter (counts in the gateway log) so an install with no backend still shows data moving.
+# Secrets: write ${env:NAME} and put NAME into gateway.env (agent.env without the gateway).
+backends:
+  # OTLP/gRPC: Grafana Cloud, Tempo/Mimir/Loki, Honeycomb, Dash0, Elastic APM, New Relic...
+  otlp:
+    enabled: false
+    endpoint: ""
+    headers: {}
+    # insecure, insecureSkipVerify, caFile, certFile, keyFile (converted to the collector's snake_case keys)
+    tls: {}
+    compression: gzip
+    signals: [traces, metrics, logs]
+  # OTLP/HTTP, e.g. https://otlp-gateway-prod-eu-west-2.grafana.net/otlp
+  otlphttp:
+    enabled: false
+    endpoint: ""
+    headers: {}
+    tls: {}
+    compression: gzip
+    signals: [traces, metrics, logs]
+  # Cloud Trace and Cloud Logging (contrib image, Workload Identity).
+  googlecloud:
+    enabled: false
+    project: ""
+    signals: [traces, logs]
+  # Google Cloud Managed Service for Prometheus (contrib image). Metrics only.
+  googlemanagedprometheus:
+    enabled: false
+    project: ""
+  # Any Prometheus remote write endpoint (Mimir, Thanos, Grafana Cloud metrics). Metrics only.
+  prometheusremotewrite:
+    enabled: false
+    endpoint: ""
+    headers: {}
+    tls: {}
+    resourceToTelemetryConversion: true
+  # Datadog (contrib image).
+  datadog:
+    enabled: false
+    site: datadoghq.eu
+    apiKey: "${env:DD_API_KEY}"
+    signals: [traces, metrics, logs]
+  # Elasticsearch / Elastic Cloud with the OTel mapping mode (contrib image).
+  elasticsearch:
+    enabled: false
+    endpoints: []
+    apiKey: "${env:ELASTIC_API_KEY}"
+    mappingMode: otel
+    signals: [traces, metrics, logs]
+  debug:
+    enabled: false
+    # basic | normal | detailed
+    verbosity: basic
+    signals: [traces, metrics, logs]
+
+# Operator auto-instrumentation. Reference it from any namespace with the annotation
+#   instrumentation.opentelemetry.io/inject-java: "<release namespace>/<name>"
+# (inject-nodejs, inject-python, inject-dotnet, inject-go likewise).
+instrumentation:
+  enabled: false
+  # Empty = release name.
+  name: ""
+  # Empty = release namespace.
+  namespace: ""
+  # OTLP/HTTP endpoint the SDKs send to. Empty = the agent on the same node through the chart's
+  # node-local Service, or the gateway when the agent is disabled.
+  endpoint: ""
+  propagators: [tracecontext, baggage]
+  sampler:
+    type: parentbased_traceidratio
+    argument: "1.0"
+  resourceAttributes: {}
+  # Extra environment injected into every instrumented container.
+  env: []
+  # Per-language blocks passed through (image, env, resources...). Empty = operator defaults.
+  java: {}
+  nodejs: {}
+  python: {}
+  dotnet: {}
+  go: {}
+
+monitoring:
+  enabled: false
+  # Labels the Prometheus Operator selectors need (kube-prometheus-stack: release: <its release name>).
+  # Put on the collectors (the operator propagates them to its ServiceMonitors) and on the PrometheusRule.
+  labels: {}
+  # Let the operator create a ServiceMonitor per collector.
+  serviceMonitor: true
+  prometheusRule: true
+  dashboard:
+    enabled: true
+    namespace: ""
+    labels:
+      grafana_dashboard: "1"
+    annotations: {}
+  alerts:
+    severity: warning
+    for: 10m
+    # Exporter queue usage that pages.
+    queueUtilisation: 0.8
+    extraLabels: {}

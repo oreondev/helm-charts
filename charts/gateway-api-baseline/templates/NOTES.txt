@@ -1,0 +1,32 @@
+{{ .Chart.Name }} {{ .Chart.Version }} installed as release "{{ .Release.Name }}".
+{{- $gwNs := include "gab.gatewayNamespace" . }}
+{{- $gwName := include "gab.gatewayName" . }}
+{{- $g := .Values.gateway }}
+{{- if $g.enabled }}
+
+Gateway {{ $gwNs }}/{{ $gwName }} (class {{ .Values.gatewayClassName }})
+{{- if $g.listeners.http.enabled }}
+  http  :{{ $g.listeners.http.port }}{{ if $g.listeners.http.redirectToHttps }}  -> 301 redirect to https{{ end }}
+{{- end }}
+{{- if $g.listeners.https.enabled }}
+  https :{{ $g.listeners.https.port }}  {{ if $g.listeners.https.hostnames }}{{ range $i, $e := $g.listeners.https.hostnames }}{{ if $i }}, {{ end }}{{ if eq (kindOf $e) "string" }}{{ $e }}{{ else }}{{ $e.hostname }}{{ end }}{{ end }}{{ else }}any hostname{{ end }}
+{{- end }}
+  routes may attach from: {{ if eq $g.allowedRoutes.from "Selector" }}namespaces matching {{ toJson $g.allowedRoutes.selector }}{{ else if eq $g.allowedRoutes.from "All" }}any namespace{{ else }}the Gateway's namespace only{{ end }}
+
+Is it programmed?
+  kubectl -n {{ $gwNs }} get gateway {{ $gwName }}
+  kubectl -n {{ $gwNs }} get gateway {{ $gwName }} -o jsonpath='{.status.conditions}' | jq
+{{- end }}
+{{- if .Values.routes }}
+
+Routes:
+{{- range $r := .Values.routes }}
+  {{ $r.kind | default "HTTPRoute" }} {{ include "gab.routeNamespace" (dict "root" $ "route" $r) }}/{{ $r.name }}{{ with $r.hostnames }}  {{ join ", " . }}{{ end }}
+{{- end }}
+  kubectl get httproute,grpcroute -A
+{{- end }}
+{{- if and $g.enabled (eq $g.allowedRoutes.from "Selector") }}
+
+Namespaces that hold routes{{ if .Values.defaultBackend.enabled }} (including {{ $gwNs }}, for the default backend route){{ end }} need the label:
+  kubectl label namespace <ns> {{ range $k, $v := $g.allowedRoutes.selector.matchLabels }}{{ $k }}={{ $v }} {{ end }}
+{{- end }}

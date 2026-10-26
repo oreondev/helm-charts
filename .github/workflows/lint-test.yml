@@ -7,6 +7,14 @@ on:
       - "ct.yaml"
       - ".github/workflows/lint-test.yml"
 
+env:
+  PROMETHEUS_OPERATOR_VERSION: v0.94.2
+  PROMETHEUS_ENGINE_VERSION: v0.17.0
+  KYVERNO_VERSION: v1.19.2
+  VELERO_VERSION: v1.18.0
+  GATEWAY_API_VERSION: v1.6.3
+  OTEL_OPERATOR_VERSION: v0.162.0
+
 jobs:
   lint-test:
     runs-on: ubuntu-latest
@@ -39,10 +47,33 @@ jobs:
         if: steps.list-changed.outputs.changed == 'true'
         uses: helm/kind-action@v1.12.0
 
-      - name: Install the PrometheusRule CRD
+      - name: Install the CRDs the charts target
         if: steps.list-changed.outputs.changed == 'true'
         run: |
-          kubectl apply --server-side -f https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/main/example/prometheus-operator-crd/monitoring.coreos.com_prometheusrules.yaml
+          set -euo pipefail
+          po=https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/${PROMETHEUS_OPERATOR_VERSION}/example/prometheus-operator-crd
+          for crd in prometheusrules probes alertmanagerconfigs; do
+            kubectl apply --server-side -f "${po}/monitoring.coreos.com_${crd}.yaml"
+          done
+          # Google Managed Prometheus (Rules, ClusterRules, GlobalRules)
+          kubectl apply --server-side -f https://raw.githubusercontent.com/GoogleCloudPlatform/prometheus-engine/${PROMETHEUS_ENGINE_VERSION}/manifests/setup.yaml
+          # Kyverno
+          kubectl apply --server-side -f https://raw.githubusercontent.com/kyverno/kyverno/${KYVERNO_VERSION}/config/crds/kyverno/kyverno.io_clusterpolicies.yaml
+          # Velero
+          vel=https://raw.githubusercontent.com/vmware-tanzu/velero/${VELERO_VERSION}/config/crd/v1/bases
+          for crd in schedules backupstoragelocations volumesnapshotlocations; do
+            kubectl apply --server-side -f "${vel}/velero.io_${crd}.yaml"
+          done
+          # Gateway API (standard channel)
+          kubectl apply --server-side -f https://github.com/kubernetes-sigs/gateway-api/releases/download/${GATEWAY_API_VERSION}/standard-install.yaml
+          # OpenTelemetry Operator
+          otel=https://raw.githubusercontent.com/open-telemetry/opentelemetry-operator/${OTEL_OPERATOR_VERSION}/config/crd/bases
+          for crd in opentelemetrycollectors instrumentations; do
+            kubectl apply --server-side -f "${otel}/opentelemetry.io_${crd}.yaml"
+          done
+          kubectl wait --for=condition=Established crd --all --timeout=120s
+          # Namespaces the velero and kyverno test values refer to
+          kubectl create namespace velero --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Install
         if: steps.list-changed.outputs.changed == 'true'

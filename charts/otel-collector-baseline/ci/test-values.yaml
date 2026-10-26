@@ -1,0 +1,88 @@
+# Full layout: agent + gateway with tail sampling, three backends, instrumentation, monitoring.
+clusterName: ci-cluster
+environment: ci
+image: otel/opentelemetry-collector-contrib:0.163.2
+
+agent:
+  receivers:
+    filelog:
+      excludeNamespaces: [kube-system]
+  k8sattributes:
+    extractAnnotations:
+      - tagName: team
+        key: oreonit.com/team
+  resourceDetectors: [env, gcp]
+  env:
+    - name: EXAMPLE
+      value: "1"
+
+gateway:
+  autoscaler:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+  env:
+    - name: OTLP_AUTH
+      valueFrom:
+        secretKeyRef:
+          name: otlp-backend
+          key: auth
+          optional: true
+  topologySpreadConstraints:
+    - maxSkew: 1
+      topologyKey: kubernetes.io/hostname
+      whenUnsatisfiable: ScheduleAnyway
+      labelSelector:
+        matchLabels:
+          app.kubernetes.io/component: opentelemetry-collector
+
+processing:
+  tailSampling:
+    enabled: true
+    percentage: 20
+    extraPolicies:
+      - name: vip
+        type: string_attribute
+        string_attribute:
+          key: customer.tier
+          values: [enterprise]
+  redact:
+    patterns:
+      - ".*password.*"
+  resourceAttributes:
+    team: platform
+
+backends:
+  otlp:
+    enabled: true
+    endpoint: tempo.monitoring.svc:4317
+    headers:
+      Authorization: "Basic ${env:OTLP_AUTH}"
+    tls:
+      insecure: true
+    signals: [traces, logs]
+  prometheusremotewrite:
+    enabled: true
+    endpoint: http://mimir.monitoring.svc:9009/api/v1/push
+  googlemanagedprometheus:
+    enabled: true
+    project: example-project
+  debug:
+    enabled: true
+    signals: [traces]
+
+instrumentation:
+  enabled: true
+  sampler:
+    argument: "0.5"
+  resourceAttributes:
+    service.namespace: shop
+  java:
+    env:
+      - name: OTEL_INSTRUMENTATION_JDBC_ENABLED
+        value: "true"
+
+monitoring:
+  enabled: true
+  labels:
+    release: kube-prometheus-stack

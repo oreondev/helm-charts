@@ -1,0 +1,35 @@
+{{- if .Values.instrumentation.enabled }}
+{{- $i := .Values.instrumentation }}
+{{- $env := list (dict "name" "OTEL_EXPORTER_OTLP_PROTOCOL" "value" "http/protobuf") }}
+{{- $env = concat $env ($i.env | default list) }}
+apiVersion: {{ .Values.apiVersions.instrumentation }}
+kind: Instrumentation
+metadata:
+  name: {{ include "otel.instrumentationName" . }}
+  namespace: {{ $i.namespace | default .Release.Namespace }}
+  labels:
+    {{- include "otel.labels" . | nindent 4 }}
+spec:
+  exporter:
+    endpoint: {{ include "otel.instrumentationEndpoint" . }}
+  propagators:
+    {{- toYaml ($i.propagators | default (list "tracecontext" "baggage")) | nindent 4 }}
+  sampler:
+    type: {{ $i.sampler.type | default "parentbased_traceidratio" }}
+    argument: {{ $i.sampler.argument | default "1.0" | quote }}
+  {{- with $i.resourceAttributes }}
+  resource:
+    resourceAttributes:
+      {{- range $k, $v := . }}
+      {{ $k }}: {{ $v | quote }}
+      {{- end }}
+  {{- end }}
+  env:
+    {{- toYaml $env | nindent 4 }}
+  {{- range $lang := list "java" "nodejs" "python" "dotnet" "go" }}
+  {{- with index $i $lang }}
+  {{ $lang }}:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- end }}
+{{- end }}

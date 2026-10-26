@@ -1,0 +1,25 @@
+{{- if and .Values.gateway.enabled .Values.gateway.listeners.http.enabled .Values.gateway.listeners.http.redirectToHttps }}
+apiVersion: {{ .Values.apiVersions.gateway }}
+kind: HTTPRoute
+metadata:
+  name: {{ include "gab.gatewayName" . }}-redirect-to-https
+  namespace: {{ include "gab.gatewayNamespace" . }}
+  labels:
+    {{- include "gab.labels" . | nindent 4 }}
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: {{ include "gab.gatewayName" . }}
+      namespace: {{ include "gab.gatewayNamespace" . }}
+      sectionName: http
+  rules:
+    - filters:
+        - type: RequestRedirect
+          requestRedirect:
+            scheme: https
+            statusCode: 301
+            {{- if and .Values.gateway.listeners.https.enabled (ne (int .Values.gateway.listeners.https.port) 443) }}
+            port: {{ .Values.gateway.listeners.https.port }}
+            {{- end }}
+{{- end }}

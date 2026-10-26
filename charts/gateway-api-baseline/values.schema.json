@@ -1,0 +1,218 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "gateway-api-baseline values",
+  "type": "object",
+  "properties": {
+    "gatewayClassName": { "type": "string" },
+    "apiVersions": {
+      "type": "object",
+      "properties": {
+        "gateway": { "type": "string", "pattern": "^gateway\\.networking\\.k8s\\.io/v1" },
+        "referenceGrant": { "type": "string", "pattern": "^gateway\\.networking\\.k8s\\.io/v1" },
+        "backendTLSPolicy": { "type": "string", "pattern": "^gateway\\.networking\\.k8s\\.io/v1" }
+      },
+      "additionalProperties": false
+    },
+    "gateway": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "name": { "type": "string" },
+        "namespace": { "type": "string" },
+        "labels": { "$ref": "#/definitions/stringMap" },
+        "annotations": { "$ref": "#/definitions/stringMap" },
+        "infrastructure": {
+          "type": "object",
+          "properties": {
+            "labels": { "$ref": "#/definitions/stringMap" },
+            "annotations": { "$ref": "#/definitions/stringMap" },
+            "parametersRef": { "type": "object" }
+          },
+          "additionalProperties": false
+        },
+        "addresses": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["value"],
+            "properties": { "type": { "type": "string" }, "value": { "type": "string", "minLength": 1 } },
+            "additionalProperties": false
+          }
+        },
+        "listeners": {
+          "type": "object",
+          "properties": {
+            "http": {
+              "type": "object",
+              "properties": {
+                "enabled": { "type": "boolean" },
+                "port": { "$ref": "#/definitions/port" },
+                "hostname": { "type": "string" },
+                "redirectToHttps": { "type": "boolean" }
+              },
+              "additionalProperties": false
+            },
+            "https": {
+              "type": "object",
+              "properties": {
+                "enabled": { "type": "boolean" },
+                "port": { "$ref": "#/definitions/port" },
+                "hostnames": {
+                  "type": "array",
+                  "items": {
+                    "oneOf": [
+                      { "type": "string", "minLength": 1 },
+                      {
+                        "type": "object",
+                        "required": ["hostname"],
+                        "properties": {
+                          "hostname": { "type": "string", "minLength": 1 },
+                          "certificateRefs": { "$ref": "#/definitions/certificateRefs" }
+                        },
+                        "additionalProperties": false
+                      }
+                    ]
+                  }
+                },
+                "tls": {
+                  "type": "object",
+                  "properties": {
+                    "mode": { "type": "string", "enum": ["Terminate", "Passthrough"] },
+                    "certificateRefs": { "$ref": "#/definitions/certificateRefs" },
+                    "options": { "$ref": "#/definitions/stringMap" }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            },
+            "extra": { "type": "array", "items": { "type": "object" } }
+          },
+          "additionalProperties": false
+        },
+        "allowedRoutes": {
+          "type": "object",
+          "properties": {
+            "from": { "type": "string", "enum": ["Same", "All", "Selector"] },
+            "selector": { "type": "object" }
+          },
+          "additionalProperties": false
+        },
+        "extraSpec": { "type": "object" }
+      },
+      "additionalProperties": false
+    },
+    "routeDefaults": {
+      "type": "object",
+      "properties": {
+        "namespace": { "type": "string" },
+        "sectionName": { "type": "string" },
+        "timeouts": { "$ref": "#/definitions/timeouts" },
+        "securityHeaders": { "type": "boolean" },
+        "labels": { "$ref": "#/definitions/stringMap" },
+        "annotations": { "$ref": "#/definitions/stringMap" }
+      },
+      "additionalProperties": false
+    },
+    "securityHeaders": { "$ref": "#/definitions/stringMap" },
+    "routes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": { "type": "string", "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$", "maxLength": 63 },
+          "kind": { "type": "string", "enum": ["HTTPRoute", "GRPCRoute"] },
+          "namespace": { "type": "string" },
+          "hostnames": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+          "rules": { "type": "array", "items": { "type": "object" } },
+          "sectionName": { "type": "string" },
+          "parentRefs": { "type": "array", "items": { "type": "object" } },
+          "timeouts": { "$ref": "#/definitions/timeouts" },
+          "securityHeaders": { "type": "boolean" },
+          "labels": { "$ref": "#/definitions/stringMap" },
+          "annotations": { "$ref": "#/definitions/stringMap" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "defaultBackend": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "name": { "type": "string" },
+        "namespace": { "type": "string" },
+        "port": { "$ref": "#/definitions/port" }
+      },
+      "additionalProperties": false
+    },
+    "referenceGrants": {
+      "type": "object",
+      "properties": {
+        "auto": { "type": "boolean" },
+        "extra": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "namespace", "from", "to"],
+            "properties": {
+              "name": { "type": "string" },
+              "namespace": { "type": "string" },
+              "from": { "type": "array", "minItems": 1, "items": { "type": "object" } },
+              "to": { "type": "array", "minItems": 1, "items": { "type": "object" } }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "backendTLSPolicies": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["service", "hostname"],
+        "properties": {
+          "name": { "type": "string" },
+          "namespace": { "type": "string" },
+          "service": { "type": "string", "minLength": 1 },
+          "sectionName": { "type": "string" },
+          "hostname": { "type": "string", "minLength": 1 },
+          "wellKnownCACertificates": { "type": "string", "enum": ["System"] },
+          "caCertificateRefs": { "type": "array", "items": { "type": "object" } },
+          "subjectAltNames": { "type": "array", "items": { "type": "object" } },
+          "options": { "$ref": "#/definitions/stringMap" }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "stringMap": { "type": "object", "additionalProperties": { "type": "string" } },
+    "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
+    "timeouts": {
+      "type": "object",
+      "properties": {
+        "request": { "$ref": "#/definitions/durationOrEmpty" },
+        "backendRequest": { "$ref": "#/definitions/durationOrEmpty" }
+      },
+      "additionalProperties": false
+    },
+    "durationOrEmpty": { "type": "string", "pattern": "^$|^([0-9]{1,5}(h|m|s|ms)){1,4}$" },
+    "certificateRefs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "namespace": { "type": "string" },
+          "kind": { "type": "string" },
+          "group": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    }
+  }
+}

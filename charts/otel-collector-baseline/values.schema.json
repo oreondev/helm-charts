@@ -1,0 +1,337 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "otel-collector-baseline values",
+  "type": "object",
+  "properties": {
+    "clusterName": { "type": "string" },
+    "environment": { "type": "string" },
+    "apiVersions": {
+      "type": "object",
+      "properties": {
+        "collector": { "type": "string", "pattern": "^opentelemetry\\.io/v1" },
+        "instrumentation": { "type": "string", "pattern": "^opentelemetry\\.io/v1" }
+      },
+      "additionalProperties": false
+    },
+    "image": { "type": "string" },
+    "telemetry": {
+      "type": "object",
+      "properties": {
+        "metricsPort": { "type": "integer", "minimum": 1, "maximum": 65535 },
+        "level": { "type": "string", "enum": ["none", "basic", "normal", "detailed"] },
+        "logLevel": { "type": "string", "enum": ["debug", "info", "warn", "error"] },
+        "readers": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "agent": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "name": { "type": "string" },
+        "receivers": {
+          "type": "object",
+          "properties": {
+            "otlp": { "type": "object", "properties": { "enabled": { "type": "boolean" } }, "additionalProperties": false },
+            "kubeletstats": {
+              "type": "object",
+              "properties": {
+                "enabled": { "type": "boolean" },
+                "collectionInterval": { "$ref": "#/definitions/duration" },
+                "metricGroups": { "type": "array", "items": { "type": "string", "enum": ["node", "pod", "container", "volume"] } },
+                "insecureSkipVerify": { "type": "boolean" }
+              },
+              "additionalProperties": false
+            },
+            "hostmetrics": {
+              "type": "object",
+              "properties": {
+                "enabled": { "type": "boolean" },
+                "collectionInterval": { "$ref": "#/definitions/duration" },
+                "scrapers": { "type": "array", "items": { "type": "string", "enum": ["cpu", "memory", "disk", "filesystem", "load", "network", "paging", "processes", "process"] } }
+              },
+              "additionalProperties": false
+            },
+            "filelog": {
+              "type": "object",
+              "properties": {
+                "enabled": { "type": "boolean" },
+                "excludeNamespaces": { "type": "array", "items": { "type": "string" } },
+                "excludeCollectorLogs": { "type": "boolean" },
+                "startAt": { "type": "string", "enum": ["end", "beginning"] },
+                "checkpoint": { "type": "boolean" },
+                "checkpointHostPath": { "type": "string", "pattern": "^/" }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "k8sattributes": {
+          "type": "object",
+          "properties": {
+            "extractMetadata": { "type": "array", "items": { "type": "string" } },
+            "extractLabels": { "$ref": "#/definitions/extractList" },
+            "extractAnnotations": { "$ref": "#/definitions/extractList" }
+          },
+          "additionalProperties": false
+        },
+        "resourceDetectors": { "type": "array", "items": { "type": "string" } },
+        "memoryLimiter": { "$ref": "#/definitions/memoryLimiter" },
+        "batch": { "$ref": "#/definitions/batch" },
+        "resources": { "type": "object" },
+        "tolerations": { "type": "array", "items": { "type": "object" } },
+        "nodeSelector": { "$ref": "#/definitions/stringMap" },
+        "priorityClassName": { "type": "string" },
+        "podAnnotations": { "$ref": "#/definitions/stringMap" },
+        "securityContext": { "type": "object" },
+        "env": { "type": "array", "items": { "type": "object", "required": ["name"] } },
+        "extraVolumes": { "type": "array", "items": { "type": "object", "required": ["name"] } },
+        "extraVolumeMounts": { "type": "array", "items": { "type": "object", "required": ["name", "mountPath"] } },
+        "extraConfig": { "type": "object" },
+        "extraSpec": { "type": "object" }
+      },
+      "additionalProperties": false
+    },
+    "gateway": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "name": { "type": "string" },
+        "replicas": { "type": "integer", "minimum": 1 },
+        "autoscaler": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "minReplicas": { "type": "integer", "minimum": 1 },
+            "maxReplicas": { "type": "integer", "minimum": 1 },
+            "targetCPUUtilization": { "type": "integer", "minimum": 1, "maximum": 100 }
+          },
+          "additionalProperties": false
+        },
+        "podDisruptionBudget": {
+          "type": "object",
+          "properties": { "enabled": { "type": "boolean" }, "minAvailable": { "type": ["integer", "string"] } },
+          "additionalProperties": false
+        },
+        "memoryLimiter": { "$ref": "#/definitions/memoryLimiter" },
+        "batch": { "$ref": "#/definitions/batch" },
+        "resources": { "type": "object" },
+        "tolerations": { "type": "array", "items": { "type": "object" } },
+        "nodeSelector": { "$ref": "#/definitions/stringMap" },
+        "affinity": { "type": "object" },
+        "topologySpreadConstraints": { "type": "array", "items": { "type": "object" } },
+        "priorityClassName": { "type": "string" },
+        "podAnnotations": { "$ref": "#/definitions/stringMap" },
+        "env": { "type": "array", "items": { "type": "object", "required": ["name"] } },
+        "extraVolumes": { "type": "array", "items": { "type": "object", "required": ["name"] } },
+        "extraVolumeMounts": { "type": "array", "items": { "type": "object", "required": ["name", "mountPath"] } },
+        "extraConfig": { "type": "object" },
+        "extraSpec": { "type": "object" }
+      },
+      "additionalProperties": false
+    },
+    "processing": {
+      "type": "object",
+      "properties": {
+        "dropHealthChecks": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "paths": { "type": "array", "minItems": 1, "items": { "type": "string", "pattern": "^/" } }
+          },
+          "additionalProperties": false
+        },
+        "tailSampling": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "decisionWait": { "$ref": "#/definitions/duration" },
+            "numTraces": { "type": "integer", "minimum": 1 },
+            "errorsAlways": { "type": "boolean" },
+            "slowMs": { "type": "integer", "minimum": 0 },
+            "percentage": { "type": "number", "minimum": 0, "maximum": 100 },
+            "extraPolicies": { "type": "array", "items": { "type": "object", "required": ["name", "type"] } }
+          },
+          "additionalProperties": false
+        },
+        "redact": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "attributes": { "type": "array", "items": { "type": "string" } },
+            "patterns": { "type": "array", "items": { "type": "string" } }
+          },
+          "additionalProperties": false
+        },
+        "resourceAttributes": { "$ref": "#/definitions/stringMap" }
+      },
+      "additionalProperties": false
+    },
+    "backends": {
+      "type": "object",
+      "properties": {
+        "otlp": { "$ref": "#/definitions/otlpBackend" },
+        "otlphttp": { "$ref": "#/definitions/otlpBackend" },
+        "googlecloud": {
+          "type": "object",
+          "properties": { "enabled": { "type": "boolean" }, "project": { "type": "string" }, "signals": { "$ref": "#/definitions/signals" } },
+          "additionalProperties": false
+        },
+        "googlemanagedprometheus": {
+          "type": "object",
+          "properties": { "enabled": { "type": "boolean" }, "project": { "type": "string" } },
+          "additionalProperties": false
+        },
+        "prometheusremotewrite": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "endpoint": { "type": "string" },
+            "headers": { "$ref": "#/definitions/stringMap" },
+            "tls": { "$ref": "#/definitions/tls" },
+            "resourceToTelemetryConversion": { "type": "boolean" }
+          },
+          "additionalProperties": false
+        },
+        "datadog": {
+          "type": "object",
+          "properties": { "enabled": { "type": "boolean" }, "site": { "type": "string" }, "apiKey": { "type": "string" }, "signals": { "$ref": "#/definitions/signals" } },
+          "additionalProperties": false
+        },
+        "elasticsearch": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "endpoints": { "type": "array", "items": { "type": "string" } },
+            "apiKey": { "type": "string" },
+            "mappingMode": { "type": "string", "enum": ["otel", "ecs", "none", "raw", "bodymap"] },
+            "tls": { "$ref": "#/definitions/tls" },
+            "signals": { "$ref": "#/definitions/signals" }
+          },
+          "additionalProperties": false
+        },
+        "debug": {
+          "type": "object",
+          "properties": { "enabled": { "type": "boolean" }, "verbosity": { "type": "string", "enum": ["basic", "normal", "detailed"] }, "signals": { "$ref": "#/definitions/signals" } },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "instrumentation": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "name": { "type": "string" },
+        "namespace": { "type": "string" },
+        "endpoint": { "type": "string" },
+        "propagators": { "type": "array", "items": { "type": "string" } },
+        "sampler": {
+          "type": "object",
+          "properties": { "type": { "type": "string" }, "argument": { "type": "string" } },
+          "additionalProperties": false
+        },
+        "resourceAttributes": { "$ref": "#/definitions/stringMap" },
+        "env": { "type": "array", "items": { "type": "object", "required": ["name"] } },
+        "java": { "type": "object" },
+        "nodejs": { "type": "object" },
+        "python": { "type": "object" },
+        "dotnet": { "type": "object" },
+        "go": { "type": "object" }
+      },
+      "additionalProperties": false
+    },
+    "monitoring": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "labels": { "$ref": "#/definitions/stringMap" },
+        "serviceMonitor": { "type": "boolean" },
+        "prometheusRule": { "type": "boolean" },
+        "dashboard": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "namespace": { "type": "string" },
+            "labels": { "$ref": "#/definitions/stringMap" },
+            "annotations": { "$ref": "#/definitions/stringMap" }
+          },
+          "additionalProperties": false
+        },
+        "alerts": {
+          "type": "object",
+          "properties": {
+            "severity": { "type": "string" },
+            "for": { "$ref": "#/definitions/duration" },
+            "queueUtilisation": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+            "extraLabels": { "$ref": "#/definitions/stringMap" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "stringMap": { "type": "object", "additionalProperties": { "type": "string" } },
+    "duration": { "type": "string", "pattern": "^[0-9]+(ms|s|m|h)$" },
+    "signals": { "type": "array", "minItems": 1, "items": { "type": "string", "enum": ["traces", "metrics", "logs"] } },
+    "tls": {
+      "type": "object",
+      "properties": {
+        "insecure": { "type": "boolean" },
+        "insecureSkipVerify": { "type": "boolean" },
+        "caFile": { "type": "string" },
+        "certFile": { "type": "string" },
+        "keyFile": { "type": "string" },
+        "serverName": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "otlpBackend": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "endpoint": { "type": "string" },
+        "headers": { "$ref": "#/definitions/stringMap" },
+        "tls": { "$ref": "#/definitions/tls" },
+        "compression": { "type": "string", "enum": ["gzip", "zstd", "snappy", "none"] },
+        "signals": { "$ref": "#/definitions/signals" }
+      },
+      "additionalProperties": false
+    },
+    "extractList": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["tagName", "key"],
+        "properties": {
+          "tagName": { "type": "string" },
+          "key": { "type": "string" },
+          "from": { "type": "string", "enum": ["pod", "namespace", "node"] }
+        },
+        "additionalProperties": false
+      }
+    },
+    "memoryLimiter": {
+      "type": "object",
+      "properties": {
+        "checkInterval": { "$ref": "#/definitions/duration" },
+        "limitPercentage": { "type": "integer", "minimum": 1, "maximum": 100 },
+        "spikeLimitPercentage": { "type": "integer", "minimum": 0, "maximum": 100 }
+      },
+      "additionalProperties": false
+    },
+    "batch": {
+      "type": "object",
+      "properties": {
+        "timeout": { "$ref": "#/definitions/duration" },
+        "sendBatchSize": { "type": "integer", "minimum": 1 },
+        "sendBatchMaxSize": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    }
+  }
+}
