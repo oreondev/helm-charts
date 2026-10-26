@@ -1,0 +1,14 @@
+# k8s-cost-waste-alerts against the dev stack. The demo and chart-test namespaces over-request on purpose,
+# so the waste panels have data; prices are illustrative.
+excludeNamespaces: "kube-.*"
+
+pricing:
+  currency: GBP
+  cpuCoreHour: 0.026
+  memoryGiBHour: 0.0035
+
+thresholds:
+  minCpuRequestCores: 0.1
+
+alertLabels:
+  team: demo
