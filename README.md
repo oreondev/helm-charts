@@ -4,15 +4,15 @@ Charts we install on client clusters, published so you can use them too. None of
 
 | Chart | What it does | Needs |
 |---|---|---|
-| [slo-burn-rate-alerts](charts/slo-burn-rate-alerts) | SLOs as values: recording rules, multi-window multi-burn-rate page/ticket alerts and an SLO dashboard. Prometheus Operator or Google Managed Prometheus backends. | Prometheus Operator / GMP, Grafana sidecar |
-| [blackbox-slo-probes](charts/blackbox-slo-probes) | URLs become Probe objects plus availability and latency SLOs with the same burn-rate alerts, probe-down and TLS-expiry alerts, and a dashboard. | blackbox exporter, Prometheus Operator |
 | [alertmanager-routing-baseline](charts/alertmanager-routing-baseline) | Teams, page/ticket receivers (Slack, PagerDuty, Opsgenie, email, Teams, webhook), severity routing, inhibition, business-hours muting, Watchdog sink, as an AlertmanagerConfig. | Prometheus Operator |
+| [blackbox-slo-probes](charts/blackbox-slo-probes) | URLs become Probe objects plus availability and latency SLOs with the same burn-rate alerts, probe-down and TLS-expiry alerts, and a dashboard. | blackbox exporter, Prometheus Operator |
+| [gateway-api-baseline](charts/gateway-api-baseline) | Shared Gateway API ingress: one Gateway with HTTP-to-HTTPS redirect and TLS listeners per hostname, namespace-scoped attachment, HTTPRoutes/GRPCRoutes from values with timeouts and security headers, generated ReferenceGrants, default backend, BackendTLSPolicies. | Gateway API CRDs + any controller (GKE, Envoy Gateway, NGINX Gateway Fabric, Istio, Cilium) |
 | [k8s-cost-waste-alerts](charts/k8s-cost-waste-alerts) | Requests vs usage per namespace priced per month, under-committed clusters, idle PVCs, LoadBalancers without endpoints, HPAs at max or pinned, containers without requests. Rules and a dashboard. | kube-state-metrics, cAdvisor |
 | [kyverno-production-policies](charts/kyverno-production-policies) | The production readiness checklist as Kyverno policies: requests/limits, probes, labels, no latest tags, PDBs and spread for multi-replica workloads, no NodePorts, nothing in default. Audit mode first. | Kyverno 1.13+ |
 | [namespace-baseline](charts/namespace-baseline) | Guardrails per team namespace: Pod Security Admission labels, ResourceQuota, LimitRange, default-deny NetworkPolicies with the usual allows, RBAC bindings, optional quota alerts. | a CNI that enforces NetworkPolicy |
-| [velero-backup-schedules](charts/velero-backup-schedules) | Daily/weekly/monthly Velero Schedules with retention, optional storage locations, a scheduled restore test into a scratch namespace, and backup alerts. | Velero |
-| [gateway-api-baseline](charts/gateway-api-baseline) | Shared Gateway API ingress: one Gateway with HTTP-to-HTTPS redirect and TLS listeners per hostname, namespace-scoped attachment, HTTPRoutes/GRPCRoutes from values with timeouts and security headers, generated ReferenceGrants, default backend, BackendTLSPolicies. | Gateway API CRDs + any controller (GKE, Envoy Gateway, NGINX Gateway Fabric, Istio, Cilium) |
 | [otel-collector-baseline](charts/otel-collector-baseline) | OpenTelemetry Collector layout: node agent (OTLP, kubelet and host metrics, container logs, Kubernetes metadata) feeding a gateway (health-check filtering, redaction, tail sampling) that exports to OTLP, Google Cloud, Prometheus remote write, Datadog or Elasticsearch; auto-instrumentation, RBAC, alerts, dashboard. | OpenTelemetry Operator |
+| [slo-burn-rate-alerts](charts/slo-burn-rate-alerts) | SLOs as values: recording rules, multi-window multi-burn-rate page/ticket alerts and an SLO dashboard. Prometheus Operator or Google Managed Prometheus backends. | Prometheus Operator / GMP, Grafana sidecar |
+| [velero-backup-schedules](charts/velero-backup-schedules) | Daily/weekly/monthly Velero Schedules with retention, optional storage locations, a scheduled restore test into a scratch namespace, and backup alerts. | Velero |
 
 ## Use
 
