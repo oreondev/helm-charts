@@ -172,6 +172,58 @@ entries:
       artifacthub.io/prerelease: "false"
     apiVersion: v2
     appVersion: 0.1.0
+    created: "2026-10-27T00:44:29.293706352Z"
+    description: What a Kubernetes cluster costs and where the money is wasted - cluster
+      cost and showback per namespace with node prices from flat rates, an instance-type
+      price list or OpenCost, requests far above usage, unrequested node capacity,
+      savings levers (right-sizing, consolidation, spot, commitments), idle volumes
+      and load balancers, and HPAs at their limits. Recording rules, alerts and a
+      Grafana dashboard.
+    digest: cb04783947682320ed037875073bfaae98dc21114d3d794fdc8f43725013782a
+    home: https://www.oreonit.com/cloud-cost-optimization-review/
+    icon: https://raw.githubusercontent.com/oreondev/helm-charts/main/icon.png
+    keywords:
+    - finops
+    - cost
+    - cost-optimization
+    - kubernetes
+    - right-sizing
+    - waste
+    - prometheus
+    - kube-state-metrics
+    - grafana
+    - alerting
+    kubeVersion: '>=1.25.0-0'
+    maintainers:
+    - email: info@oreonit.com
+      name: Oreon IT
+      url: https://www.oreonit.com/
+    name: k8s-cost-waste-alerts
+    sources:
+    - https://github.com/oreondev/helm-charts
+    type: application
+    urls:
+    - https://github.com/oreondev/helm-charts/releases/download/k8s-cost-waste-alerts-0.2.0/k8s-cost-waste-alerts-0.2.0.tgz
+    version: 0.2.0
+  - annotations:
+      artifacthub.io/category: monitoring-logging
+      artifacthub.io/changes: |
+        - kind: added
+          description: Initial release
+      artifacthub.io/license: MIT
+      artifacthub.io/links: |
+        - name: GKE cost optimisation levers that work
+          url: https://www.oreonit.com/gke-cost-optimization-levers-that-work/
+        - name: EKS cost optimisation, 12 levers
+          url: https://www.oreonit.com/eks-cost-optimization-12-levers-that-actually-work/
+        - name: Cost observability and FinOps
+          url: https://www.oreonit.com/cost-observability-finops/
+        - name: Cloud cost optimisation review by the maintainers
+          url: https://www.oreonit.com/cloud-cost-optimization-review/
+      artifacthub.io/operator: "false"
+      artifacthub.io/prerelease: "false"
+    apiVersion: v2
+    appVersion: 0.1.0
     created: "2026-10-26T18:57:59.501098872Z"
     description: Find the money hiding in a Kubernetes cluster - recording rules,
       alerts and a Grafana dashboard for requests far above usage, under-committed
@@ -449,4 +501,4 @@ entries:
     urls:
     - https://github.com/oreondev/helm-charts/releases/download/velero-backup-schedules-0.1.0/velero-backup-schedules-0.1.0.tgz
     version: 0.1.0
-generated: "2026-10-26T18:58:00.329240551Z"
+generated: "2026-10-27T00:44:29.293715316Z"
