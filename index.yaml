@@ -411,6 +411,55 @@ entries:
       artifacthub.io/category: monitoring-logging
       artifacthub.io/changes: |
         - kind: added
+          description: OpenSLO v1 input (openslo, as a list or a --set-file multi-document YAML); Occurrences ratio SLOs on Prometheus, with Sloth's {{.window}} placeholder accepted
+      artifacthub.io/license: MIT
+      artifacthub.io/links: |
+        - name: How multi-window burn-rate alerts work
+          url: https://www.oreonit.com/advanced-alerting-strategies-how-to-avoid-alert-fatigue-in-monitoring-systems/
+        - name: 12 SLO and SLI examples with PromQL
+          url: https://www.oreonit.com/slo-sli-examples-targets-promql/
+        - name: SRE consulting by the maintainers
+          url: https://www.oreonit.com/site-reliability-engineering-sre-consulting-services/
+      artifacthub.io/operator: "false"
+      artifacthub.io/prerelease: "false"
+    apiVersion: v2
+    appVersion: 0.3.0
+    created: "2026-10-27T02:54:09.371978985Z"
+    description: SLOs as values. Generates Prometheus recording rules, multi-window
+      multi-burn-rate page and ticket alerts, and a Grafana SLO / error-budget dashboard
+      for Prometheus Operator and kube-prometheus-stack.
+    digest: 9fe2cd24eb83792417088a83d7dfee5d9164f48421d100d758ec3e844046295e
+    home: https://www.oreonit.com/observability-and-monitoring-consultancy-services/
+    icon: https://raw.githubusercontent.com/oreondev/helm-charts/main/icon.png
+    keywords:
+    - slo
+    - sli
+    - error-budget
+    - burn-rate
+    - sre
+    - prometheus
+    - prometheus-operator
+    - kube-prometheus-stack
+    - alerting
+    - grafana
+    - observability
+    - openslo
+    kubeVersion: '>=1.25.0-0'
+    maintainers:
+    - email: info@oreonit.com
+      name: Oreon IT
+      url: https://www.oreonit.com/
+    name: slo-burn-rate-alerts
+    sources:
+    - https://github.com/oreondev/helm-charts
+    type: application
+    urls:
+    - https://github.com/oreondev/helm-charts/releases/download/slo-burn-rate-alerts-0.3.0/slo-burn-rate-alerts-0.3.0.tgz
+    version: 0.3.0
+  - annotations:
+      artifacthub.io/category: monitoring-logging
+      artifacthub.io/changes: |
+        - kind: added
           description: Google Managed Prometheus backend (rulesBackend gmp renders Rules / ClusterRules / GlobalRules)
       artifacthub.io/license: MIT
       artifacthub.io/links: |
@@ -501,4 +550,4 @@ entries:
     urls:
     - https://github.com/oreondev/helm-charts/releases/download/velero-backup-schedules-0.1.0/velero-backup-schedules-0.1.0.tgz
     version: 0.1.0
-generated: "2026-10-27T00:44:29.293715316Z"
+generated: "2026-10-27T02:54:09.371991008Z"
