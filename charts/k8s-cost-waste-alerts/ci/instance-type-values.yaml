@@ -1,0 +1,9 @@
+pricing:
+  source: instanceType
+  currency: USD
+  instanceTypes:
+    m6i.large: 0.096
+    m6i.xlarge: 0.192
+    e2-standard-4: 0.134
+savings:
+  spotEligibleShare: 0.4

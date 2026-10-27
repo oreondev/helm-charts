@@ -60,3 +60,6 @@ prometheusOperator:
 kube-state-metrics:
   resources:
     requests: {cpu: 10m, memory: 64Mi}
+  # Node labels k8s-cost-waste-alerts reads for instance-type pricing and spot detection.
+  metricLabelsAllowlist:
+    - nodes=[node.kubernetes.io/instance-type,karpenter.sh/capacity-type,eks.amazonaws.com/capacityType,cloud.google.com/gke-spot,cloud.google.com/gke-preemptible,kubernetes.azure.com/scalesetpriority]

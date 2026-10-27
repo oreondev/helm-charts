@@ -47,3 +47,18 @@ jobs:
             git commit -m "Update artifacthub-repo.yml"
             git push origin gh-pages
           fi
+
+      - name: Regenerate the landing page from index.yaml
+        run: |
+          python3 -c "import yaml" 2>/dev/null || python3 -m pip install --quiet --user --break-system-packages pyyaml
+          git checkout -- . 2>/dev/null || true
+          git show origin/main:.github/pages/render.py > /tmp/render.py
+          mkdir -p /tmp/pages && for f in oreon-logo.svg favicon.svg; do git show origin/main:.github/pages/$f > /tmp/pages/$f; done
+          cp /tmp/render.py /tmp/pages/render.py
+          git fetch origin gh-pages && git checkout gh-pages && git reset --hard origin/gh-pages
+          python3 /tmp/pages/render.py .
+          if [ -n "$(git status --porcelain)" ]; then
+            git add index.html oreon-logo.svg favicon.svg
+            git commit -m "Regenerate landing page"
+            git push origin gh-pages
+          fi

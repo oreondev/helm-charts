@@ -18,18 +18,46 @@ dashboard:
     grafana_dashboard: "1"
   annotations: {}
 
-# Namespaces the alerts ignore (regex). Recording rules and the dashboard still cover them.
+# System namespaces (regex). Alerts ignore them, and the headline "wasted" and savings figures leave them out
+# (teams rarely own those requests). Recording rules, the namespace table and "all namespaces" figures still cover them.
 excludeNamespaces: "kube-.*|gmp-.*|gke-.*|monitoring|kyverno"
 
-# Price the waste. On-demand averages are a fair start; replace with your blended rates.
 pricing:
   enabled: true
   # ISO code used for the dashboard unit: USD, GBP or EUR.
   currency: USD
-  # Price of one vCPU for one hour.
+  # Where node prices come from:
+  #   static        one price per vCPU-hour and GiB-hour for every node (no extra components)
+  #   instanceType  hourly price per instance type from `instanceTypes`, spot nodes discounted by `spotDiscount`.
+  #                 Needs node labels in kube-state-metrics (see README: metricLabelsAllowlist).
+  #   opencost      node prices from OpenCost (node_total_hourly_cost / node_cpu_hourly_cost / node_ram_hourly_cost),
+  #                 which reads the AWS, Google Cloud and Azure pricing APIs and knows spot prices.
+  source: static
+  # Price of one vCPU and one GiB of memory for one hour. Used by `static`, as the fallback for instance types
+  # missing from `instanceTypes`, and as the CPU:memory split of an instance price.
   cpuCoreHour: 0.032
-  # Price of one GiB of memory for one hour.
   memoryGiBHour: 0.0043
+  # instanceType source: on-demand hourly price per node.kubernetes.io/instance-type value.
+  instanceTypes: {}
+  #  m6i.large: 0.096
+  #  m6i.xlarge: 0.192
+  #  e2-standard-4: 0.134
+  # Share knocked off the on-demand price for nodes labelled spot/preemptible (instanceType source), and the
+  # discount assumed by the "move to spot" savings estimate.
+  spotDiscount: 0.65
+  # Per GiB-month of a PersistentVolume, and per hour of a cloud load balancer (idle-resource savings).
+  storageGiBMonth: 0.10
+  loadBalancerHour: 0.025
+
+# Savings estimates on the dashboard. They overlap (right-sizing frees capacity that consolidation then removes),
+# so read them as separate levers, not a sum.
+savings:
+  # Share of on-demand node spend that could run on spot (stateless, interruption-tolerant workloads).
+  spotEligibleShare: 0.5
+  # Discount of a 1-year commitment (Savings Plans, committed use discounts, reservations) on the steady baseline.
+  commitmentDiscount: 0.3
+  # Share of unrequested node capacity to keep as headroom (not counted as saveable).
+  idleHeadroom: 0.2
 
 thresholds:
   # Alert when, averaged over a day, this share of requested CPU/memory is unused ...
