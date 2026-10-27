@@ -1,7 +1,7 @@
 # Artifact Hub repository metadata. Fill repositoryID with the ID Artifact Hub
 # shows after the repository is added; the release workflow copies this file to
 # the gh-pages branch so it is served next to index.yaml.
-repositoryID: ""
+repositoryID: a73dcfa9-311b-4e20-be4f-f70b7a0e8480
 owners:
   - name: Oreon IT
     email: info@oreonit.com
