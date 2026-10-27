@@ -64,6 +64,7 @@ def main(out):
 body{{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}}
 main{{max-width:980px;margin:0 auto;padding:40px 16px 56px}}
 h1{{margin:0 0 6px;font-size:30px;letter-spacing:-.01em}}
+.badges{{margin:4px 0 12px}} .badges img{{display:block}}
 .lead{{color:var(--muted);margin:0 0 20px}}
 a{{color:var(--accent)}}
 pre{{background:var(--code);border:1px solid var(--line);padding:14px 16px;border-radius:10px;overflow-x:auto;margin:0}}
@@ -100,6 +101,7 @@ footer a{{color:var(--muted)}}
 @media (max-width:700px){{.tiles{{grid-template-columns:1fr}} .card{{padding:24px 20px}} td:nth-child(3),th:nth-child(3){{display:none}}}}
 </style></head><body><main>
 <h1>Oreon IT Helm charts</h1>
+<p class="badges"><a href="https://artifacthub.io/packages/search?repo=oreonit"><img src="https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/oreonit" alt="Artifact Hub" height="20"></a></p>
 <p class="lead">Production building blocks for Kubernetes reliability, observability and cost. Tested against the real controllers they target. Source, docs and issues on <a href="https://github.com/oreondev/helm-charts">GitHub</a>.</p>
 <pre><code>helm repo add oreonit https://oreondev.github.io/helm-charts
 helm repo update

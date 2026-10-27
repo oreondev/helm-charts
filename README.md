@@ -1,5 +1,9 @@
 # Oreon IT Helm charts
 
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/oreonit)](https://artifacthub.io/packages/search?repo=oreonit)
+[![Release](https://github.com/oreondev/helm-charts/actions/workflows/release.yml/badge.svg)](https://github.com/oreondev/helm-charts/actions/workflows/release.yml)
+[![Licence: MIT](https://img.shields.io/badge/licence-MIT-blue.svg)](LICENSE)
+
 Charts we install on client clusters, published so you can use them too. None of them installs Prometheus, Grafana, Kyverno or Velero: each one packages the configuration that teams otherwise hand-write on top of those tools.
 
 | Chart | What it does | Needs |
