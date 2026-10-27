@@ -32,7 +32,6 @@ SERVICES = [
      "Where the cluster bill goes, and a savings plan with the changes made.",
      ["k8s-cost-waste-alerts"]),
 ]
-PARTNERS = ["Google Cloud Partner", "IBM Silver Partner", "SUSE", "Datadog", "Elastic", "DigitalOcean"]
 
 
 def esc(s):
@@ -52,7 +51,6 @@ def main(out):
         chips = "".join(f"<span>{esc(c)}</span>" for c in charts)
         tiles.append(f'<a class="tile" href="{SITE}{path}{UTM}"><strong>{esc(title)} →</strong>'
                      f'<em>{esc(line)}</em><div class="chips">{chips}</div></a>')
-    partners = " · ".join(esc(p) for p in PARTNERS)
 
     page = f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -97,7 +95,6 @@ td a{{text-decoration:none}} td a:hover{{text-decoration:underline}}
 .btn.primary:hover{{filter:brightness(1.08)}}
 .btn.ghost{{color:#fff;border:1px solid rgba(255,255,255,.3)}}
 .btn.ghost:hover{{border-color:#fff}}
-.partners{{margin-top:22px;font-size:13px;color:#8e9ab2}}
 footer{{margin-top:28px;font-size:14px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px 18px}}
 footer a{{color:var(--muted)}}
 @media (max-width:700px){{.tiles{{grid-template-columns:1fr}} .card{{padding:24px 20px}} td:nth-child(3),th:nth-child(3){{display:none}}}}
@@ -121,7 +118,6 @@ helm search repo oreonit/</code></pre>
     <a class="btn primary" href="{SITE}book-a-consultation/{UTM}">Book a free 30-minute call</a>
     <a class="btn ghost" href="{SITE}case-studies/{UTM}">See case studies</a>
   </div>
-  <div class="partners">{partners}</div>
 </section>
 
 <footer>
