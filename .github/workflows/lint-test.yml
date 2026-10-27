@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "charts/**"
+      - "dashboards/**"
       - "ct.yaml"
       - ".github/workflows/lint-test.yml"
 
@@ -28,6 +29,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+
+      # The release workflow regenerates dashboards/ from the chart dashboards; fail here, before merge, if a chart
+      # dashboard has something build.py cannot convert (an unknown placeholder, invalid JSON).
+      - name: Build the standalone dashboards
+        run: python3 dashboards/build.py
 
       - uses: helm/chart-testing-action@v2.7.0
 
