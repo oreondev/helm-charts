@@ -468,7 +468,8 @@
                 "value": 14.4
               }
             ]
-          }
+          },
+          "decimals": 2
         },
         "overrides": []
       },
@@ -583,25 +584,25 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "slo:objective:ratio",
+          "expr": "max by (slo, service) (slo:objective:ratio)",
           "instant": true,
           "format": "table"
         },
         {
           "refId": "B",
-          "expr": "1 - slo:sli_error:ratio_rate$period",
+          "expr": "max by (slo, service) (1 - slo:sli_error:ratio_rate$period)",
           "instant": true,
           "format": "table"
         },
         {
           "refId": "C",
-          "expr": "slo:error_budget_remaining:ratio",
+          "expr": "max by (slo, service) (slo:error_budget_remaining:ratio)",
           "instant": true,
           "format": "table"
         },
         {
           "refId": "D",
-          "expr": "slo:error_budget_burn_rate:ratio_rate1h",
+          "expr": "max by (slo, service) (slo:error_budget_burn_rate:ratio_rate1h)",
           "instant": true,
           "format": "table"
         }
@@ -665,8 +666,8 @@
           },
           {
             "matcher": {
-              "id": "byName",
-              "options": "SLI ($period)"
+              "id": "byRegexp",
+              "options": "^SLI \\(.*"
             },
             "properties": [
               {
@@ -1003,7 +1004,7 @@
             "uid": "${datasource}"
           },
           "refId": "A",
-          "expr": "clamp_min(slo:error_budget_remaining:ratio{slo=\"$slo\"} * on (slo, service) slo:period:days{slo=\"$slo\"} / on (slo, service) (slo:error_budget_burn_rate:ratio_rate6h{slo=\"$slo\"} > 0), 0)",
+          "expr": "clamp_min(slo:error_budget_remaining:ratio{slo=\"$slo\"} * on (slo, service) slo:period:days{slo=\"$slo\"} / on (slo, service) (slo:error_budget_burn_rate:ratio_rate6h{slo=\"$slo\"} > 0), 0) or on (slo) (0 * max by (slo) (slo:objective:ratio{slo=\"$slo\"}) + 1e9)",
           "legendFormat": "days",
           "instant": true
         }
@@ -1012,7 +1013,6 @@
         "defaults": {
           "unit": "d",
           "decimals": 1,
-          "noValue": "Not burning",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -1029,7 +1029,21 @@
                 "value": 7
               }
             ]
-          }
+          },
+          "mappings": [
+            {
+              "type": "range",
+              "options": {
+                "from": 100000000.0,
+                "to": null,
+                "result": {
+                  "text": "Not burning",
+                  "color": "green",
+                  "index": 0
+                }
+              }
+            }
+          ]
         },
         "overrides": []
       },
@@ -1259,7 +1273,7 @@
             "uid": "${datasource}"
           },
           "refId": "A",
-          "expr": "max by (alertname, alertstate) (ALERTS{slo=\"$slo\"})",
+          "expr": "max by (alertname, alertstate) (ALERTS{slo=\"$slo\"}) or on () label_replace(vector(0), \"alertname\", \"No alerts\", \"\", \"\")",
           "legendFormat": "{{alertname}} {{alertstate}}"
         }
       ],

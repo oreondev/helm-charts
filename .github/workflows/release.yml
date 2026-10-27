@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - "charts/**"
+      - "dashboards/build.py"
       - "artifacthub-repo.yml"
       - ".github/workflows/release.yml"
   workflow_dispatch: {}
@@ -61,4 +62,18 @@ jobs:
             git add index.html oreon-logo.svg favicon.svg
             git commit -m "Regenerate landing page"
             git push origin gh-pages
+          fi
+
+      # Last, so a dashboard build problem never holds up a chart release. The push uses GITHUB_TOKEN, which does not
+      # start another workflow run.
+      - name: Regenerate dashboards/ from the chart dashboards
+        run: |
+          git fetch origin main
+          git checkout -B main origin/main
+          python3 dashboards/build.py
+          if [ -n "$(git status --porcelain -- dashboards)" ]; then
+            git add dashboards
+            git commit -m "Regenerate dashboards/ from the chart dashboards"
+            git pull --rebase origin main
+            git push origin main
           fi
