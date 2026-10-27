@@ -95,3 +95,42 @@ slos: []
 #        for: 15m
 #      annotations:
 #        runbook_url: https://runbooks.example.com/api-availability
+
+# SLOs in the OpenSLO v1 format, as a list here or as one multi-document YAML string
+# (helm install ... --set-file openslo=slos.yaml). They become the same rules, alerts and dashboard rows as `slos`.
+# Supported: kind SLO (inline indicator, or indicatorRef to a kind SLI in this list), budgetingMethod Occurrences,
+# one objective, a rolling timeWindow equal to sloPeriodDays (30d; 28d or 4w with sloPeriodDays: 28), ratioMetric
+# good/total or bad/total on Prometheus. Write the range as $WINDOW or Sloth's {{.window}}; a plain counter selector
+# with `counter: true` needs no range. alertPolicies are ignored: alerting comes from `alerting` above.
+openslo: []
+#  - apiVersion: openslo/v1
+#    kind: SLO
+#    metadata:
+#      name: checkout-availability
+#      labels:
+#        team: payments
+#    spec:
+#      service: checkout
+#      description: Non-5xx checkout requests
+#      budgetingMethod: Occurrences
+#      timeWindow:
+#        - duration: 30d
+#          isRolling: true
+#      objectives:
+#        - targetPercent: 99.9
+#      indicator:
+#        metadata:
+#          name: checkout-errors
+#        spec:
+#          ratioMetric:
+#            counter: true
+#            bad:
+#              metricSource:
+#                type: Prometheus
+#                spec:
+#                  query: sum(rate(http_requests_total{job="checkout",code=~"5.."}[$WINDOW]))
+#            total:
+#              metricSource:
+#                type: Prometheus
+#                spec:
+#                  query: http_requests_total{job="checkout"}

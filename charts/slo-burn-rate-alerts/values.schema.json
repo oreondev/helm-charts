@@ -9,43 +9,86 @@
       "maximum": 365,
       "description": "Length of the SLO window in days."
     },
-    "rulesBackend": { "type": "string", "enum": ["prometheus-operator", "gmp"] },
+    "rulesBackend": {
+      "type": "string",
+      "enum": [
+        "prometheus-operator",
+        "gmp"
+      ]
+    },
     "gmp": {
       "type": "object",
       "properties": {
-        "kind": { "type": "string", "enum": ["Rules", "ClusterRules", "GlobalRules"] },
-        "namespace": { "type": "string" }
+        "kind": {
+          "type": "string",
+          "enum": [
+            "Rules",
+            "ClusterRules",
+            "GlobalRules"
+          ]
+        },
+        "namespace": {
+          "type": "string"
+        }
       },
       "additionalProperties": false
     },
     "prometheusRule": {
       "type": "object",
       "properties": {
-        "enabled": { "type": "boolean" },
-        "namespace": { "type": "string" },
-        "labels": { "$ref": "#/definitions/stringMap" },
-        "interval": { "type": "string", "pattern": "^[0-9]+(ms|s|m|h)$" }
+        "enabled": {
+          "type": "boolean"
+        },
+        "namespace": {
+          "type": "string"
+        },
+        "labels": {
+          "$ref": "#/definitions/stringMap"
+        },
+        "interval": {
+          "type": "string",
+          "pattern": "^[0-9]+(ms|s|m|h)$"
+        }
       },
       "additionalProperties": false
     },
     "dashboard": {
       "type": "object",
       "properties": {
-        "enabled": { "type": "boolean" },
-        "namespace": { "type": "string" },
-        "labels": { "$ref": "#/definitions/stringMap" },
-        "annotations": { "$ref": "#/definitions/stringMap" }
+        "enabled": {
+          "type": "boolean"
+        },
+        "namespace": {
+          "type": "string"
+        },
+        "labels": {
+          "$ref": "#/definitions/stringMap"
+        },
+        "annotations": {
+          "$ref": "#/definitions/stringMap"
+        }
       },
       "additionalProperties": false
     },
     "alerting": {
       "type": "object",
       "properties": {
-        "alertNamePrefix": { "type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$" },
-        "labels": { "$ref": "#/definitions/stringMap" },
-        "annotations": { "$ref": "#/definitions/stringMap" },
-        "page": { "$ref": "#/definitions/alertClass" },
-        "ticket": { "$ref": "#/definitions/alertClass" }
+        "alertNamePrefix": {
+          "type": "string",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+        },
+        "labels": {
+          "$ref": "#/definitions/stringMap"
+        },
+        "annotations": {
+          "$ref": "#/definitions/stringMap"
+        },
+        "page": {
+          "$ref": "#/definitions/alertClass"
+        },
+        "ticket": {
+          "$ref": "#/definitions/alertClass"
+        }
       },
       "additionalProperties": false
     },
@@ -53,7 +96,11 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["name", "objective", "sli"],
+        "required": [
+          "name",
+          "objective",
+          "sli"
+        ],
         "properties": {
           "name": {
             "type": "string",
@@ -61,70 +108,162 @@
             "maxLength": 63,
             "description": "Unique name; becomes the slo label and part of the rule group names."
           },
-          "service": { "type": "string" },
+          "service": {
+            "type": "string"
+          },
           "objective": {
             "type": "number",
             "exclusiveMinimum": 0,
             "exclusiveMaximum": 100,
             "description": "Target in percent, e.g. 99.9."
           },
-          "description": { "type": "string" },
-          "labels": { "$ref": "#/definitions/stringMap" },
+          "description": {
+            "type": "string"
+          },
+          "labels": {
+            "$ref": "#/definitions/stringMap"
+          },
           "sli": {
             "type": "object",
-            "required": ["errorQuery", "totalQuery"],
+            "required": [
+              "errorQuery",
+              "totalQuery"
+            ],
             "properties": {
-              "errorQuery": { "type": "string", "pattern": "\\$WINDOW" },
-              "totalQuery": { "type": "string", "pattern": "\\$WINDOW" }
+              "errorQuery": {
+                "type": "string",
+                "pattern": "\\$WINDOW"
+              },
+              "totalQuery": {
+                "type": "string",
+                "pattern": "\\$WINDOW"
+              }
             },
             "additionalProperties": false
           },
           "alerting": {
             "type": "object",
             "properties": {
-              "page": { "$ref": "#/definitions/alertOverride" },
-              "ticket": { "$ref": "#/definitions/alertOverride" },
-              "annotations": { "$ref": "#/definitions/stringMap" }
+              "page": {
+                "$ref": "#/definitions/alertOverride"
+              },
+              "ticket": {
+                "$ref": "#/definitions/alertOverride"
+              },
+              "annotations": {
+                "$ref": "#/definitions/stringMap"
+              }
             },
             "additionalProperties": false
           }
         },
         "additionalProperties": false
       }
+    },
+    "openslo": {
+      "description": "OpenSLO v1 documents (kind SLO, and kind SLI for indicatorRef), as a list or as one multi-document YAML string (e.g. --set-file openslo=slos.yaml). Converted to the same rules as `slos`.",
+      "oneOf": [
+        {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "apiVersion",
+              "kind",
+              "metadata",
+              "spec"
+            ],
+            "properties": {
+              "apiVersion": {
+                "const": "openslo/v1"
+              },
+              "kind": {
+                "type": "string"
+              },
+              "metadata": {
+                "type": "object",
+                "required": [
+                  "name"
+                ]
+              },
+              "spec": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "type": "string"
+        }
+      ]
     }
   },
   "definitions": {
     "stringMap": {
       "type": "object",
-      "additionalProperties": { "type": "string" }
+      "additionalProperties": {
+        "type": "string"
+      }
     },
-    "duration": { "type": "string", "pattern": "^[0-9]+(s|m|h|d|w)$" },
+    "duration": {
+      "type": "string",
+      "pattern": "^[0-9]+(s|m|h|d|w)$"
+    },
     "window": {
       "type": "object",
-      "required": ["long", "short", "factor"],
+      "required": [
+        "long",
+        "short",
+        "factor"
+      ],
       "properties": {
-        "long": { "$ref": "#/definitions/duration" },
-        "short": { "$ref": "#/definitions/duration" },
-        "factor": { "type": "number", "exclusiveMinimum": 0 }
+        "long": {
+          "$ref": "#/definitions/duration"
+        },
+        "short": {
+          "$ref": "#/definitions/duration"
+        },
+        "factor": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
       },
       "additionalProperties": false
     },
     "alertClass": {
       "type": "object",
       "properties": {
-        "enabled": { "type": "boolean" },
-        "severity": { "type": "string" },
-        "for": { "$ref": "#/definitions/duration" },
-        "windows": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/window" } }
+        "enabled": {
+          "type": "boolean"
+        },
+        "severity": {
+          "type": "string"
+        },
+        "for": {
+          "$ref": "#/definitions/duration"
+        },
+        "windows": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/definitions/window"
+          }
+        }
       },
       "additionalProperties": false
     },
     "alertOverride": {
       "type": "object",
       "properties": {
-        "enabled": { "type": "boolean" },
-        "severity": { "type": "string" },
-        "for": { "$ref": "#/definitions/duration" }
+        "enabled": {
+          "type": "boolean"
+        },
+        "severity": {
+          "type": "string"
+        },
+        "for": {
+          "$ref": "#/definitions/duration"
+        }
       },
       "additionalProperties": false
     }

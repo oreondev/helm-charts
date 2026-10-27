@@ -1,15 +1,16 @@
+{{- $slos := include "slo.all" . | fromYamlArray -}}
 {{ .Chart.Name }} {{ .Chart.Version }} installed as release "{{ .Release.Name }}".
-{{- if .Values.slos }}
+{{- if $slos }}
 
-SLOs ({{ len .Values.slos }}), {{ .Values.sloPeriodDays }}-day window:
-{{- range .Values.slos }}
+SLOs ({{ len $slos }}), {{ .Values.sloPeriodDays }}-day window:
+{{- range $slos }}
   - {{ .name }}: {{ .objective }}%{{ if .service }}  (service: {{ .service }}){{ end }}
 {{- end }}
 {{- else }}
 
-No SLOs defined, so no rules were generated. Add them under `slos:` (see the README for the format).
+No SLOs defined, so no rules were generated. Add them under `slos:` or `openslo:` (see the README for the format).
 {{- end }}
-{{- if and .Values.prometheusRule.enabled .Values.slos }}
+{{- if and .Values.prometheusRule.enabled $slos }}
 {{- if eq .Values.rulesBackend "gmp" }}
 
 Google Managed Prometheus {{ .Values.gmp.kind }} "{{ include "slo.fullname" . }}"{{ if eq .Values.gmp.kind "Rules" }} in namespace "{{ .Values.gmp.namespace | default .Release.Namespace }}"{{ end }}.

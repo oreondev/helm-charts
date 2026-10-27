@@ -1,0 +1,78 @@
+# CI: OpenSLO input (list form), mixed with a native SLO, an indicatorRef to a kind SLI, good/total and bad/total,
+# Sloth's {{.window}} placeholder and a plain counter selector.
+prometheusRule:
+  labels:
+    release: kube-prometheus-stack
+
+slos:
+  - name: native-availability
+    service: api
+    objective: 99.9
+    sli:
+      errorQuery: sum(rate(http_requests_total{job="api",code=~"5.."}[$WINDOW]))
+      totalQuery: sum(rate(http_requests_total{job="api"}[$WINDOW]))
+
+openslo:
+  - apiVersion: openslo/v1
+    kind: SLO
+    metadata:
+      name: checkout-availability
+      displayName: Checkout availability
+      labels:
+        team: payments
+        tier: ["1", "critical"]
+    spec:
+      service: checkout
+      budgetingMethod: Occurrences
+      timeWindow:
+        - duration: 30d
+          isRolling: true
+      objectives:
+        - targetPercent: 99.9
+      indicator:
+        metadata:
+          name: checkout-errors
+        spec:
+          ratioMetric:
+            counter: true
+            bad:
+              metricSource:
+                type: Prometheus
+                spec:
+                  query: sum(rate(http_requests_total{job="checkout",code=~"5.."}[{{.window}}]))
+            total:
+              metricSource:
+                type: Prometheus
+                spec:
+                  query: http_requests_total{job="checkout"}
+
+  - apiVersion: openslo/v1
+    kind: SLI
+    metadata:
+      name: search-fast
+    spec:
+      ratioMetric:
+        counter: true
+        good:
+          metricSource:
+            spec:
+              query: sum(rate(http_request_duration_seconds_bucket{job="search",le="0.3"}[$WINDOW]))
+        total:
+          metricSource:
+            spec:
+              query: sum(rate(http_request_duration_seconds_count{job="search"}[$WINDOW]))
+
+  - apiVersion: openslo/v1
+    kind: SLO
+    metadata:
+      name: search-latency-300ms
+    spec:
+      service: search
+      description: Searches answered within 300 ms
+      budgetingMethod: Occurrences
+      timeWindow:
+        - duration: 30d
+          isRolling: true
+      objectives:
+        - target: 0.95
+      indicatorRef: search-fast
