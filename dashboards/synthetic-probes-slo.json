@@ -470,7 +470,7 @@
     {
       "id": 7,
       "type": "timeseries",
-      "title": "Burn rate by window (availability, log scale)",
+      "title": "Burn rate by window (availability)",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
@@ -512,12 +512,13 @@
             "fillOpacity": 0,
             "spanNulls": true,
             "scaleDistribution": {
-              "type": "log",
-              "log": 10
+              "type": "linear"
             },
             "thresholdsStyle": {
               "mode": "dashed"
-            }
+            },
+            "axisSoftMax": 20,
+            "axisSoftMin": 0
           },
           "thresholds": {
             "mode": "absolute",
@@ -543,7 +544,8 @@
                 "value": 14.4
               }
             ]
-          }
+          },
+          "decimals": 2
         },
         "overrides": []
       },
@@ -557,7 +559,8 @@
           "mode": "multi",
           "sort": "desc"
         }
-      }
+      },
+      "description": "Burn rate per window: 1 spends the error budget exactly over the SLO period; the page alert fires at 14.4 (1h) and 6 (6h)."
     },
     {
       "id": 8,
@@ -642,31 +645,31 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "probe_success{job=\"$job\"}",
+          "expr": "max by (slo_target, service) (probe_success{job=\"$job\"})",
           "instant": true,
           "format": "table"
         },
         {
           "refId": "B",
-          "expr": "1 - slo:sli_error:ratio_rate$period{slo=~\".*-availability\"}",
+          "expr": "max by (slo_target, service) (1 - slo:sli_error:ratio_rate$period{slo=~\".*-availability\", slo_target!=\"\"})",
           "instant": true,
           "format": "table"
         },
         {
           "refId": "C",
-          "expr": "slo:error_budget_remaining:ratio{slo=~\".*-availability\"}",
+          "expr": "max by (slo_target, service) (slo:error_budget_remaining:ratio{slo=~\".*-availability\", slo_target!=\"\"})",
           "instant": true,
           "format": "table"
         },
         {
           "refId": "D",
-          "expr": "probe_http_status_code{job=\"$job\"}",
+          "expr": "max by (slo_target, service) (probe_http_status_code{job=\"$job\"})",
           "instant": true,
           "format": "table"
         },
         {
           "refId": "E",
-          "expr": "(probe_ssl_earliest_cert_expiry{job=\"$job\"} - time()) / 86400",
+          "expr": "max by (slo_target, service) ((probe_ssl_earliest_cert_expiry{job=\"$job\"} - time()) / 86400)",
           "instant": true,
           "format": "table"
         }
@@ -749,8 +752,8 @@
           },
           {
             "matcher": {
-              "id": "byName",
-              "options": "Availability ($period)"
+              "id": "byRegexp",
+              "options": "^Availability \\(.*"
             },
             "properties": [
               {

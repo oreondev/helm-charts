@@ -2,7 +2,7 @@ apiVersion: v2
 name: blackbox-slo-probes
 description: Synthetic monitoring with SLOs - a list of URLs becomes Prometheus Operator Probe objects for the blackbox exporter, availability and latency SLOs with multi-window burn-rate page and ticket alerts, probe-down and TLS-expiry alerts, and a Grafana dashboard.
 type: application
-version: 0.1.0
+version: 0.1.1
 appVersion: "0.1.0"
 kubeVersion: ">=1.25.0-0"
 home: https://www.oreonit.com/observability-and-monitoring-consultancy-services/
@@ -37,5 +37,7 @@ annotations:
     - name: Observability consulting by the maintainers
       url: https://www.oreonit.com/observability-and-monitoring-consultancy-services/
   artifacthub.io/changes: |
-    - kind: added
-      description: Initial release
+    - kind: fixed
+      description: Dashboard "All targets" table showed each target over several rows (queries had different label sets); queries now group by slo_target and service
+    - kind: fixed
+      description: Dashboard burn-rate panel uses a linear scale, so it is no longer empty for healthy targets (zero cannot be drawn on a log scale)

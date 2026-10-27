@@ -395,7 +395,7 @@
       "id": 6,
       "type": "timeseries",
       "title": "Burn rate by window (log scale)",
-      "description": "Page fires when both 1h and 5m exceed 14.4, or both 6h and 30m exceed 6. Ticket fires at 3 (1d/2h) and 1 (3d/6h). Dashed lines mark the thresholds.",
+      "description": "Page fires when both 1h and 5m exceed 14.4, or both 6h and 30m exceed 6. Ticket fires at 3 (1d/2h) and 1 (3d/6h). Dashed lines mark the thresholds. Rates below 0.001 (including zero, which a log scale cannot draw) are shown at 0.001.",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
@@ -409,22 +409,22 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "slo:error_budget_burn_rate:ratio_rate1h{slo=\"$slo\"}",
+          "expr": "clamp_min(slo:error_budget_burn_rate:ratio_rate1h{slo=\"$slo\"}, 0.001)",
           "legendFormat": "1h"
         },
         {
           "refId": "B",
-          "expr": "slo:error_budget_burn_rate:ratio_rate6h{slo=\"$slo\"}",
+          "expr": "clamp_min(slo:error_budget_burn_rate:ratio_rate6h{slo=\"$slo\"}, 0.001)",
           "legendFormat": "6h"
         },
         {
           "refId": "C",
-          "expr": "slo:error_budget_burn_rate:ratio_rate1d{slo=\"$slo\"}",
+          "expr": "clamp_min(slo:error_budget_burn_rate:ratio_rate1d{slo=\"$slo\"}, 0.001)",
           "legendFormat": "1d"
         },
         {
           "refId": "D",
-          "expr": "slo:error_budget_burn_rate:ratio_rate3d{slo=\"$slo\"}",
+          "expr": "clamp_min(slo:error_budget_burn_rate:ratio_rate3d{slo=\"$slo\"}, 0.001)",
           "legendFormat": "3d"
         }
       ],
@@ -469,7 +469,8 @@
               }
             ]
           },
-          "decimals": 2
+          "decimals": 3,
+          "min": 0.001
         },
         "overrides": []
       },
