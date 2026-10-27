@@ -25,6 +25,11 @@ helm upgrade --install otel charts/otel-collector-baseline -n observability --cr
 helm upgrade --install policies charts/kyverno-production-policies -n kyverno -f dev-stack/kyverno-production-policies.yaml
 helm upgrade --install probes charts/blackbox-slo-probes -n monitoring -f dev-stack/blackbox-slo-probes.yaml
 helm upgrade --install cost charts/k8s-cost-waste-alerts -n monitoring -f dev-stack/k8s-cost-waste-alerts.yaml
+
+# Optional: OpenCost, to test k8s-cost-waste-alerts with pricing.source=opencost
+helm repo add opencost https://opencost.github.io/opencost-helm-chart
+helm upgrade --install opencost opencost/opencost --version 2.5.32 -n opencost --create-namespace -f dev-stack/opencost.yaml
+helm upgrade cost charts/k8s-cost-waste-alerts -n monitoring -f dev-stack/k8s-cost-waste-alerts.yaml --set pricing.source=opencost
 ```
 
 The script refuses to run unless `DEV_STACK_CONTEXT` names the current

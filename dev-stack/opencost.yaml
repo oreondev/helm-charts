@@ -1,0 +1,32 @@
+# OpenCost for k8s-cost-waste-alerts pricing.source=opencost. On kind there is no cloud pricing API, so OpenCost
+# uses its default (custom) prices; on EKS/GKE/AKS it reads the provider's price list, spot included.
+opencost:
+  exporter:
+    defaultClusterId: dev-stack
+    resources:
+      requests: {cpu: 10m, memory: 64Mi}
+  metrics:
+    serviceMonitor:
+      enabled: true
+  prometheus:
+    internal:
+      serviceName: kube-prometheus-stack-prometheus
+      namespaceName: monitoring
+      port: 9090
+  ui:
+    enabled: false
+  # kind has no pricing API: hourly prices per vCPU and per GiB (OpenCost's own defaults).
+  customPricing:
+    enabled: true
+    provider: custom
+    costModel:
+      description: dev-stack prices
+      CPU: 0.031611
+      spotCPU: 0.006655
+      RAM: 0.004237
+      spotRAM: 0.000892
+      GPU: 0.95
+      storage: 0.00005479452
+      zoneNetworkEgress: 0.01
+      regionNetworkEgress: 0.01
+      internetNetworkEgress: 0.12

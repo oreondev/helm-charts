@@ -6,72 +6,210 @@
     "prometheusRule": {
       "type": "object",
       "properties": {
-        "enabled": { "type": "boolean" },
-        "namespace": { "type": "string" },
-        "labels": { "$ref": "#/definitions/stringMap" },
-        "interval": { "$ref": "#/definitions/duration" }
+        "enabled": {
+          "type": "boolean"
+        },
+        "namespace": {
+          "type": "string"
+        },
+        "labels": {
+          "$ref": "#/definitions/stringMap"
+        },
+        "interval": {
+          "$ref": "#/definitions/duration"
+        }
       },
       "additionalProperties": false
     },
     "dashboard": {
       "type": "object",
       "properties": {
-        "enabled": { "type": "boolean" },
-        "namespace": { "type": "string" },
-        "labels": { "$ref": "#/definitions/stringMap" },
-        "annotations": { "$ref": "#/definitions/stringMap" }
+        "enabled": {
+          "type": "boolean"
+        },
+        "namespace": {
+          "type": "string"
+        },
+        "labels": {
+          "$ref": "#/definitions/stringMap"
+        },
+        "annotations": {
+          "$ref": "#/definitions/stringMap"
+        }
       },
       "additionalProperties": false
     },
-    "excludeNamespaces": { "type": "string" },
+    "excludeNamespaces": {
+      "type": "string"
+    },
     "pricing": {
       "type": "object",
       "properties": {
-        "enabled": { "type": "boolean" },
-        "currency": { "type": "string", "enum": ["USD", "GBP", "EUR"] },
-        "cpuCoreHour": { "type": "number", "minimum": 0 },
-        "memoryGiBHour": { "type": "number", "minimum": 0 }
+        "enabled": {
+          "type": "boolean"
+        },
+        "currency": {
+          "type": "string",
+          "enum": [
+            "USD",
+            "GBP",
+            "EUR"
+          ]
+        },
+        "cpuCoreHour": {
+          "type": "number",
+          "minimum": 0
+        },
+        "memoryGiBHour": {
+          "type": "number",
+          "minimum": 0
+        },
+        "source": {
+          "type": "string",
+          "enum": [
+            "static",
+            "instanceType",
+            "opencost"
+          ]
+        },
+        "instanceTypes": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "number",
+            "minimum": 0
+          }
+        },
+        "spotDiscount": {
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMaximum": 1
+        },
+        "storageGiBMonth": {
+          "type": "number",
+          "minimum": 0
+        },
+        "loadBalancerHour": {
+          "type": "number",
+          "minimum": 0
+        }
       },
       "additionalProperties": false
     },
     "thresholds": {
       "type": "object",
       "properties": {
-        "cpuWasteRatio": { "type": "number", "exclusiveMinimum": 0, "exclusiveMaximum": 1 },
-        "memoryWasteRatio": { "type": "number", "exclusiveMinimum": 0, "exclusiveMaximum": 1 },
-        "minCpuRequestCores": { "type": "number", "minimum": 0 },
-        "minMemoryRequestGiB": { "type": "number", "minimum": 0 },
-        "clusterCpuCommitRatio": { "type": "number", "exclusiveMinimum": 0, "exclusiveMaximum": 1 },
-        "clusterMemoryCommitRatio": { "type": "number", "exclusiveMinimum": 0, "exclusiveMaximum": 1 }
+        "cpuWasteRatio": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "exclusiveMaximum": 1
+        },
+        "memoryWasteRatio": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "exclusiveMaximum": 1
+        },
+        "minCpuRequestCores": {
+          "type": "number",
+          "minimum": 0
+        },
+        "minMemoryRequestGiB": {
+          "type": "number",
+          "minimum": 0
+        },
+        "clusterCpuCommitRatio": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "exclusiveMaximum": 1
+        },
+        "clusterMemoryCommitRatio": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "exclusiveMaximum": 1
+        }
       },
       "additionalProperties": false
     },
     "alerts": {
       "type": "object",
       "properties": {
-        "namespaceOverRequested": { "$ref": "#/definitions/alert" },
-        "clusterUnderCommitted": { "$ref": "#/definitions/alert" },
-        "idlePvc": { "$ref": "#/definitions/alert" },
-        "unusedLoadBalancer": { "$ref": "#/definitions/alert" },
-        "hpaAtMax": { "$ref": "#/definitions/alert" },
-        "hpaPinned": { "$ref": "#/definitions/alert" },
-        "missingRequests": { "$ref": "#/definitions/alert" },
-        "scaledToZero": { "$ref": "#/definitions/alert" }
+        "namespaceOverRequested": {
+          "$ref": "#/definitions/alert"
+        },
+        "clusterUnderCommitted": {
+          "$ref": "#/definitions/alert"
+        },
+        "idlePvc": {
+          "$ref": "#/definitions/alert"
+        },
+        "unusedLoadBalancer": {
+          "$ref": "#/definitions/alert"
+        },
+        "hpaAtMax": {
+          "$ref": "#/definitions/alert"
+        },
+        "hpaPinned": {
+          "$ref": "#/definitions/alert"
+        },
+        "missingRequests": {
+          "$ref": "#/definitions/alert"
+        },
+        "scaledToZero": {
+          "$ref": "#/definitions/alert"
+        }
       },
       "additionalProperties": false
     },
-    "alertLabels": { "$ref": "#/definitions/stringMap" }
+    "alertLabels": {
+      "$ref": "#/definitions/stringMap"
+    },
+    "savings": {
+      "type": "object",
+      "properties": {
+        "spotEligibleShare": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "commitmentDiscount": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "idleHeadroom": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "additionalProperties": false
+    }
   },
   "definitions": {
-    "stringMap": { "type": "object", "additionalProperties": { "type": "string" } },
-    "duration": { "type": "string", "pattern": "^[0-9]+(ms|s|m|h|d|w|y)$" },
+    "stringMap": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "duration": {
+      "type": "string",
+      "pattern": "^[0-9]+(ms|s|m|h|d|w|y)$"
+    },
     "alert": {
       "type": "object",
-      "required": ["enabled"],
+      "required": [
+        "enabled"
+      ],
       "properties": {
-        "enabled": { "type": "boolean" },
-        "severity": { "type": "string" },
-        "for": { "$ref": "#/definitions/duration" }
+        "enabled": {
+          "type": "boolean"
+        },
+        "severity": {
+          "type": "string"
+        },
+        "for": {
+          "$ref": "#/definitions/duration"
+        }
       },
       "additionalProperties": false
     }

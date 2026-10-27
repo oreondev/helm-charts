@@ -1,8 +1,8 @@
 apiVersion: v2
 name: k8s-cost-waste-alerts
-description: Find the money hiding in a Kubernetes cluster - recording rules, alerts and a Grafana dashboard for requests far above usage, under-committed nodes, idle PersistentVolumeClaims, LoadBalancers with no endpoints, HPAs stuck at max or pinned, containers without requests and workloads scaled to zero for weeks. Priced in your currency. Needs only kube-state-metrics and cAdvisor.
+description: What a Kubernetes cluster costs and where the money is wasted - cluster cost and showback per namespace with node prices from flat rates, an instance-type price list or OpenCost, requests far above usage, unrequested node capacity, savings levers (right-sizing, consolidation, spot, commitments), idle volumes and load balancers, and HPAs at their limits. Recording rules, alerts and a Grafana dashboard.
 type: application
-version: 0.1.0
+version: 0.2.0
 appVersion: "0.1.0"
 kubeVersion: ">=1.25.0-0"
 home: https://www.oreonit.com/cloud-cost-optimization-review/

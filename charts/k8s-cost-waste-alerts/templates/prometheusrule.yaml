@@ -1,8 +1,20 @@
 {{- if .Values.prometheusRule.enabled }}
+{{- /* Every kube-state-metrics series goes through "max without (job, instance, endpoint, service)": OpenCost and some
+     agents re-export the same series under another job, which would otherwise count requests and capacity twice.
+     kube_service_* and kube_endpoint_* keep service/endpoint, which are their own labels there; node and PVC series
+     aggregate by their identity (node, resource / namespace, persistentvolumeclaim) because exporters add their own
+     container and pod labels to those. */}}
 {{- $ex := .Values.excludeNamespaces }}
 {{- $t := .Values.thresholds }}
 {{- $a := .Values.alerts }}
 {{- $minMemBytes := mulf (float64 $t.minMemoryRequestGiB) 1073741824 }}
+{{- $p := .Values.pricing }}
+{{- $sv := .Values.savings }}
+{{- if and $p.enabled (eq $p.source "instanceType") (empty $p.instanceTypes) }}
+{{- fail "pricing.source=instanceType needs at least one entry in pricing.instanceTypes" }}
+{{- end }}
+{{- $spot := `max without (job, instance, endpoint, service) (kube_node_labels{label_karpenter_sh_capacity_type="spot"}) or max without (job, instance, endpoint, service) (kube_node_labels{label_eks_amazonaws_com_capacity_type="SPOT"}) or max without (job, instance, endpoint, service) (kube_node_labels{label_cloud_google_com_gke_spot="true"}) or max without (job, instance, endpoint, service) (kube_node_labels{label_cloud_google_com_gke_preemptible="true"}) or max without (job, instance, endpoint, service) (kube_node_labels{label_kubernetes_azure_com_scalesetpriority="spot"})` }}
+{{- $nodes := `max by (node) (max without (job, instance, endpoint, service) (kube_node_info))` }}
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
 metadata:
@@ -19,11 +31,11 @@ spec:
       interval: {{ .Values.prometheusRule.interval }}
       rules:
         - record: costwaste:pod_running:bool
-          expr: max by (namespace, pod) (kube_pod_status_phase{phase="Running"})
+          expr: max by (namespace, pod) (max without (job, instance, endpoint, service) (kube_pod_status_phase{phase="Running"}))
         - record: costwaste:namespace_cpu_requests:sum
           expr: |
             sum by (namespace) (
-              kube_pod_container_resource_requests{resource="cpu", container!=""}
+              max without (job, instance, endpoint, service) (kube_pod_container_resource_requests{resource="cpu", container!=""})
               * on (namespace, pod) group_left() costwaste:pod_running:bool
             )
         - record: costwaste:namespace_cpu_usage:sum
@@ -31,7 +43,7 @@ spec:
         - record: costwaste:namespace_memory_requests:sum
           expr: |
             sum by (namespace) (
-              kube_pod_container_resource_requests{resource="memory", container!=""}
+              max without (job, instance, endpoint, service) (kube_pod_container_resource_requests{resource="memory", container!=""})
               * on (namespace, pod) group_left() costwaste:pod_running:bool
             )
         - record: costwaste:namespace_memory_usage:sum
@@ -44,18 +56,10 @@ spec:
           expr: clamp_min(costwaste:namespace_memory_requests:sum - costwaste:namespace_memory_usage:sum, 0)
         - record: costwaste:namespace_memory_waste:ratio
           expr: costwaste:namespace_memory_waste:bytes / costwaste:namespace_memory_requests:sum
-        {{- if .Values.pricing.enabled }}
-        - record: costwaste:namespace_cpu_waste_cost:per_month
-          expr: costwaste:namespace_cpu_waste:cores * {{ .Values.pricing.cpuCoreHour }} * 730
-        - record: costwaste:namespace_memory_waste_cost:per_month
-          expr: costwaste:namespace_memory_waste:bytes / 1073741824 * {{ .Values.pricing.memoryGiBHour }} * 730
-        - record: costwaste:namespace_waste_cost:per_month
-          expr: costwaste:namespace_cpu_waste_cost:per_month + costwaste:namespace_memory_waste_cost:per_month
-        {{- end }}
         - record: costwaste:cluster_cpu_allocatable:sum
-          expr: sum(kube_node_status_allocatable{resource="cpu"})
+          expr: sum(max by (node, resource) (kube_node_status_allocatable{resource="cpu"}))
         - record: costwaste:cluster_memory_allocatable:sum
-          expr: sum(kube_node_status_allocatable{resource="memory"})
+          expr: sum(max by (node, resource) (kube_node_status_allocatable{resource="memory"}))
         - record: costwaste:cluster_cpu_commit:ratio
           expr: sum(costwaste:namespace_cpu_requests:sum) / costwaste:cluster_cpu_allocatable:sum
         - record: costwaste:cluster_memory_commit:ratio
@@ -64,6 +68,182 @@ spec:
           expr: sum(costwaste:namespace_cpu_usage:sum) / costwaste:cluster_cpu_allocatable:sum
         - record: costwaste:cluster_memory_use:ratio
           expr: sum(costwaste:namespace_memory_usage:sum) / costwaste:cluster_memory_allocatable:sum
+    {{- if $p.enabled }}
+    # Node prices. Every source ends in the same three series per node: costwaste:node:hourly_cost,
+    # costwaste:node_cpu_core:hourly_price and costwaste:node_memory_gib:hourly_price.
+    - name: costwaste-node-prices
+      interval: {{ .Values.prometheusRule.interval }}
+      rules:
+        - record: costwaste:node_static:hourly_cost
+          expr: |
+            sum by (node) (max by (node, resource) (kube_node_status_capacity{resource="cpu"})) * {{ $p.cpuCoreHour }}
+            + sum by (node) (max by (node, resource) (kube_node_status_capacity{resource="memory"})) / 1073741824 * {{ $p.memoryGiBHour }}
+        {{- if eq $p.source "opencost" }}
+        - record: costwaste:node_spot:bool
+          expr: max by (node) (kubecost_node_is_spot) or on (node) ({{ $nodes }} * 0)
+        - record: costwaste:node:hourly_cost
+          expr: max by (node) (node_total_hourly_cost)
+        - record: costwaste:node_cpu_core:hourly_price
+          expr: max by (node) (node_cpu_hourly_cost)
+        - record: costwaste:node_memory_gib:hourly_price
+          expr: max by (node) (node_ram_hourly_cost)
+        {{- else }}
+        - record: costwaste:node_spot:bool
+          expr: max by (node) ({{ $spot }}) or on (node) ({{ $nodes }} * 0)
+        {{- if eq $p.source "instanceType" }}
+        - record: costwaste:node_list:hourly_cost
+          expr: |
+            max by (node) (
+            {{- $first := true }}
+            {{- range $type, $price := $p.instanceTypes }}
+              {{ if not $first }}or {{ end }}max without (job, instance, endpoint, service) (kube_node_labels{label_node_kubernetes_io_instance_type={{ $type | quote }}}) * {{ $price }}
+            {{- $first = false }}
+            {{- end }}
+            )
+        - record: costwaste:node:hourly_cost
+          expr: |
+            (costwaste:node_list:hourly_cost or on (node) costwaste:node_static:hourly_cost)
+            * on (node) (1 - {{ $p.spotDiscount }} * costwaste:node_spot:bool)
+        {{- else }}
+        - record: costwaste:node:hourly_cost
+          expr: costwaste:node_static:hourly_cost
+        {{- end }}
+        # An instance price split into CPU and memory in the same ratio as cpuCoreHour : memoryGiBHour.
+        - record: costwaste:node_cpu_core:hourly_price
+          expr: costwaste:node:hourly_cost / costwaste:node_static:hourly_cost * {{ $p.cpuCoreHour }}
+        - record: costwaste:node_memory_gib:hourly_price
+          expr: costwaste:node:hourly_cost / costwaste:node_static:hourly_cost * {{ $p.memoryGiBHour }}
+        {{- end }}
+        - record: costwaste:node_info
+          expr: |
+            max by (node, instance_type) (
+              label_replace(max without (job, instance, endpoint, service) (kube_node_labels), "instance_type", "$1", "label_node_kubernetes_io_instance_type", "(.+)")
+              or on (node) label_replace({{ $nodes }}, "instance_type", "", "", "")
+            )
+
+    - name: costwaste-cost
+      interval: {{ .Values.prometheusRule.interval }}
+      rules:
+        # Requests and usage per namespace and node, so every core is priced at the node it runs on.
+        - record: costwaste:namespace_node_cpu_requests:sum
+          expr: |
+            sum by (namespace, node) (
+              max without (job, instance, endpoint, service) (kube_pod_container_resource_requests{resource="cpu", container!=""})
+              * on (namespace, pod) group_left() costwaste:pod_running:bool
+            )
+        - record: costwaste:namespace_node_memory_requests:sum
+          expr: |
+            sum by (namespace, node) (
+              max without (job, instance, endpoint, service) (kube_pod_container_resource_requests{resource="memory", container!=""})
+              * on (namespace, pod) group_left() costwaste:pod_running:bool
+            )
+        - record: costwaste:namespace_node_cpu_usage:sum
+          expr: sum by (namespace, node) (rate(container_cpu_usage_seconds_total{container!="", container!="POD", image!=""}[5m]))
+        - record: costwaste:namespace_node_memory_usage:sum
+          expr: sum by (namespace, node) (container_memory_working_set_bytes{container!="", container!="POD", image!=""})
+        - record: costwaste:node_cpu_requests:sum
+          expr: sum by (node) (costwaste:namespace_node_cpu_requests:sum) or on (node) ({{ $nodes }} * 0)
+        - record: costwaste:node_memory_requests:sum
+          expr: sum by (node) (costwaste:namespace_node_memory_requests:sum) or on (node) ({{ $nodes }} * 0)
+
+        # What the nodes cost, and what of it nobody has requested.
+        - record: costwaste:node_cost:per_month
+          expr: costwaste:node:hourly_cost * 730
+        - record: costwaste:cluster_cost:per_month
+          expr: sum(costwaste:node_cost:per_month)
+        - record: costwaste:cluster_on_demand_cost:per_month
+          expr: sum(costwaste:node_cost:per_month unless on (node) (costwaste:node_spot:bool == 1)) or vector(0)
+        - record: costwaste:cluster_spot_cost:per_month
+          expr: sum(costwaste:node_cost:per_month and on (node) (costwaste:node_spot:bool == 1)) or vector(0)
+        - record: costwaste:node_idle_cost:per_month
+          expr: |
+            (
+              clamp_min(sum by (node) (max by (node, resource) (kube_node_status_allocatable{resource="cpu"})) - costwaste:node_cpu_requests:sum, 0)
+              * costwaste:node_cpu_core:hourly_price
+              + clamp_min(sum by (node) (max by (node, resource) (kube_node_status_allocatable{resource="memory"})) - costwaste:node_memory_requests:sum, 0)
+              / 1073741824 * costwaste:node_memory_gib:hourly_price
+            ) * 730
+        - record: costwaste:cluster_idle_cost:per_month
+          expr: sum(costwaste:node_idle_cost:per_month)
+
+        # Showback: each namespace pays for what it requests, at the price of the node it runs on.
+        - record: costwaste:namespace_cost:per_month
+          expr: |
+            (
+              sum by (namespace) (costwaste:namespace_node_cpu_requests:sum * on (node) group_left() costwaste:node_cpu_core:hourly_price)
+              + sum by (namespace) (costwaste:namespace_node_memory_requests:sum * on (node) group_left() costwaste:node_memory_gib:hourly_price / 1073741824)
+            ) * 730
+
+        # Waste: requests above usage, priced per node.
+        - record: costwaste:namespace_cpu_waste_cost:per_month
+          expr: |
+            sum by (namespace) (
+              clamp_min(
+                costwaste:namespace_node_cpu_requests:sum
+                - (costwaste:namespace_node_cpu_usage:sum or on (namespace, node) costwaste:namespace_node_cpu_requests:sum * 0),
+                0
+              )
+              * on (node) group_left() costwaste:node_cpu_core:hourly_price
+            ) * 730
+        - record: costwaste:namespace_memory_waste_cost:per_month
+          expr: |
+            sum by (namespace) (
+              clamp_min(
+                costwaste:namespace_node_memory_requests:sum
+                - (costwaste:namespace_node_memory_usage:sum or on (namespace, node) costwaste:namespace_node_memory_requests:sum * 0),
+                0
+              )
+              / 1073741824 * on (node) group_left() costwaste:node_memory_gib:hourly_price
+            ) * 730
+        - record: costwaste:namespace_waste_cost:per_month
+          expr: costwaste:namespace_cpu_waste_cost:per_month + costwaste:namespace_memory_waste_cost:per_month
+        - record: costwaste:waste_cost:per_month
+          expr: sum(costwaste:namespace_waste_cost:per_month{namespace!~{{ $ex | quote }}}) or vector(0)
+        - record: costwaste:waste_cost_all_namespaces:per_month
+          expr: sum(costwaste:namespace_waste_cost:per_month) or vector(0)
+
+        # Savings levers (per month). They overlap; read them one at a time.
+        - record: costwaste:savings:per_month
+          expr: costwaste:waste_cost:per_month
+          labels:
+            lever: rightsizing
+        - record: costwaste:savings:per_month
+          expr: costwaste:cluster_idle_cost:per_month * {{ subf 1.0 $sv.idleHeadroom }}
+          labels:
+            lever: consolidation
+        - record: costwaste:savings:per_month
+          expr: costwaste:cluster_on_demand_cost:per_month * {{ $sv.spotEligibleShare }} * {{ $p.spotDiscount }}
+          labels:
+            lever: spot
+        - record: costwaste:savings:per_month
+          expr: min_over_time(costwaste:cluster_on_demand_cost:per_month[7d]) * {{ $sv.commitmentDiscount }}
+          labels:
+            lever: commitment
+        - record: costwaste:savings:per_month
+          expr: |
+            (
+              sum(
+                (
+                  max by (namespace, persistentvolumeclaim) (kube_persistentvolumeclaim_info{namespace!~{{ $ex | quote }}})
+                  unless on (namespace, persistentvolumeclaim) max without (job, instance, endpoint, service) (kube_pod_spec_volumes_persistentvolumeclaims_info)
+                )
+                * on (namespace, persistentvolumeclaim) group_left() max by (namespace, persistentvolumeclaim) (kube_persistentvolumeclaim_resource_requests_storage_bytes)
+              ) / 1073741824 * {{ $p.storageGiBMonth }}
+            ) or vector(0)
+          labels:
+            lever: idle_volumes
+        - record: costwaste:savings:per_month
+          expr: |
+            (
+              count(
+                max without (job, instance) (kube_service_spec_type{type="LoadBalancer", namespace!~{{ $ex | quote }}})
+                unless on (namespace, service)
+                (label_replace(sum by (namespace, endpoint) (max without (job, instance) (kube_endpoint_address{ready="true"})), "service", "$1", "endpoint", "(.*)") > 0)
+              ) * {{ $p.loadBalancerHour }} * 730
+            ) or vector(0)
+          labels:
+            lever: idle_load_balancers
+    {{- end }}
     - name: costwaste-alerts
       rules:
         {{- if $a.namespaceOverRequested.enabled }}
@@ -110,10 +290,10 @@ spec:
         - alert: UnusedPersistentVolumeClaim
           expr: |
             (
-              kube_persistentvolumeclaim_info{namespace!~{{ $ex | quote }}}
-              unless on (namespace, persistentvolumeclaim) kube_pod_spec_volumes_persistentvolumeclaims_info
+              max by (namespace, persistentvolumeclaim) (kube_persistentvolumeclaim_info{namespace!~{{ $ex | quote }}})
+              unless on (namespace, persistentvolumeclaim) max without (job, instance, endpoint, service) (kube_pod_spec_volumes_persistentvolumeclaims_info)
             )
-            * on (namespace, persistentvolumeclaim) group_left() kube_persistentvolumeclaim_resource_requests_storage_bytes
+            * on (namespace, persistentvolumeclaim) group_left() max by (namespace, persistentvolumeclaim) (kube_persistentvolumeclaim_resource_requests_storage_bytes)
           for: {{ $a.idlePvc.for }}
           labels:
             {{- include "cw.alertLabels" (dict "root" $ "severity" $a.idlePvc.severity) | nindent 12 }}
@@ -125,11 +305,11 @@ spec:
         - alert: UnusedLoadBalancerService
           expr: |
             (
-              kube_service_spec_type{type="LoadBalancer", namespace!~{{ $ex | quote }}}
+              max without (job, instance) (kube_service_spec_type{type="LoadBalancer", namespace!~{{ $ex | quote }}})
               unless on (namespace, service)
-              (label_replace(sum by (namespace, endpoint) (kube_endpoint_address{ready="true"}), "service", "$1", "endpoint", "(.*)") > 0)
+              (label_replace(sum by (namespace, endpoint) (max without (job, instance) (kube_endpoint_address{ready="true"})), "service", "$1", "endpoint", "(.*)") > 0)
             )
-            and on () (count(kube_endpoint_address) > 0)
+            and on () (count(max without (job, instance) (kube_endpoint_address)) > 0)
           for: {{ $a.unusedLoadBalancer.for }}
           labels:
             {{- include "cw.alertLabels" (dict "root" $ "severity" $a.unusedLoadBalancer.severity) | nindent 12 }}
@@ -140,8 +320,8 @@ spec:
         {{- if $a.hpaAtMax.enabled }}
         - alert: HPAAtMaxReplicas
           expr: |
-            kube_horizontalpodautoscaler_status_current_replicas{namespace!~{{ $ex | quote }}}
-            >= kube_horizontalpodautoscaler_spec_max_replicas
+            max without (job, instance, endpoint, service) (kube_horizontalpodautoscaler_status_current_replicas{namespace!~{{ $ex | quote }}})
+            >= max without (job, instance, endpoint, service) (kube_horizontalpodautoscaler_spec_max_replicas)
           for: {{ $a.hpaAtMax.for }}
           labels:
             {{- include "cw.alertLabels" (dict "root" $ "severity" $a.hpaAtMax.severity) | nindent 12 }}
@@ -152,8 +332,8 @@ spec:
         {{- if $a.hpaPinned.enabled }}
         - alert: HPAMinEqualsMax
           expr: |
-            kube_horizontalpodautoscaler_spec_min_replicas{namespace!~{{ $ex | quote }}}
-            == kube_horizontalpodautoscaler_spec_max_replicas
+            max without (job, instance, endpoint, service) (kube_horizontalpodautoscaler_spec_min_replicas{namespace!~{{ $ex | quote }}})
+            == max without (job, instance, endpoint, service) (kube_horizontalpodautoscaler_spec_max_replicas)
           for: {{ $a.hpaPinned.for }}
           labels:
             {{- include "cw.alertLabels" (dict "root" $ "severity" $a.hpaPinned.severity) | nindent 12 }}
@@ -166,10 +346,10 @@ spec:
           expr: |
             count by (namespace) (
               (
-                kube_pod_container_info{namespace!~{{ $ex | quote }}, container!=""}
+                max without (job, instance, endpoint, service) (kube_pod_container_info{namespace!~{{ $ex | quote }}, container!=""})
                 * on (namespace, pod) group_left() costwaste:pod_running:bool > 0
               )
-              unless on (namespace, pod, container) kube_pod_container_resource_requests{resource="cpu"}
+              unless on (namespace, pod, container) max without (job, instance, endpoint, service) (kube_pod_container_resource_requests{resource="cpu"})
             ) > 0
           for: {{ $a.missingRequests.for }}
           labels:
@@ -180,7 +360,7 @@ spec:
         {{- end }}
         {{- if $a.scaledToZero.enabled }}
         - alert: DeploymentScaledToZero
-          expr: kube_deployment_spec_replicas{namespace!~{{ $ex | quote }}} == 0
+          expr: max without (job, instance, endpoint, service) (kube_deployment_spec_replicas{namespace!~{{ $ex | quote }}}) == 0
           for: {{ $a.scaledToZero.for }}
           labels:
             {{- include "cw.alertLabels" (dict "root" $ "severity" $a.scaledToZero.severity) | nindent 12 }}
