@@ -2,7 +2,7 @@ apiVersion: v2
 name: k8s-cost-waste-alerts
 description: What a Kubernetes cluster costs and where the money is wasted - cluster cost and showback per namespace with node prices from flat rates, an instance-type price list or OpenCost, requests far above usage, unrequested node capacity, savings levers (right-sizing, consolidation, spot, commitments), idle volumes and load balancers, and HPAs at their limits. Recording rules, alerts and a Grafana dashboard.
 type: application
-version: 0.2.0
+version: 0.2.1
 appVersion: "0.1.0"
 kubeVersion: ">=1.25.0-0"
 home: https://www.oreonit.com/cloud-cost-optimization-review/
@@ -39,5 +39,5 @@ annotations:
     - name: Cloud cost optimisation review by the maintainers
       url: https://www.oreonit.com/cloud-cost-optimization-review/
   artifacthub.io/changes: |
-    - kind: added
-      description: Initial release
+    - kind: fixed
+      description: Dashboard Nodes and Namespaces tables split each row (recording rules differ in __name__, which the table merge treated as a key); queries now group by node and namespace

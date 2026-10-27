@@ -526,42 +526,42 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "costwaste:node_info",
+          "expr": "max by (node, instance_type) (costwaste:node_info)",
           "legendFormat": "",
           "instant": true,
           "format": "table"
         },
         {
           "refId": "B",
-          "expr": "costwaste:node_cost:per_month",
+          "expr": "max by (node) (costwaste:node_cost:per_month)",
           "legendFormat": "",
           "instant": true,
           "format": "table"
         },
         {
           "refId": "C",
-          "expr": "costwaste:node_spot:bool",
+          "expr": "max by (node) (costwaste:node_spot:bool)",
           "legendFormat": "",
           "instant": true,
           "format": "table"
         },
         {
           "refId": "D",
-          "expr": "costwaste:node_cpu_requests:sum / on (node) sum by (node) (max by (node, resource) (kube_node_status_allocatable{resource=\"cpu\"}))",
+          "expr": "max by (node) (costwaste:node_cpu_requests:sum / on (node) sum by (node) (max by (node, resource) (kube_node_status_allocatable{resource=\"cpu\"})))",
           "legendFormat": "",
           "instant": true,
           "format": "table"
         },
         {
           "refId": "E",
-          "expr": "costwaste:node_memory_requests:sum / on (node) sum by (node) (max by (node, resource) (kube_node_status_allocatable{resource=\"memory\"}))",
+          "expr": "max by (node) (costwaste:node_memory_requests:sum / on (node) sum by (node) (max by (node, resource) (kube_node_status_allocatable{resource=\"memory\"})))",
           "legendFormat": "",
           "instant": true,
           "format": "table"
         },
         {
           "refId": "F",
-          "expr": "costwaste:node_idle_cost:per_month",
+          "expr": "max by (node) (costwaste:node_idle_cost:per_month)",
           "legendFormat": "",
           "instant": true,
           "format": "table"
@@ -1032,49 +1032,49 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "costwaste:namespace_cpu_requests:sum",
+          "expr": "max by (namespace) (costwaste:namespace_cpu_requests:sum)",
           "instant": true,
           "format": "table"
         },
         {
           "refId": "B",
-          "expr": "costwaste:namespace_cpu_usage:sum",
+          "expr": "max by (namespace) (costwaste:namespace_cpu_usage:sum)",
           "instant": true,
           "format": "table"
         },
         {
           "refId": "C",
-          "expr": "costwaste:namespace_cpu_waste:ratio",
+          "expr": "max by (namespace) (costwaste:namespace_cpu_waste:ratio)",
           "instant": true,
           "format": "table"
         },
         {
           "refId": "D",
-          "expr": "costwaste:namespace_memory_requests:sum",
+          "expr": "max by (namespace) (costwaste:namespace_memory_requests:sum)",
           "instant": true,
           "format": "table"
         },
         {
           "refId": "E",
-          "expr": "costwaste:namespace_memory_usage:sum",
+          "expr": "max by (namespace) (costwaste:namespace_memory_usage:sum)",
           "instant": true,
           "format": "table"
         },
         {
           "refId": "F",
-          "expr": "costwaste:namespace_memory_waste:ratio",
+          "expr": "max by (namespace) (costwaste:namespace_memory_waste:ratio)",
           "instant": true,
           "format": "table"
         },
         {
           "refId": "G",
-          "expr": "costwaste:namespace_waste_cost:per_month",
+          "expr": "max by (namespace) (costwaste:namespace_waste_cost:per_month)",
           "instant": true,
           "format": "table"
         },
         {
           "refId": "H",
-          "expr": "costwaste:namespace_cost:per_month",
+          "expr": "max by (namespace) (costwaste:namespace_cost:per_month)",
           "instant": true,
           "format": "table"
         }

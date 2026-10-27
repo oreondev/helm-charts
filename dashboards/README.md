@@ -18,7 +18,9 @@ build, and with it the pull-request check.
 | `charts/k8s-cost-waste-alerts/dashboards/cost-waste.json` | `kubernetes-cost-waste-savings.json` |
 
 Upload: grafana.com → My Account → Dashboards → Upload dashboard, one JSON at a time, then paste the summary and the
-description below (the description field takes Markdown). Add the screenshot from the dev-stack Grafana. On a new
+description below (the description field takes Markdown). Add the screenshots from `screenshots/` (taken on the
+dev-stack Grafana, 1536 px wide): each file starts with the dashboard's JSON name and `01` is the one to use as the
+listing's main image. On a new
 version of a dashboard, use "Upload new revision" on the existing listing rather than a new upload, so the ID and the
 download count stay.
 

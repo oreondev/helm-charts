@@ -2,7 +2,7 @@ apiVersion: v2
 name: otel-collector-baseline
 description: A production OpenTelemetry Collector layout for Kubernetes as values for the OpenTelemetry Operator - a node agent (OTLP, kubelet and host metrics, container logs, Kubernetes metadata) feeding a gateway (health-check filtering, attribute redaction, tail sampling) that exports to OTLP backends, Google Cloud, Prometheus remote write, Datadog or Elasticsearch, plus auto-instrumentation, RBAC, alerts and a dashboard.
 type: application
-version: 0.1.2
+version: 0.1.3
 appVersion: "0.1.0"
 kubeVersion: ">=1.25.0-0"
 home: https://www.oreonit.com/observability-and-monitoring-consultancy-services/
@@ -39,5 +39,5 @@ annotations:
     - name: Observability consulting by the maintainers
       url: https://www.oreonit.com/observability-and-monitoring-consultancy-services/
   artifacthub.io/changes: |
-    - kind: added
-      description: Initial release
+    - kind: fixed
+      description: Dashboard failure and drop panels say "None in this range" instead of "No data"; tail sampling panel puts traces held in memory on its own axis

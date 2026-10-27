@@ -558,7 +558,8 @@
             "stacking": {
               "mode": "none"
             }
-          }
+          },
+          "noValue": "None in this range"
         },
         "overrides": []
       },
@@ -678,7 +679,8 @@
             "stacking": {
               "mode": "none"
             }
-          }
+          },
+          "noValue": "None in this range"
         },
         "overrides": []
       },
@@ -1471,10 +1473,28 @@
             "showPoints": "never",
             "stacking": {
               "mode": "none"
-            }
+            },
+            "axisLabel": "evaluations / s"
           }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "traces held in memory"
+            },
+            "properties": [
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "custom.axisLabel",
+                "value": "traces in memory"
+              }
+            ]
+          }
+        ]
       },
       "options": {
         "legend": {

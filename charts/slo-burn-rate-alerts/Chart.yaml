@@ -2,7 +2,7 @@ apiVersion: v2
 name: slo-burn-rate-alerts
 description: SLOs as values. Generates Prometheus recording rules, multi-window multi-burn-rate page and ticket alerts, and a Grafana SLO / error-budget dashboard for Prometheus Operator and kube-prometheus-stack.
 type: application
-version: 0.3.1
+version: 0.3.2
 appVersion: "0.3.0"
 kubeVersion: ">=1.25.0-0"
 home: https://www.oreonit.com/observability-and-monitoring-consultancy-services/
@@ -40,6 +40,4 @@ annotations:
       url: https://www.oreonit.com/site-reliability-engineering-sre-consulting-services/
   artifacthub.io/changes: |
     - kind: fixed
-      description: Dashboard "All SLOs" table merged rows only when every rule had the same labels; queries now group by slo and service
-    - kind: fixed
-      description: Dashboard "Budget lasts" shows "Not burning" in green, Alert history shows "No alerts" instead of an error, log-scale burn-rate axis no longer repeats labels
+      description: Dashboard burn-rate panel no longer drops lines at zero burn (values floored at 0.001 on the log axis)
