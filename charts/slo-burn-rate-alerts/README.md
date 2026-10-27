@@ -87,8 +87,65 @@ Why these numbers: a burn rate of 14.4 on a 30-day SLO spends 2 % of the budget 
 | `alerting.labels` / `annotations` | `{}` | Added to every alert |
 | `alerting.page.*`, `alerting.ticket.*` | see values.yaml | enabled, severity, for, windows |
 | `slos[]` | `[]` | name, service, objective, description, labels, sli.errorQuery, sli.totalQuery, alerting overrides |
+| `openslo` | `[]` | OpenSLO v1 `SLO` / `SLI` documents, as a list or one multi-document YAML string (see below) |
 
 Per-SLO `alerting.page` / `alerting.ticket` may override `enabled`, `severity` and `for`; `alerting.annotations` adds annotations (a `runbook_url` per SLO is the usual one).
+
+## OpenSLO input
+
+SLOs already written in [OpenSLO](https://openslo.com/) v1 (for Sloth, Nobl9 or your own tooling) can go in unchanged, as a list under `openslo` or as a file:
+
+```bash
+helm install slo oreonit/slo-burn-rate-alerts -n monitoring --set-file openslo=slos.yaml
+```
+
+```yaml
+apiVersion: openslo/v1
+kind: SLO
+metadata:
+  name: checkout-availability
+  labels:
+    team: payments
+spec:
+  service: checkout
+  budgetingMethod: Occurrences
+  timeWindow:
+    - duration: 30d
+      isRolling: true
+  objectives:
+    - targetPercent: 99.9
+  indicator:
+    metadata:
+      name: checkout-errors
+    spec:
+      ratioMetric:
+        counter: true
+        bad:
+          metricSource:
+            type: Prometheus
+            spec:
+              query: sum(rate(http_requests_total{job="checkout",code=~"5.."}[{{.window}}]))
+        total:
+          metricSource:
+            type: Prometheus
+            spec:
+              query: http_requests_total{job="checkout"}
+```
+
+Each SLO becomes the same rules, alerts and dashboard rows as an entry in `slos`, and both lists can be used together.
+
+| OpenSLO | How the chart reads it |
+|---|---|
+| `metadata.name`, `metadata.labels` | the `slo` label and extra labels (list values are joined with commas) |
+| `spec.service`, `spec.description` | the `service` label and the description |
+| `objectives[0].target` / `targetPercent` | the objective |
+| `ratioMetric.bad` + `total` | errors / total |
+| `ratioMetric.good` + `total` | (total − good) / total |
+| `indicatorRef` | a `kind: SLI` document in the same list |
+| query range `$WINDOW` or `{{.window}}` | filled in for every window |
+| a plain counter selector with `counter: true` | becomes `sum(rate(<selector>[window]))` |
+
+Not supported, and the render fails with the reason rather than producing rules that measure something else: `Timeslices` and `RatioTimeslices` budgeting, `thresholdMetric`, `ratioMetric.raw`, more than one objective, non-Prometheus metric sources, and a `timeWindow` other than `sloPeriodDays` (30d; 28d or 4w with `sloPeriodDays: 28`). `alertPolicies` are ignored: the burn-rate alerts come from the chart's `alerting` values.
 
 ## Google Managed Prometheus (GKE managed collection)
 

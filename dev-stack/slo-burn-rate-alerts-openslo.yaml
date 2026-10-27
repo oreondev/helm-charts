@@ -1,0 +1,35 @@
+# Extra values for the dev-stack SLO release: the demo availability SLO again, written in OpenSLO v1
+# (good/total, a plain counter selector for total). Its recorded ratios should equal demo-api-availability's.
+#   helm upgrade slo charts/slo-burn-rate-alerts -n monitoring -f dev-stack/slo-burn-rate-alerts.yaml -f dev-stack/slo-burn-rate-alerts-openslo.yaml
+openslo:
+  - apiVersion: openslo/v1
+    kind: SLO
+    metadata:
+      name: demo-api-availability-openslo
+      labels:
+        team: demo
+    spec:
+      service: demo-api
+      description: The demo availability SLO in OpenSLO form
+      budgetingMethod: Occurrences
+      timeWindow:
+        - duration: 30d
+          isRolling: true
+      objectives:
+        - target: 0.999
+      indicator:
+        metadata:
+          name: demo-api-good
+        spec:
+          ratioMetric:
+            counter: true
+            good:
+              metricSource:
+                type: Prometheus
+                spec:
+                  query: sum(rate(http_requests_total{namespace="demo",code!~"4..|5.."}[{{.window}}]))
+            total:
+              metricSource:
+                type: Prometheus
+                spec:
+                  query: http_requests_total{namespace="demo"}

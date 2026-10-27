@@ -1,4 +1,5 @@
-{{- if and .Values.prometheusRule.enabled .Values.slos }}
+{{- $slos := include "slo.all" . | fromYamlArray }}
+{{- if and .Values.prometheusRule.enabled $slos }}
 {{- $windows := splitList "," (include "slo.windows" .) }}
 {{- $periodDays := int .Values.sloPeriodDays }}
 {{- $period := printf "%dd" $periodDays }}
@@ -33,7 +34,7 @@ metadata:
 {{- end }}
 spec:
   groups:
-  {{- range $s := .Values.slos }}
+  {{- range $s := $slos }}
   {{- $objective := divf (float64 $s.objective) 100 }}
   {{- $budget := subf 1 $objective }}
   {{- $objStr := printf "%.9g" $objective }}

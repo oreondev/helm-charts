@@ -20,6 +20,8 @@ DEV_STACK_CONTEXT=$(kubectl config current-context) ./dev-stack/install.sh all
 kubectl apply -f dev-stack/demo-app.yaml -f dev-stack/alert-sink.yaml
 
 helm upgrade --install slo charts/slo-burn-rate-alerts -n monitoring -f dev-stack/slo-burn-rate-alerts.yaml
+# Optional: the availability SLO again in OpenSLO form; its ratios should equal demo-api-availability's
+helm upgrade --install slo charts/slo-burn-rate-alerts -n monitoring -f dev-stack/slo-burn-rate-alerts.yaml -f dev-stack/slo-burn-rate-alerts-openslo.yaml
 helm upgrade --install routing charts/alertmanager-routing-baseline -n monitoring -f dev-stack/alertmanager-routing-baseline.yaml
 helm upgrade --install otel charts/otel-collector-baseline -n observability --create-namespace -f dev-stack/otel-collector-baseline.yaml
 helm upgrade --install policies charts/kyverno-production-policies -n kyverno -f dev-stack/kyverno-production-policies.yaml

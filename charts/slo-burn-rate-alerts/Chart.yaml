@@ -2,8 +2,8 @@ apiVersion: v2
 name: slo-burn-rate-alerts
 description: SLOs as values. Generates Prometheus recording rules, multi-window multi-burn-rate page and ticket alerts, and a Grafana SLO / error-budget dashboard for Prometheus Operator and kube-prometheus-stack.
 type: application
-version: 0.2.1
-appVersion: "0.2.0"
+version: 0.3.0
+appVersion: "0.3.0"
 kubeVersion: ">=1.25.0-0"
 home: https://www.oreonit.com/observability-and-monitoring-consultancy-services/
 icon: https://raw.githubusercontent.com/oreondev/helm-charts/main/icon.png
@@ -21,6 +21,7 @@ keywords:
   - alerting
   - grafana
   - observability
+  - openslo
 maintainers:
   - name: Oreon IT
     email: info@oreonit.com
@@ -39,4 +40,4 @@ annotations:
       url: https://www.oreonit.com/site-reliability-engineering-sre-consulting-services/
   artifacthub.io/changes: |
     - kind: added
-      description: Google Managed Prometheus backend (rulesBackend gmp renders Rules / ClusterRules / GlobalRules)
+      description: OpenSLO v1 input (openslo, as a list or a --set-file multi-document YAML); Occurrences ratio SLOs on Prometheus, with Sloth's {{.window}} placeholder accepted
