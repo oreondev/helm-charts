@@ -149,6 +149,56 @@ entries:
     urls:
     - https://github.com/oreondev/helm-charts/releases/download/blackbox-slo-probes-0.1.0/blackbox-slo-probes-0.1.0.tgz
     version: 0.1.0
+  crawl4ai:
+  - annotations:
+      artifacthub.io/category: ai-machine-learning
+      artifacthub.io/changes: |
+        - kind: added
+          description: First release, for Crawl4AI 0.9.5
+      artifacthub.io/images: |
+        - name: crawl4ai
+          image: unclecode/crawl4ai:0.9.5
+      artifacthub.io/license: MIT
+      artifacthub.io/links: |
+        - name: Crawl4AI self-hosting documentation
+          url: https://docs.crawl4ai.com/core/self-hosting/
+        - name: Kubernetes production readiness checklist
+          url: https://www.oreonit.com/kubernetes-production-readiness-checklist/
+      artifacthub.io/operator: "false"
+      artifacthub.io/prerelease: "false"
+    apiVersion: v2
+    appVersion: 0.9.5
+    created: "2026-10-31T00:12:07.725303106Z"
+    description: Crawl4AI (LLM-friendly web crawler, REST API and MCP) for Kubernetes
+      - gunicorn as PID 1 with Redis as a native sidecar or external, generated API
+      token, shutdown in seconds instead of a 30s hang, memory threshold below the
+      OOM line, non-root and read-only, horizontal scaling with external Redis, Ingress
+      or Gateway API, and a ServiceMonitor, alerts and Grafana dashboard.
+    digest: fb1a5c0163000a18e04d39a52abb6ba112d1559e1bcf827a63b527485caf8e58
+    home: https://www.oreonit.com/containerization-orchestration-management-kubernetes-openshift/
+    icon: https://raw.githubusercontent.com/oreondev/helm-charts/main/icon.png
+    keywords:
+    - crawl4ai
+    - web-crawler
+    - scraper
+    - llm
+    - rag
+    - mcp
+    - playwright
+    - ai
+    kubeVersion: '>=1.29.0-0'
+    maintainers:
+    - email: info@oreonit.com
+      name: Oreon IT
+      url: https://www.oreonit.com/
+    name: crawl4ai
+    sources:
+    - https://github.com/oreondev/helm-charts
+    - https://github.com/unclecode/crawl4ai
+    type: application
+    urls:
+    - https://github.com/oreondev/helm-charts/releases/download/crawl4ai-0.1.0/crawl4ai-0.1.0.tgz
+    version: 0.1.0
   gateway-api-baseline:
   - annotations:
       artifacthub.io/category: networking
@@ -804,4 +854,4 @@ entries:
     urls:
     - https://github.com/oreondev/helm-charts/releases/download/velero-backup-schedules-0.1.0/velero-backup-schedules-0.1.0.tgz
     version: 0.1.0
-generated: "2026-10-27T16:43:11.282186111Z"
+generated: "2026-10-31T00:12:07.72533193Z"
