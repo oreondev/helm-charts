@@ -1,0 +1,15 @@
+Crawl4AI {{ include "crawl4ai.imageTag" . }} is starting as {{ include "crawl4ai.fullname" . }} in {{ .Release.Namespace }} (Redis: {{ .Values.redis.mode }}).
+
+API token (send as "Authorization: Bearer <token>"):
+  kubectl -n {{ .Release.Namespace }} get secret {{ include "crawl4ai.tokenSecretName" . }} -o jsonpath='{.data.{{ include "crawl4ai.tokenSecretKey" . }}}' | base64 -d
+
+Try it:
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "crawl4ai.fullname" . }} 11235:{{ .Values.service.port }}
+  curl -s localhost:11235/md -H "Authorization: Bearer $TOKEN" -H 'content-type: application/json' -d '{"url":"https://example.com"}'
+
+Playground: http://localhost:11235/playground   Dashboard: http://localhost:11235/dashboard
+MCP (SSE): http://localhost:11235/mcp/sse
+{{- if not .Values.features.internalUrls }}
+
+The egress guard refuses private and cluster addresses; set features.internalUrls=true to crawl Services in this cluster.
+{{- end }}

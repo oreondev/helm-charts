@@ -1,0 +1,14 @@
+# chart-testing: sidecar Redis, monitoring objects on, smaller requests for the CI kind node.
+metrics:
+  serviceMonitor:
+    enabled: true
+  prometheusRule:
+    enabled: true
+  dashboard:
+    enabled: true
+resources:
+  requests:
+    cpu: 100m
+    memory: 512Mi
+  limits:
+    memory: 2Gi

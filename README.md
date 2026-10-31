@@ -4,12 +4,13 @@
 [![Release](https://github.com/oreondev/helm-charts/actions/workflows/release.yml/badge.svg)](https://github.com/oreondev/helm-charts/actions/workflows/release.yml)
 [![Licence: MIT](https://img.shields.io/badge/licence-MIT-blue.svg)](LICENSE)
 
-Charts we install on client clusters, published so you can use them too. None of them installs Prometheus, Grafana, Kyverno or Velero: each one packages the configuration that teams otherwise hand-write on top of those tools.
+Charts we install on client clusters, published so you can use them too. None of them installs Prometheus, Grafana, Kyverno or Velero: each one packages the configuration that teams otherwise hand-write on top of those tools. The exception is the crawl4ai application chart, which runs the upstream application itself.
 
 | Chart | What it does | Needs |
 |---|---|---|
 | [alertmanager-routing-baseline](charts/alertmanager-routing-baseline) | Teams, page/ticket receivers (Slack, PagerDuty, Opsgenie, email, Teams, webhook), severity routing, inhibition, business-hours muting, Watchdog sink, as an AlertmanagerConfig. | Prometheus Operator |
 | [blackbox-slo-probes](charts/blackbox-slo-probes) | URLs become Probe objects plus availability and latency SLOs with the same burn-rate alerts, probe-down and TLS-expiry alerts, and a dashboard. | blackbox exporter, Prometheus Operator |
+| [crawl4ai](charts/crawl4ai) | Crawl4AI web crawler for LLMs (REST and MCP) tuned for production: gunicorn as PID 1, Redis as a native sidecar or external for horizontal scaling, generated API token and JWT key, shutdown in seconds, memory threshold below the OOM line, security flags off, non-root read-only, ServiceMonitor with bearer auth, alerts and dashboard. | nothing (external Redis to scale out) |
 | [gateway-api-baseline](charts/gateway-api-baseline) | Shared Gateway API ingress: one Gateway with HTTP-to-HTTPS redirect and TLS listeners per hostname, namespace-scoped attachment, HTTPRoutes/GRPCRoutes from values with timeouts and security headers, generated ReferenceGrants, default backend, BackendTLSPolicies. | Gateway API CRDs + any controller (GKE, Envoy Gateway, NGINX Gateway Fabric, Istio, Cilium) |
 | [k8s-cost-waste-alerts](charts/k8s-cost-waste-alerts) | Cluster cost and showback per namespace (node prices from flat rates, an instance-type price list or OpenCost), requests vs usage priced per month, unrequested node capacity, savings levers (right-sizing, consolidation, spot, commitments), idle PVCs and LoadBalancers, HPAs at max or pinned. Rules and a dashboard. | kube-state-metrics, cAdvisor |
 | [kyverno-production-policies](charts/kyverno-production-policies) | The production readiness checklist as Kyverno policies: requests/limits, probes, labels, no latest tags, PDBs and spread for multi-replica workloads, no NodePorts, nothing in default. Audit mode first. | Kyverno 1.13+ |
@@ -27,6 +28,10 @@ helm search repo oreonit
 ```
 
 The charts are also listed on [Artifact Hub](https://artifacthub.io/packages/search?repo=oreonit).
+
+## Versions and releases
+
+[CHANGELOG.md](CHANGELOG.md) lists every chart's current version and what changed in each release. Every change to a chart bumps its `version` (patch for fixes, minor for features or changed defaults, major when an upgrade needs action) and adds an `artifacthub.io/changes` entry; the release workflow publishes any chart whose version changed.
 
 ## Develop
 
