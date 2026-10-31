@@ -1,0 +1,21 @@
+{{- include "crawl4ai.validate" . }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "crawl4ai.fullname" . }}-env
+  labels:
+    {{- include "crawl4ai.labels" . | nindent 4 }}
+data:
+  {{- include "crawl4ai.env" . | trim | nindent 2 }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "crawl4ai.fullname" . }}-config
+  labels:
+    {{- include "crawl4ai.labels" . | nindent 4 }}
+data:
+  config.yml: |
+    {{- include "crawl4ai.configYaml" . | nindent 4 }}
+  gunicorn.conf.py: |
+    {{- include "crawl4ai.gunicornConf" . | nindent 4 }}

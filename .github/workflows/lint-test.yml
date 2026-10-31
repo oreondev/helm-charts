@@ -58,7 +58,7 @@ jobs:
         run: |
           set -euo pipefail
           po=https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/${PROMETHEUS_OPERATOR_VERSION}/example/prometheus-operator-crd
-          for crd in prometheusrules probes alertmanagerconfigs; do
+          for crd in prometheusrules probes alertmanagerconfigs servicemonitors podmonitors; do
             kubectl apply --server-side -f "${po}/monitoring.coreos.com_${crd}.yaml"
           done
           # Google Managed Prometheus (Rules, ClusterRules, GlobalRules)

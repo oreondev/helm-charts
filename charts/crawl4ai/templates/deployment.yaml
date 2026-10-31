@@ -1,0 +1,208 @@
+{{- $v := .Values }}
+{{- $probe := dict "httpGet" (dict "path" "/health" "port" "http") }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "crawl4ai.fullname" . }}
+  labels:
+    {{- include "crawl4ai.labels" . | nindent 4 }}
+spec:
+  {{- if not $v.autoscaling.enabled }}
+  replicas: {{ $v.replicaCount }}
+  {{- end }}
+  revisionHistoryLimit: 3
+  {{- if not (include "crawl4ai.multiReplica" .) }}
+  # One pod with an in-pod Redis: never run two side by side (and never pay for two 4Gi pods).
+  strategy:
+    type: Recreate
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "crawl4ai.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "crawl4ai.selectorLabels" . | nindent 8 }}
+        {{- with $v.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      annotations:
+        checksum/env: {{ include "crawl4ai.env" . | sha256sum }}
+        checksum/config: {{ printf "%s%s" (include "crawl4ai.configYaml" .) (include "crawl4ai.gunicornConf" .) | sha256sum }}
+        checksum/secret: {{ include "crawl4ai.secretData" . | sha256sum }}
+        {{- with $v.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "crawl4ai.serviceAccountName" . }}
+      automountServiceAccountToken: {{ $v.automountServiceAccountToken }}
+      enableServiceLinks: false
+      {{- with $v.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $v.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
+      securityContext:
+        {{- toYaml $v.podSecurityContext | nindent 8 }}
+      terminationGracePeriodSeconds: {{ $v.terminationGracePeriodSeconds | default (add (int $v.gunicorn.gracefulTimeout) 15) }}
+      {{- if or (eq $v.redis.mode "sidecar") $v.extraInitContainers }}
+      initContainers:
+        {{- if eq $v.redis.mode "sidecar" }}
+        # Native sidecar: starts (and is ready) before the API, stops after it. Same image, so nothing
+        # extra to pull; loopback only and password protected, as in the upstream container.
+        - name: redis
+          image: {{ include "crawl4ai.image" . }}
+          imagePullPolicy: {{ $v.image.pullPolicy }}
+          restartPolicy: Always
+          command: ["/bin/sh", "-c"]
+          args:
+            - >-
+              exec redis-server --bind 127.0.0.1 -::1 --port 6379 --requirepass "$REDIS_PASSWORD"
+              --save "" --appendonly no --dir /data --loglevel warning
+              --maxmemory {{ $v.redis.sidecar.maxmemory }} --maxmemory-policy volatile-lru
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom: { secretKeyRef: { name: {{ include "crawl4ai.fullname" . }}, key: REDIS_PASSWORD } }
+            - name: REDISCLI_AUTH
+              valueFrom: { secretKeyRef: { name: {{ include "crawl4ai.fullname" . }}, key: REDIS_PASSWORD } }
+          startupProbe:
+            exec: { command: [redis-cli, ping] }
+            periodSeconds: 1
+            failureThreshold: 30
+          livenessProbe:
+            exec: { command: [redis-cli, ping] }
+            periodSeconds: 30
+            timeoutSeconds: 5
+          securityContext:
+            {{- toYaml $v.securityContext | nindent 12 }}
+          resources:
+            {{- toYaml $v.redis.sidecar.resources | nindent 12 }}
+          volumeMounts:
+            - { name: redis-data, mountPath: /data }
+        {{- end }}
+        {{- with $v.extraInitContainers }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- end }}
+      containers:
+        - name: crawl4ai
+          image: {{ include "crawl4ai.image" . }}
+          imagePullPolicy: {{ $v.image.pullPolicy }}
+          # gunicorn as PID 1 (not supervisord + in-container Redis): it handles SIGTERM itself and
+          # reaps orphaned Chromium processes.
+          command: ["gunicorn", "-c", "/etc/crawl4ai/gunicorn.conf.py", "server:app"]
+          workingDir: /app
+          ports:
+            - name: http
+              containerPort: 11235
+              protocol: TCP
+          envFrom:
+            {{- include "crawl4ai.envFrom" . | nindent 12 }}
+          {{- $envs := include "crawl4ai.secretRefEnv" . | trim }}
+          {{- if or $envs $v.extraEnv }}
+          env:
+            {{- with $envs }}
+            {{- . | nindent 12 }}
+            {{- end }}
+            {{- with $v.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- end }}
+          {{- with $v.probes.startup }}
+          {{- if .enabled }}
+          startupProbe:
+            {{- toYaml $probe | nindent 12 }}
+            periodSeconds: {{ .periodSeconds }}
+            failureThreshold: {{ .failureThreshold }}
+          {{- end }}
+          {{- end }}
+          {{- with $v.probes.liveness }}
+          {{- if .enabled }}
+          livenessProbe:
+            {{- toYaml $probe | nindent 12 }}
+            periodSeconds: {{ .periodSeconds }}
+            timeoutSeconds: {{ .timeoutSeconds }}
+            failureThreshold: {{ .failureThreshold }}
+          {{- end }}
+          {{- end }}
+          {{- with $v.probes.readiness }}
+          {{- if .enabled }}
+          readinessProbe:
+            {{- toYaml $probe | nindent 12 }}
+            periodSeconds: {{ .periodSeconds }}
+            timeoutSeconds: {{ .timeoutSeconds }}
+            failureThreshold: {{ .failureThreshold }}
+          {{- end }}
+          {{- end }}
+          securityContext:
+            {{- toYaml $v.securityContext | nindent 12 }}
+          resources:
+            {{- toYaml $v.resources | nindent 12 }}
+          volumeMounts:
+            - { name: config, mountPath: /app/config.yml, subPath: config.yml, readOnly: true }
+            - { name: config, mountPath: /etc/crawl4ai, readOnly: true }
+            - { name: tmp, mountPath: /tmp }
+            - { name: shm, mountPath: /dev/shm }
+            - { name: artifacts, mountPath: /var/lib/crawl4ai/outputs }
+            - { name: cache, mountPath: /home/appuser/.crawl4ai }
+            - { name: cache, mountPath: /home/appuser/.cache/url_seeder, subPath: url_seeder }
+            {{- with $v.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "crawl4ai.fullname" . }}-config
+        - name: tmp
+          emptyDir:
+            sizeLimit: {{ $v.tmp.sizeLimit }}
+        - name: shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: {{ $v.shm.sizeLimit }}
+        - name: artifacts
+          {{- if $v.artifacts.existingClaim }}
+          persistentVolumeClaim:
+            claimName: {{ $v.artifacts.existingClaim }}
+          {{- else }}
+          emptyDir:
+            sizeLimit: {{ $v.artifacts.size }}
+          {{- end }}
+        - name: cache
+          emptyDir:
+            sizeLimit: {{ $v.cache.sizeLimit }}
+        {{- if eq $v.redis.mode "sidecar" }}
+        - name: redis-data
+          emptyDir:
+            medium: Memory
+            sizeLimit: 16Mi
+        {{- end }}
+        {{- with $v.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with $v.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $v.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $v.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if $v.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- toYaml $v.topologySpreadConstraints | nindent 8 }}
+      {{- else if include "crawl4ai.multiReplica" . }}
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              {{- include "crawl4ai.selectorLabels" . | nindent 14 }}
+      {{- end }}

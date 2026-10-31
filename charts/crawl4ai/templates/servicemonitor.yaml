@@ -1,0 +1,26 @@
+{{- if .Values.metrics.serviceMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "crawl4ai.fullname" . }}
+  labels:
+    {{- include "crawl4ai.labels" . | nindent 4 }}
+    {{- with .Values.metrics.serviceMonitor.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "crawl4ai.selectorLabels" . | nindent 6 }}
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: {{ .Values.metrics.serviceMonitor.interval }}
+      scrapeTimeout: {{ .Values.metrics.serviceMonitor.scrapeTimeout }}
+      # /metrics sits behind the same auth gate as the API.
+      authorization:
+        type: Bearer
+        credentials:
+          name: {{ include "crawl4ai.tokenSecretName" . }}
+          key: {{ include "crawl4ai.tokenSecretKey" . }}
+{{- end }}

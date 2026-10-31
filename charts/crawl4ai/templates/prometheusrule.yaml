@@ -1,0 +1,68 @@
+{{- if .Values.metrics.prometheusRule.enabled }}
+{{- $r := .Values.metrics.prometheusRule }}
+{{- $name := include "crawl4ai.fullname" . }}
+{{- $sel := printf "namespace=%q, job=%q" .Release.Namespace $name }}
+{{- $api := printf "%s, handler!~%q" $sel "/health|/metrics" }}
+{{- $pod := printf "namespace=%q, pod=~%q, container=\"crawl4ai\"" .Release.Namespace (printf "%s-[a-z0-9]+-[a-z0-9]+" $name) }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "crawl4ai.labels" . | nindent 4 }}
+    {{- with $r.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  groups:
+    - name: crawl4ai
+      rules:
+        - alert: Crawl4AIDown
+          expr: sum(up{ {{- $sel -}} }) == 0 or absent(up{ {{- $sel -}} })
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: Crawl4AI {{ .Release.Namespace }}/{{ $name }} is not answering scrapes
+            description: No crawls are served. Check the pod, its redis sidecar and the API token the ServiceMonitor sends.
+        - alert: Crawl4AIHighErrorRate
+          expr: |
+            sum(rate(http_requests_total{ {{- $api }}, status="5xx"}[5m]))
+              / sum(rate(http_requests_total{ {{- $api -}} }[5m])) > {{ $r.errorRatio }}
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: 'Crawl4AI answers {{ "{{" }} $value | humanizePercentage {{ "}}" }} of API requests with 5xx'
+            description: Usually the job queue is full (503), crawls hit limits.wall_clock_s (504) or browsers fail to start. Check pod memory and the logs.
+        - alert: Crawl4AISlowCrawls
+          # Mean, not p95: the per-endpoint histogram only has buckets up to 1s.
+          expr: |
+            sum(rate(http_request_duration_seconds_sum{ {{- $sel }}, handler=~"/crawl|/md"}[10m]))
+              / sum(rate(http_request_duration_seconds_count{ {{- $sel }}, handler=~"/crawl|/md"}[10m])) > {{ $r.slowRequestSeconds }}
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: 'Crawl4AI crawls take {{ "{{" }} $value | humanizeDuration {{ "}}" }} on average'
+            description: Requests wait for a page slot (crawler.pool.max_pages) or the targets are slow. Add CPU or replicas.
+        - alert: Crawl4AIMemoryNearLimit
+          expr: |
+            max by (pod) (container_memory_working_set_bytes{ {{- $pod -}} }
+              / on(namespace, pod, container) kube_pod_container_resource_limits{ {{- $pod }}, resource="memory"}) > {{ $r.memoryRatio }}
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: 'Crawl4AI pod {{ "{{" }} $labels.pod {{ "}}" }} uses {{ "{{" }} $value | humanizePercentage {{ "}}" }} of its memory limit'
+            description: Above the limit the kernel kills the pod with every in-flight crawl. Raise resources.limits.memory or lower crawler.pool.max_pages.
+        - alert: Crawl4AIOOMKilled
+          expr: |
+            increase(kube_pod_container_status_restarts_total{ {{- $pod -}} }[30m]) > 0
+              and on(namespace, pod, container) kube_pod_container_status_last_terminated_reason{ {{- $pod }}, reason="OOMKilled"} == 1
+          labels:
+            severity: warning
+          annotations:
+            summary: 'Crawl4AI pod {{ "{{" }} $labels.pod {{ "}}" }} was OOM killed'
+            description: In-flight crawls and queued jobs on that pod were lost. Raise resources.limits.memory or lower crawler.pool.max_pages.
+{{- end }}

@@ -1,0 +1,258 @@
+# Crawl4AI (LLM-friendly web crawler and scraper, REST API + MCP) on Kubernetes.
+
+image:
+  repository: unclecode/crawl4ai
+  # Defaults to appVersion. Pin a tag (or a digest) in production; "latest" moves under you.
+  tag: ""
+  digest: ""
+  pullPolicy: IfNotPresent
+imagePullSecrets: []
+
+nameOverride: ""
+fullnameOverride: ""
+
+auth:
+  # Static API token (CRAWL4AI_API_TOKEN), sent as "Authorization: Bearer <token>".
+  # The server refuses to listen on anything but loopback without one, so the chart always sets it.
+  # Empty: a random 64-character token is generated once and kept across upgrades.
+  apiToken: ""
+  existingSecret: ""
+  existingSecretKey: CRAWL4AI_API_TOKEN
+
+# Background jobs (/crawl/job, /llm/job), their results, the dashboard counters and (with external
+# Redis) the rate-limit buckets live in Redis.
+redis:
+  # sidecar: redis-server from the same image, loopback only, password protected, in memory.
+  #          No extra image to pull; one replica only (job results are per pod).
+  # external: your Redis (Memorystore, ElastiCache, a Redis chart). Required for more than one replica.
+  mode: sidecar
+  sidecar:
+    # Job results expire after taskTtlSeconds; keys without a TTL are never evicted.
+    maxmemory: 256mb
+    resources:
+      requests:
+        cpu: 10m
+        memory: 32Mi
+      limits:
+        memory: 320Mi
+  external:
+    host: ""
+    port: 6379
+    db: 0
+    tls: false
+    username: default
+    password: ""
+    existingSecret: ""
+    existingSecretKey: REDIS_PASSWORD
+  # How long job results stay in Redis (REDIS_TASK_TTL).
+  taskTtlSeconds: 3600
+
+# Features that are off upstream for security reasons. Each is a remote code execution or SSRF
+# surface for whoever holds the token; turn on only what your clients need.
+features:
+  # Deep crawling over the API (CRAWL4AI_ALLOW_DEEP_CRAWL).
+  deepCrawl: false
+  # Python hooks in crawl requests (CRAWL4AI_HOOKS_ENABLED), arbitrary code in the pod.
+  hooks: false
+  # The /execute_js endpoint (CRAWL4AI_EXECUTE_JS_ENABLED).
+  executeJs: false
+  # Crawl private, link-local and cluster addresses (CRAWL4AI_ALLOW_INTERNAL_URLS).
+  # Off: the egress guard refuses every non-public destination, including Services in this cluster.
+  internalUrls: false
+  # Drop --no-sandbox and run the Chromium renderer sandboxed (CRAWL4AI_CHROMIUM_SANDBOX).
+  # Needs unprivileged user namespaces on the node (or a seccomp profile that allows them).
+  chromiumSandbox: false
+
+llm:
+  # Default model for /llm and LLM extraction (LLM_PROVIDER), litellm syntax.
+  provider: ""
+  # Base URL for an OpenAI-compatible endpoint (LLM_BASE_URL), e.g. a vLLM or Ollama Service.
+  baseUrl: ""
+
+# Overrides for the server's config.yml, deep-merged over the upstream file shipped with the chart
+# (files/config.yml). Lists replace, maps merge.
+config:
+  crawler:
+    # Stop opening browsers above this share of the container memory limit (cgroup aware).
+    # Upstream 95: Chromium allocates in bursts, so at 95% the next page often takes the pod past
+    # its limit and the kernel kills it with every in-flight crawl.
+    memory_threshold_percent: 85
+  logging:
+    level: INFO
+#  limits:
+#    wall_clock_s: 300
+#    queue: { maxsize: 1000, workers: 4, per_principal: 0 }
+#  rate_limiting:
+#    default_limit: 1000/minute
+#  crawler:
+#    pool: { max_pages: 40 }
+
+# Gunicorn (gunicorn.conf.py). One worker per pod: each worker runs its own Chromium pool,
+# so scale with replicas, not workers.
+gunicorn:
+  workers: 1
+  threads: 4
+  # Seconds a request may run (long crawls, streaming).
+  timeout: 1800
+  # Seconds in-flight requests get to finish on shutdown.
+  gracefulTimeout: 30
+  keepalive: 300
+  # Trust X-Forwarded-For from these addresses (comma separated, or "*"). The rate limiter keys on
+  # the client address; behind an Ingress or Gateway every request otherwise counts against the
+  # proxy's address, so all clients share one bucket. Set it to your proxy's addresses (or "*" when
+  # only the proxy can reach the pods).
+  forwardedAllowIps: ""
+
+# Any other environment variable (non-secret), e.g. CRAWL4AI_ALLOW_INSECURE_TLS.
+env: {}
+# Secret variables, rendered into the chart's Secret: OPENAI_API_KEY, ANTHROPIC_API_KEY,
+# GEMINI_API_KEY, LLM_API_KEY, SECRET_KEY (with security.jwt_enabled) ...
+secretEnv: {}
+extraEnv: []
+# Loaded after the chart's ConfigMap and Secret, so keys here win.
+extraEnvFrom: []
+
+replicaCount: 1
+autoscaling:
+  # Needs redis.mode=external. Scales on CPU: Chromium rendering is CPU bound.
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 70
+  # Scale down slowly: a removed pod drops its in-flight crawls after gracefulTimeout.
+  scaleDownStabilizationSeconds: 600
+
+podDisruptionBudget:
+  # Rendered when more than one replica can run.
+  enabled: true
+  maxUnavailable: 1
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 1Gi
+  limits:
+    memory: 4Gi
+
+# Screenshots and PDFs returned as /artifacts/<id>. Per pod (emptyDir) unless existingClaim is a
+# ReadWriteMany volume shared by all replicas.
+artifacts:
+  size: 1Gi
+  ttlSeconds: 3600
+  existingClaim: ""
+
+# Chromium's shared memory (/dev/shm, memory-backed, counts against the memory limit when used).
+shm:
+  sizeLimit: 1Gi
+# Browser profiles and downloads.
+tmp:
+  sizeLimit: 2Gi
+# The crawl cache (SQLite under ~/.crawl4ai), per pod.
+cache:
+  sizeLimit: 1Gi
+
+service:
+  type: ClusterIP
+  port: 11235
+  annotations: {}
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  # nginx.ingress.kubernetes.io/proxy-read-timeout: "1800"
+  # nginx.ingress.kubernetes.io/proxy-body-size: 10m
+  hosts:
+    - host: crawl4ai.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+# Gateway API route, e.g. onto the Gateway from gateway-api-baseline.
+httpRoute:
+  enabled: false
+  annotations: {}
+  parentRefs: []
+  hostnames: []
+  # Crawls run up to limits.wall_clock_s (300s) and streams longer.
+  timeouts:
+    request: 1800s
+
+metrics:
+  serviceMonitor:
+    # /metrics needs the API token; the ServiceMonitor sends it as a bearer token.
+    enabled: false
+    interval: 30s
+    scrapeTimeout: 10s
+    labels: {}
+  prometheusRule:
+    enabled: false
+    labels: {}
+    # Share of API requests answered with 5xx (queue full, crawl deadline, browser errors).
+    errorRatio: 0.05
+    # p95 latency of /crawl and /md above this many seconds.
+    slowRequestSeconds: 60
+    # Working set above this share of the memory limit (needs cAdvisor and kube-state-metrics).
+    memoryRatio: 0.9
+  # Grafana dashboard as a ConfigMap for the Grafana sidecar (kube-prometheus-stack).
+  dashboard:
+    enabled: false
+    labels:
+      grafana_dashboard: "1"
+    annotations: {}
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+automountServiceAccountToken: false
+
+podAnnotations: {}
+podLabels: {}
+priorityClassName: ""
+nodeSelector: {}
+tolerations: []
+affinity: {}
+# Empty: spread replicas across nodes when more than one can run.
+topologySpreadConstraints: []
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 999
+  runAsGroup: 999
+  fsGroup: 999
+  fsGroupChangePolicy: OnRootMismatch
+  seccompProfile:
+    type: RuntimeDefault
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: [ALL]
+
+# /health is static and public; it never touches the browser.
+probes:
+  startup:
+    enabled: true
+    periodSeconds: 2
+    failureThreshold: 90
+  liveness:
+    enabled: true
+    periodSeconds: 20
+    timeoutSeconds: 5
+    failureThreshold: 3
+  readiness:
+    enabled: true
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+# Empty: gunicorn.gracefulTimeout + 15s.
+terminationGracePeriodSeconds: ""
+
+extraVolumes: []
+extraVolumeMounts: []
+extraInitContainers: []
+# Arbitrary manifests rendered with the release (templated), e.g. a NetworkPolicy.
+extraObjects: []

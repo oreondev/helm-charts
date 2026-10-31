@@ -1,0 +1,41 @@
+apiVersion: v2
+name: crawl4ai
+description: Crawl4AI (LLM-friendly web crawler, REST API and MCP) for Kubernetes - gunicorn as PID 1 with Redis as a native sidecar or external, generated API token, shutdown in seconds instead of a 30s hang, memory threshold below the OOM line, non-root and read-only, horizontal scaling with external Redis, Ingress or Gateway API, and a ServiceMonitor, alerts and Grafana dashboard.
+type: application
+version: 0.1.0
+appVersion: "0.9.5"
+kubeVersion: ">=1.29.0-0"
+home: https://www.oreonit.com/containerization-orchestration-management-kubernetes-openshift/
+icon: https://raw.githubusercontent.com/oreondev/helm-charts/main/icon.png
+sources:
+  - https://github.com/oreondev/helm-charts
+  - https://github.com/unclecode/crawl4ai
+keywords:
+  - crawl4ai
+  - web-crawler
+  - scraper
+  - llm
+  - rag
+  - mcp
+  - playwright
+  - ai
+maintainers:
+  - name: Oreon IT
+    email: info@oreonit.com
+    url: https://www.oreonit.com/
+annotations:
+  artifacthub.io/license: MIT
+  artifacthub.io/category: ai-machine-learning
+  artifacthub.io/prerelease: "false"
+  artifacthub.io/operator: "false"
+  artifacthub.io/images: |
+    - name: crawl4ai
+      image: unclecode/crawl4ai:0.9.5
+  artifacthub.io/links: |
+    - name: Crawl4AI self-hosting documentation
+      url: https://docs.crawl4ai.com/core/self-hosting/
+    - name: Kubernetes production readiness checklist
+      url: https://www.oreonit.com/kubernetes-production-readiness-checklist/
+  artifacthub.io/changes: |
+    - kind: added
+      description: First release, for Crawl4AI 0.9.5

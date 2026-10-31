@@ -1,0 +1,13 @@
+{{- if and .Values.podDisruptionBudget.enabled (include "crawl4ai.multiReplica" .) }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "crawl4ai.fullname" . }}
+  labels:
+    {{- include "crawl4ai.labels" . | nindent 4 }}
+spec:
+  maxUnavailable: {{ .Values.podDisruptionBudget.maxUnavailable }}
+  selector:
+    matchLabels:
+      {{- include "crawl4ai.selectorLabels" . | nindent 6 }}
+{{- end }}
