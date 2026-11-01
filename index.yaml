@@ -456,6 +456,53 @@ entries:
     urls:
     - https://github.com/oreondev/helm-charts/releases/download/kyverno-production-policies-0.1.1/kyverno-production-policies-0.1.1.tgz
     version: 0.1.1
+  llm-serving-observability:
+  - annotations:
+      artifacthub.io/category: monitoring-logging
+      artifacthub.io/changes: |
+        - kind: added
+          description: First release; tested against a real vLLM 0.32.0 (CPU image) and dcgm-exporter's default counters
+      artifacthub.io/license: MIT
+      artifacthub.io/links: |
+        - name: vLLM metrics
+          url: https://docs.vllm.ai/en/latest/design/metrics.html
+        - name: DCGM exporter
+          url: https://github.com/NVIDIA/dcgm-exporter
+      artifacthub.io/operator: "false"
+      artifacthub.io/prerelease: "false"
+    apiVersion: v2
+    appVersion: 0.1.0
+    created: "2026-11-01T10:54:05.950393151Z"
+    description: Alerts, recording rules and Grafana dashboards for self-hosted LLM
+      serving on Kubernetes - vLLM (queue, KV cache, preemptions, errors, time to
+      first token, inter-token latency, tokens per second, prefix cache) and NVIDIA
+      GPUs via DCGM (XID errors, temperature, memory, row remap failures, GPUs assigned
+      but idle), with optional PodMonitors and SLO examples for slo-burn-rate-alerts.
+    digest: e4568cde4c9ede4ce6eb889be37a761629720046b24947676ca0466d53475e34
+    home: https://www.oreonit.com/observability-and-monitoring-consultancy-services/
+    icon: https://raw.githubusercontent.com/oreondev/helm-charts/main/icon.png
+    keywords:
+    - vllm
+    - llm
+    - gpu
+    - dcgm
+    - nvidia
+    - prometheus
+    - alerting
+    - grafana
+    - observability
+    kubeVersion: '>=1.25.0-0'
+    maintainers:
+    - email: info@oreonit.com
+      name: Oreon IT
+      url: https://www.oreonit.com/
+    name: llm-serving-observability
+    sources:
+    - https://github.com/oreondev/helm-charts
+    type: application
+    urls:
+    - https://github.com/oreondev/helm-charts/releases/download/llm-serving-observability-0.1.0/llm-serving-observability-0.1.0.tgz
+    version: 0.1.0
   namespace-baseline:
   - annotations:
       artifacthub.io/category: security
@@ -854,4 +901,4 @@ entries:
     urls:
     - https://github.com/oreondev/helm-charts/releases/download/velero-backup-schedules-0.1.0/velero-backup-schedules-0.1.0.tgz
     version: 0.1.0
-generated: "2026-10-31T00:12:07.72533193Z"
+generated: "2026-11-01T10:54:05.950428565Z"
