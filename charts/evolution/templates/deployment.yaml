@@ -1,0 +1,224 @@
+{{- $v := .Values }}
+{{- $heap := include "evolution.maxOldSpaceMB" . }}
+{{- $probe := ternary (dict "httpGet" (dict "path" "/manager/" "port" "http")) (dict "tcpSocket" (dict "port" "http")) $v.manager.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "evolution.fullname" . }}
+  labels:
+    {{- include "evolution.labels" . | nindent 4 }}
+spec:
+  # One replica by design: WhatsApp sessions are sockets inside the process (see values.yaml).
+  replicas: 1
+  strategy:
+    type: Recreate
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      {{- include "evolution.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "evolution.selectorLabels" . | nindent 8 }}
+        {{- with $v.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      annotations:
+        checksum/env: {{ include "evolution.env" . | sha256sum }}
+        checksum/secret: {{ include "evolution.secretData" . | sha256sum }}
+        {{- with $v.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "evolution.serviceAccountName" . }}
+      automountServiceAccountToken: {{ $v.automountServiceAccountToken }}
+      enableServiceLinks: false
+      {{- with $v.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
+      {{- with $v.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $v.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      terminationGracePeriodSeconds: {{ $v.terminationGracePeriodSeconds }}
+      {{- if or $v.database.migrations.enabled (eq $v.database.provider "mysql") $v.extraInitContainers }}
+      initContainers:
+        {{- if eq $v.database.provider "mysql" }}
+        # The image's Prisma client is generated for PostgreSQL; regenerate it into a shared volume.
+        - name: prisma-generate
+          image: {{ include "evolution.image" . }}
+          imagePullPolicy: {{ $v.image.pullPolicy }}
+          command: ["node", "node_modules/prisma/build/index.js", "generate", "--schema", "prisma/mysql-schema.prisma"]
+          env:
+            - { name: HOME, value: /tmp }
+          {{- with $v.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          resources:
+            {{- toYaml $v.resources | nindent 12 }}
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+            - { name: prisma-client, mountPath: /evolution/node_modules/.prisma }
+        {{- end }}
+        {{- if $v.database.migrations.enabled }}
+        # Migrations once per rollout, before the API starts (the image's entrypoint runs them in the
+        # API container on every start, regenerates the client and prints the database URL to the log).
+        - name: migrate
+          image: {{ include "evolution.image" . }}
+          imagePullPolicy: {{ $v.image.pullPolicy }}
+          command: ["/bin/sh", "-ec"]
+          args:
+            - |
+              [ -n "${DATABASE_MIGRATION_URI:-}" ] && export DATABASE_CONNECTION_URI="$DATABASE_MIGRATION_URI"
+              [ -n "${DATABASE_CONNECTION_URI:-}" ] || { echo "DATABASE_CONNECTION_URI is not set (database.uri, database.existingSecret or extraEnvFrom)"; exit 1; }
+              # /tmp survives init container restarts; start clean so a retry does not nest the copy.
+              rm -rf /tmp/prisma && mkdir -p /tmp/prisma
+              cp "prisma/${DATABASE_PROVIDER}-schema.prisma" /tmp/prisma/schema.prisma
+              cp -r "prisma/${DATABASE_PROVIDER}-migrations" /tmp/prisma/migrations
+              exec node node_modules/prisma/build/index.js migrate deploy --schema /tmp/prisma/schema.prisma
+          envFrom:
+            {{- include "evolution.envFrom" . | nindent 12 }}
+          env:
+            - { name: HOME, value: /tmp }
+            {{- with include "evolution.secretRefEnv" . | trim }}
+            {{- . | nindent 12 }}
+            {{- end }}
+            {{- with $v.database.migrations.existingSecret }}
+            - name: DATABASE_MIGRATION_URI
+              valueFrom: { secretKeyRef: { name: {{ . }}, key: {{ $v.database.migrations.existingSecretKey }} } }
+            {{- end }}
+          {{- with $v.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          resources:
+            {{- toYaml $v.resources | nindent 12 }}
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+            {{- if eq $v.database.provider "mysql" }}
+            - { name: prisma-client, mountPath: /evolution/node_modules/.prisma }
+            {{- end }}
+        {{- end }}
+        {{- with $v.extraInitContainers }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- end }}
+      containers:
+        - name: evolution
+          image: {{ include "evolution.image" . }}
+          imagePullPolicy: {{ $v.image.pullPolicy }}
+          # Not the image's bash -> npm -> node chain (migrations and a client rebuild on every start, the
+          # database URL in the log). Node registers no signal handlers and the kernel ignores SIGTERM for
+          # PID 1, so a small sh forwards it; otherwise every stop waits out the grace period and is killed.
+          command: ["/bin/sh", "-c", "node dist/main & child=$!; trap 'kill -TERM $child' TERM INT; wait $child; trap - TERM INT; wait $child"]
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          envFrom:
+            {{- include "evolution.envFrom" . | nindent 12 }}
+          env:
+            - { name: HOME, value: /tmp }
+            {{- if $heap }}
+            - { name: NODE_OPTIONS, value: "--max-old-space-size={{ $heap }}" }
+            {{- end }}
+            {{- with include "evolution.secretRefEnv" . | trim }}
+            {{- . | nindent 12 }}
+            {{- end }}
+            {{- with $v.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with $v.probes.startup }}
+          {{- if .enabled }}
+          startupProbe:
+            {{- toYaml $probe | nindent 12 }}
+            periodSeconds: {{ .periodSeconds }}
+            failureThreshold: {{ .failureThreshold }}
+          {{- end }}
+          {{- end }}
+          {{- with $v.probes.liveness }}
+          {{- if .enabled }}
+          livenessProbe:
+            {{- toYaml $probe | nindent 12 }}
+            periodSeconds: {{ .periodSeconds }}
+            timeoutSeconds: {{ .timeoutSeconds }}
+            failureThreshold: {{ .failureThreshold }}
+          {{- end }}
+          {{- end }}
+          {{- with $v.probes.readiness }}
+          {{- if .enabled }}
+          readinessProbe:
+            {{- toYaml $probe | nindent 12 }}
+            periodSeconds: {{ .periodSeconds }}
+            timeoutSeconds: {{ .timeoutSeconds }}
+            failureThreshold: {{ .failureThreshold }}
+          {{- end }}
+          {{- end }}
+          {{- with $v.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          resources:
+            {{- toYaml $v.resources | nindent 12 }}
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+            - { name: instances, mountPath: /evolution/instances }
+            - { name: store, mountPath: /evolution/store }
+            {{- if $v.maskImageDotenv }}
+            - { name: dotenv, mountPath: /evolution/.env, subPath: .env, readOnly: true }
+            {{- end }}
+            {{- if eq $v.database.provider "mysql" }}
+            - { name: prisma-client, mountPath: /evolution/node_modules/.prisma, readOnly: true }
+            {{- end }}
+            {{- with $v.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 1Gi
+        - name: instances
+          {{- if $v.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ default (printf "%s-instances" (include "evolution.fullname" .)) $v.persistence.existingClaim }}
+          {{- else }}
+          emptyDir:
+            sizeLimit: 256Mi
+          {{- end }}
+        - name: store
+          {{- if $v.persistence.store.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "evolution.fullname" . }}-store
+          {{- else }}
+          emptyDir:
+            sizeLimit: 2Gi
+          {{- end }}
+        {{- if $v.maskImageDotenv }}
+        - name: dotenv
+          configMap:
+            name: {{ include "evolution.fullname" . }}-dotenv
+        {{- end }}
+        {{- if eq $v.database.provider "mysql" }}
+        - name: prisma-client
+          emptyDir: {}
+        {{- end }}
+        {{- with $v.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with $v.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $v.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $v.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

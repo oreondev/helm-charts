@@ -7,6 +7,7 @@ Every chart is versioned on its own ([SemVer](https://semver.org/): patch for fi
 | alertmanager-routing-baseline | 0.1.0 | - | released |
 | blackbox-slo-probes | 0.1.1 | - | released |
 | crawl4ai | 0.2.0 | Crawl4AI 0.9.5 | released |
+| evolution | 0.2.0 | Evolution API 2.3.7 | released |
 | gateway-api-baseline | 0.1.0 | - | released |
 | k8s-cost-waste-alerts | 0.2.1 | - | released |
 | kyverno-production-policies | 0.1.1 | - | released |
@@ -23,6 +24,24 @@ Images built here ([images/](images)):
 | ghcr.io/oreondev/crawl4ai-server | 0.9.5 | crawl4ai |
 
 ## 2026-11-01
+
+### evolution 0.2.0 (Evolution API 2.3.7)
+
+Rewrite of the 0.1.0 scaffold.
+- **Changed:** image `evoapicloud/evolution-api` (the old `atendai/evolution-api` can no longer be pulled).
+- **Changed:** one replica with Recreate. The HPA is removed, because WhatsApp sessions cannot be shared between pods.
+- **Changed:** `config` is a map of environment variables. The Service is named after the release and listens on 8080; set `service.name: evolution` and `service.port: 80` to keep the old ones. `extraEnvFrom` is no longer pre-filled.
+- **Removed:** `replicaCount`, `autoscaling`, `existingConfigMap`, `configMountPath`, `configFileName`, `extraArgs`, `serviceAccountName`. The values schema rejects them.
+- **Added:** migrations in an init container, generated API key, database, Redis and metrics settings, MySQL support, a separate migration URL for PgBouncer, HTTPRoute, values schema.
+- **Added:** Prometheus metrics, a ServiceMonitor (the `instance` label is renamed to `wa_instance`) and three alerts.
+- **Security:** non-root and read-only. The image's example `.env` (example API key, telemetry) is masked. The database URL no longer appears in logs.
+- **Measured:**
+
+  | | Before | Now |
+  |---|---|---|
+  | Ready | 16.1 s | 5.9 s |
+  | Memory | 329 MiB | 221 MiB |
+  | Stop | 31.6 s | 2.5 s |
 
 ### crawl4ai 0.2.0 (Crawl4AI 0.9.5)
 

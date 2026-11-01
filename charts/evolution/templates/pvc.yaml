@@ -1,0 +1,23 @@
+{{- $p := .Values.persistence }}
+{{- range $name, $want := dict "instances" (and $p.enabled (not $p.existingClaim)) "store" $p.store.enabled }}
+{{- if $want }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "evolution.fullname" $ }}-{{ $name }}
+  labels:
+    {{- include "evolution.labels" $ | nindent 4 }}
+  annotations:
+    helm.sh/resource-policy: keep
+spec:
+  accessModes:
+    {{- toYaml $p.accessModes | nindent 4 }}
+  {{- with $p.storageClass }}
+  storageClassName: {{ . | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ ternary $p.store.size $p.size (eq $name "store") }}
+{{- end }}
+{{- end }}

@@ -1,0 +1,46 @@
+{{- if and .Values.metrics.enabled .Values.metrics.serviceMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "evolution.fullname" . }}
+  labels:
+    {{- include "evolution.labels" . | nindent 4 }}
+    {{- with .Values.metrics.serviceMonitor.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "evolution.selectorLabels" . | nindent 6 }}
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: {{ .Values.metrics.serviceMonitor.interval }}
+      scrapeTimeout: {{ .Values.metrics.serviceMonitor.scrapeTimeout }}
+      basicAuth:
+        username:
+          name: {{ include "evolution.fullname" . }}-metrics-auth
+          key: username
+        password:
+          name: {{ default (printf "%s-metrics-auth" (include "evolution.fullname" .)) .Values.metrics.existingSecret }}
+          key: {{ ternary .Values.metrics.existingSecretKey "password" (not (empty .Values.metrics.existingSecret)) }}
+      metricRelabelings:
+        # The API labels each WhatsApp instance "instance", which clashes with the target label.
+        - sourceLabels: [exported_instance]
+          targetLabel: wa_instance
+        - regex: exported_instance
+          action: labeldrop
+---
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  name: {{ include "evolution.fullname" . }}-metrics-auth
+  labels:
+    {{- include "evolution.labels" . | nindent 4 }}
+stringData:
+  username: {{ .Values.metrics.username | quote }}
+  {{- if not .Values.metrics.existingSecret }}
+  password: {{ get (include "evolution.secretData" . | fromYaml) "METRICS_PASSWORD" | quote }}
+  {{- end }}
+{{- end }}

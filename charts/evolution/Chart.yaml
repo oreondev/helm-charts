@@ -1,0 +1,45 @@
+apiVersion: v2
+name: evolution
+description: Evolution API (WhatsApp via Baileys or the Cloud API) for Kubernetes - migrations in an init container, Node as PID 1 with a heap cap sized from the memory limit, non-root and read-only, probes that do not call WhatsApp, Redis-backed sessions without a volume, generated API key, Ingress or Gateway API, and Prometheus metrics, ServiceMonitor and alerts.
+type: application
+version: 0.2.0
+appVersion: "2.3.7"
+kubeVersion: ">=1.25.0-0"
+home: https://www.oreonit.com/containerization-orchestration-management-kubernetes-openshift/
+icon: https://raw.githubusercontent.com/oreondev/helm-charts/main/icon.png
+sources:
+  - https://github.com/oreondev/helm-charts
+  - https://github.com/evolution-foundation/evolution-api
+keywords:
+  - evolution-api
+  - whatsapp
+  - whatsapp-api
+  - baileys
+  - chatbot
+  - n8n
+  - chatwoot
+  - messaging
+maintainers:
+  - name: Oreon IT
+    email: info@oreonit.com
+    url: https://www.oreonit.com/
+annotations:
+  artifacthub.io/license: MIT
+  artifacthub.io/category: integration-delivery
+  artifacthub.io/prerelease: "false"
+  artifacthub.io/operator: "false"
+  artifacthub.io/images: |
+    - name: evolution-api
+      image: evoapicloud/evolution-api:v2.3.7
+  artifacthub.io/links: |
+    - name: Evolution API documentation
+      url: https://doc.evolution-api.com
+    - name: Kubernetes production readiness checklist
+      url: https://www.oreonit.com/kubernetes-production-readiness-checklist/
+  artifacthub.io/changes: |
+    - kind: changed
+      description: Rewritten for Evolution API 2.3.7 (evoapicloud image); one replica with Recreate, HPA removed (sessions cannot be shared between pods)
+    - kind: added
+      description: Migrations in an init container, generated API key, database/Redis/metrics settings, Prometheus metrics with ServiceMonitor and alerts, HTTPRoute, values schema
+    - kind: security
+      description: Runs as non-root with a read-only root filesystem; masks the image's example .env (example API key, telemetry); no database URL in logs

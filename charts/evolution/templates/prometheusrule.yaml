@@ -1,0 +1,42 @@
+{{- if and .Values.metrics.enabled .Values.metrics.prometheusRule.enabled }}
+{{- $r := .Values.metrics.prometheusRule }}
+{{- $sel := printf "namespace=%q, service=%q" .Release.Namespace (include "evolution.serviceName" .) }}
+{{- $ignore := ternary (printf ", wa_instance!~%q" $r.ignoreInstances) "" (not (empty $r.ignoreInstances)) }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "evolution.fullname" . }}
+  labels:
+    {{- include "evolution.labels" . | nindent 4 }}
+    {{- with $r.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  groups:
+    - name: evolution-api
+      rules:
+        - alert: EvolutionAPIDown
+          expr: up{ {{- $sel -}} } == 0 or absent(up{ {{- $sel -}} })
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: Evolution API {{ .Release.Namespace }}/{{ include "evolution.fullname" . }} is not answering scrapes
+            description: No WhatsApp messages are sent or received while the API is down. Check the pod and its migrate init container.
+        - alert: EvolutionInstanceDisconnected
+          expr: evolution_instance_up{ {{- $sel }}{{ $ignore -}} } == 0
+          for: {{ $r.instanceDownFor }}
+          labels:
+            severity: {{ $r.severity }}
+          annotations:
+            summary: 'WhatsApp instance {{ "{{" }} $labels.wa_instance {{ "}}" }} is disconnected'
+            description: 'State {{ "{{" }} with printf "evolution_instance_state{wa_instance=%q, state!=\"open\"} == 1" $labels.wa_instance | query {{ "}}" }}{{ "{{" }} . | first | label "state" {{ "}}" }}{{ "{{" }} end {{ "}}" }} for {{ $r.instanceDownFor }}. If the phone was logged out it needs a new QR scan in the manager.'
+        - alert: EvolutionNoInstances
+          expr: evolution_instances_total{ {{- $sel -}} } == 0
+          for: 30m
+          labels:
+            severity: info
+          annotations:
+            summary: Evolution API has no instances loaded
+            description: After a restart the API reloads instances from the database; none came back. Check DATABASE_CONNECTION_CLIENT_NAME and the database.
+{{- end }}

@@ -1,0 +1,19 @@
+Evolution API {{ include "evolution.imageTag" . }} is starting as {{ include "evolution.fullname" . }} in {{ .Release.Namespace }}.
+
+URL:      {{ include "evolution.serverUrl" . }}
+{{- if .Values.manager.enabled }}
+Manager:  {{ include "evolution.serverUrl" . }}/manager
+{{- end }}
+
+API key:
+{{- if .Values.auth.existingSecret }}
+  kubectl -n {{ .Release.Namespace }} get secret {{ .Values.auth.existingSecret }} -o jsonpath='{.data.{{ .Values.auth.existingSecretKey }}}' | base64 -d
+{{- else }}
+  kubectl -n {{ .Release.Namespace }} get secret {{ include "evolution.fullname" . }} -o jsonpath='{.data.AUTHENTICATION_API_KEY}' | base64 -d
+{{- end }}
+
+Local access:
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "evolution.serviceName" . }} 8080:{{ .Values.service.port }}
+
+Migrations run in the "migrate" init container:
+  kubectl -n {{ .Release.Namespace }} logs deploy/{{ include "evolution.fullname" . }} -c migrate
