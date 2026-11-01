@@ -6,7 +6,7 @@ Every chart is versioned on its own ([SemVer](https://semver.org/): patch for fi
 |---|---|---|---|
 | alertmanager-routing-baseline | 0.1.0 | - | released |
 | blackbox-slo-probes | 0.1.1 | - | released |
-| crawl4ai | 0.1.0 | Crawl4AI 0.9.5 | released |
+| crawl4ai | 0.2.0 | Crawl4AI 0.9.5 | released |
 | gateway-api-baseline | 0.1.0 | - | released |
 | k8s-cost-waste-alerts | 0.2.1 | - | released |
 | kyverno-production-policies | 0.1.1 | - | released |
@@ -16,7 +16,23 @@ Every chart is versioned on its own ([SemVer](https://semver.org/): patch for fi
 | slo-burn-rate-alerts | 0.3.2 | - | released |
 | velero-backup-schedules | 0.1.0 | - | released |
 
+Images built here ([images/](images)):
+
+| Image | Version | Used by |
+|---|---|---|
+| ghcr.io/oreondev/crawl4ai-server | 0.9.5 | crawl4ai |
+
 ## 2026-11-01
+
+### crawl4ai 0.2.0 (Crawl4AI 0.9.5)
+
+- **Changed:** the default image is `ghcr.io/oreondev/crawl4ai-server`, the upstream image rebuilt on `python:3.12-slim-bookworm` ([images/crawl4ai](images/crawl4ai)). Same Python packages, app code and Chromium; no compilers, `-dev` packages, kernel headers, GStreamer or FFmpeg, no `/tmp/project` lock files, no pip. Set `image.repository: unclecode/crawl4ai` to keep the upstream image.
+- **Security:** Trivy findings 5,929 down to 481 (critical 68 to 4), none left with a fix available. Upgraded within Crawl4AI's ranges: pillow 13, PyJWT 2.15, pypdf 6.21, nltk 3.10.4, brotli 1.2.1, certifi, filelock.
+- **Tested** through the chart on kind with both images, three runs each: crawls, background jobs through the Redis sidecar, `/metrics` behind the token, ServiceMonitor scrape and alert rules. Ready in 3-4 s, idle memory 258-262 MiB, stop after a crawl 3.6-4.0 s, in line with the upstream image.
+
+### Repository
+
+- `images/` and the `images` workflow: builds each `images/<app>/<name>.Dockerfile` for amd64 and arm64 from the upstream version in `VERSION`, scans with Trivy, pushes `ghcr.io/oreondev/<app>-<name>` signed with cosign (keyless) and rebuilds weekly. Pull requests build and load these images for chart tests.
 
 ### llm-serving-observability 0.1.0
 

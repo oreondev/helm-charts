@@ -1,7 +1,10 @@
 # Crawl4AI (LLM-friendly web crawler and scraper, REST API + MCP) on Kubernetes.
 
 image:
-  repository: unclecode/crawl4ai
+  # Our rebuild of the upstream image (images/crawl4ai in this repository): same Crawl4AI, Python
+  # packages and Chromium, without the build tools and unused browser libraries, and with patched
+  # Python packages. Signed and rebuilt weekly. unclecode/crawl4ai works too (same tags).
+  repository: ghcr.io/oreondev/crawl4ai-server
   # Defaults to appVersion. Pin a tag (or a digest) in production; "latest" moves under you.
   tag: ""
   digest: ""

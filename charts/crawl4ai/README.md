@@ -24,6 +24,19 @@ What the chart changes compared with running the image as shipped (0.9.5, same f
 - **Non-root (uid 999), read-only root filesystem**, sized emptyDirs for `/tmp`, `/dev/shm`, the crawl cache and the artifact store; the artifact quota follows `artifacts.size`.
 - **Monitoring**: a ServiceMonitor that sends the API token (`/metrics` is behind the auth gate), alerts (API down, 5xx ratio, slow crawls, memory near the limit, OOM kills) and a Grafana dashboard. Changing only monitoring values does not restart the pod.
 
+## Image
+
+The chart uses `ghcr.io/oreondev/crawl4ai-server`, built in this repository from the upstream image ([images/crawl4ai](../../images/crawl4ai)). The upstream image ships its whole build environment: compilers, about 20 `-dev` packages, kernel headers, and the GStreamer and FFmpeg libraries that Playwright's WebKit and Firefox need, although Crawl4AI only drives Chromium. It also keeps the build project with old lock files in `/tmp/project`, so scanners report thousands of findings for packages it never runs. The rebuild copies the same Python, packages, application and Chromium browsers onto `python:3.12-slim-bookworm` with only Chromium's runtime libraries and Redis, and upgrades the Python packages that have fixes within Crawl4AI's version ranges. The upstream code is not modified.
+
+| Crawl4AI 0.9.5 | `unclecode/crawl4ai` | `ghcr.io/oreondev/crawl4ai-server` |
+|---|---|---|
+| Trivy findings (critical / high / medium / low) | 5,929 (68 / 868 / 3,210 / 1,724) | 481 (4 / 84 / 197 / 186) |
+| Findings with a fix available | 1,743 | 0 |
+| Size unpacked | 5.7 GB | 2.7 GB |
+| Ready / idle memory / stop after a crawl, with this chart (3 runs each) | 3-12 s / 262-430 MiB / 3.4-4.7 s | 3-4 s / 258-262 MiB / 3.6-4.0 s |
+
+The remaining findings are Debian packages with no fixed version yet; the weekly rebuild picks fixes up as Debian publishes them. Images are signed with cosign (keyless, GitHub Actions). To use the upstream image instead, set `image.repository: unclecode/crawl4ai`; the tags are the same.
+
 ## Install
 
 ```bash
@@ -89,7 +102,7 @@ MCP clients connect to `/mcp/sse` (or `/mcp/ws`) with the same bearer token.
 
 ### Sizing and cold starts
 
-The image is 2.3 GB to download and 5.7 GB unpacked (Chromium, Playwright, Python). On a warm node the pod is ready in about 4 seconds; on a new node the pull dominates. On GKE enable [image streaming](https://cloud.google.com/kubernetes-engine/docs/how-to/image-streaming) or keep a minimum of nodes with the image cached, and mirror the image into your own registry.
+The image is 2.7 GB unpacked (5.7 GB for the upstream one): Chromium, Playwright and Python. On a warm node the pod is ready in about 4 seconds; on a new node the pull dominates. On GKE enable [image streaming](https://cloud.google.com/kubernetes-engine/docs/how-to/image-streaming) or keep a minimum of nodes with the image cached, and mirror the image into your own registry.
 
 Memory follows open pages: `crawler.pool.max_pages` (40 upstream) times 100-150 MiB, plus about 300 MiB for the process. Keep `resources.limits.memory` above that, or lower `max_pages`; the memory alert and the dashboard show how close a pod gets.
 
@@ -101,6 +114,7 @@ Screenshots and PDFs are stored on the pod that made them and fetched later from
 
 | Key | Default | |
 |---|---|---|
+| `image.repository` | `ghcr.io/oreondev/crawl4ai-server` | or `unclecode/crawl4ai` |
 | `image.tag` / `image.digest` | appVersion | pin one in production |
 | `auth.apiToken` / `auth.existingSecret` | generated | `CRAWL4AI_API_TOKEN` |
 | `redis.mode` | `sidecar` | or `external` (needed for more than one replica) |
@@ -122,6 +136,6 @@ Everything is validated by `values.schema.json`.
 
 ## Credits and licence
 
-This product includes software developed by UncleCode (https://x.com/unclecode) as part of the Crawl4AI project (https://github.com/unclecode/crawl4ai). The chart deploys the upstream image unmodified.
+This product includes software developed by UncleCode (https://x.com/unclecode) as part of the Crawl4AI project (https://github.com/unclecode/crawl4ai). The image is rebuilt from the upstream image without changes to the Crawl4AI code.
 
 The chart is MIT licensed and maintained by [Oreon IT](https://www.oreonit.com/?utm_source=helm-chart&utm_medium=readme&utm_campaign=crawl4ai), a DevOps, SRE and cloud consultancy in London. If you run crawling or other AI workloads on Kubernetes and want them sized, monitored and kept up to date, [that is the day job](https://www.oreonit.com/containerization-orchestration-management-kubernetes-openshift/?utm_source=helm-chart&utm_medium=readme&utm_campaign=crawl4ai).

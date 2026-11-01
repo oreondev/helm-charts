@@ -4,7 +4,7 @@
 [![Release](https://github.com/oreondev/helm-charts/actions/workflows/release.yml/badge.svg)](https://github.com/oreondev/helm-charts/actions/workflows/release.yml)
 [![Licence: MIT](https://img.shields.io/badge/licence-MIT-blue.svg)](LICENSE)
 
-Charts we install on client clusters, published so you can use them too. None of them installs Prometheus, Grafana, Kyverno or Velero: each one packages the configuration that teams otherwise hand-write on top of those tools. The exception is the crawl4ai application chart, which runs the upstream application itself.
+Charts we install on client clusters, published so you can use them too. None of them installs Prometheus, Grafana, Kyverno or Velero: each one packages the configuration that teams otherwise hand-write on top of those tools. The exception is the crawl4ai application chart, which runs the upstream application itself from an image rebuilt here on a slim base ([images](images)).
 
 | Chart | What it does | Needs |
 |---|---|---|
