@@ -1,0 +1,135 @@
+name: images
+
+# Container images for application charts whose upstream publishes none usable. Every
+# images/<app>/<name>.Dockerfile is built from the upstream release in images/<app>/VERSION
+# (build arg UPSTREAM_VERSION) as ghcr.io/oreondev/<app>-<name>.
+#
+#   pull request      build for amd64 and arm64, scan, no push
+#   push to main      build, scan, push <version> and <version>-<commit>, sign (keyless cosign)
+#   weekly / manual   rebuild and push the same tags, picking up base image security fixes
+#
+# Images are created private on GHCR; set each package to public once (Package settings > Change visibility),
+# or the charts cannot pull them.
+
+on:
+  pull_request:
+    paths:
+      - "images/**"
+      - ".github/workflows/images.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "images/**"
+      - ".github/workflows/images.yml"
+  schedule:
+    - cron: "23 4 * * 1"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.list.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: list
+        run: |
+          python3 - <<'EOF' >> "$GITHUB_OUTPUT"
+          import glob, json, os
+          items = []
+          for df in sorted(glob.glob("images/*/*.Dockerfile")):
+              app = df.split("/")[1]
+              name = os.path.basename(df)[: -len(".Dockerfile")]
+              version = open(f"images/{app}/VERSION").read().strip()
+              items.append({"app": app, "dockerfile": df, "image": f"{app}-{name}", "version": version})
+          print("matrix=" + json.dumps({"include": items}))
+          EOF
+
+  build:
+    needs: discover
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write   # keyless signing
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.discover.outputs.matrix) }}
+    env:
+      IMAGE: ghcr.io/oreondev/${{ matrix.image }}
+      PUSH: ${{ github.event_name != 'pull_request' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        if: env.PUSH == 'true'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Single-platform build loaded into the runner for the scan; the multi-platform push below reuses its cache.
+      - name: Build for scanning
+        uses: docker/build-push-action@v6
+        with:
+          context: images/${{ matrix.app }}
+          file: ${{ matrix.dockerfile }}
+          build-args: UPSTREAM_VERSION=${{ matrix.version }}
+          load: true
+          tags: ${{ env.IMAGE }}:scan
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+
+      - name: Scan (critical and high, fixable)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ env.IMAGE }}:scan
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          format: table
+          exit-code: "0"
+
+      - name: Build and push (amd64, arm64)
+        id: push
+        if: env.PUSH == 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: images/${{ matrix.app }}
+          file: ${{ matrix.dockerfile }}
+          platforms: linux/amd64,linux/arm64
+          build-args: UPSTREAM_VERSION=${{ matrix.version }}
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:${{ matrix.version }}
+            ${{ env.IMAGE }}:${{ matrix.version }}-${{ github.sha }}
+          labels: |
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ matrix.version }}
+          provenance: mode=max
+          sbom: true
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+
+      - uses: sigstore/cosign-installer@v3
+        if: env.PUSH == 'true'
+
+      - name: Sign
+        if: env.PUSH == 'true'
+        run: cosign sign --yes "${IMAGE}@${{ steps.push.outputs.digest }}"
+
+      - name: Summary
+        if: env.PUSH == 'true'
+        run: |
+          {
+            echo "### ${IMAGE}:${{ matrix.version }}"
+            echo "Digest: \`${{ steps.push.outputs.digest }}\`"
+            echo
+            echo "Verify: \`cosign verify ${IMAGE}@${{ steps.push.outputs.digest }} --certificate-identity-regexp 'https://github.com/${{ github.repository }}/' --certificate-oidc-issuer https://token.actions.githubusercontent.com\`"
+          } >> "$GITHUB_STEP_SUMMARY"

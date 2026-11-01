@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "charts/**"
+      - "images/**"
       - "dashboards/**"
       - "ct.yaml"
       - ".github/workflows/lint-test.yml"
@@ -80,6 +81,23 @@ jobs:
           kubectl wait --for=condition=Established crd --all --timeout=120s
           # Namespaces the velero and kyverno test values refer to
           kubectl create namespace velero --dry-run=client -o yaml | kubectl apply -f -
+
+      # Charts that use images built in this repository (images/<app>) are installed with images built from the
+      # pull request, so a chart change and its image change can land together.
+      - name: Build and load this repository's images
+        if: steps.list-changed.outputs.changed == 'true'
+        run: |
+          set -euo pipefail
+          for dir in images/*/; do
+            app=$(basename "$dir")
+            git diff --quiet origin/main...HEAD -- "charts/$app" "images/$app" && continue
+            version=$(cat "$dir/VERSION")
+            for df in "$dir"*.Dockerfile; do
+              image="ghcr.io/oreondev/$app-$(basename "$df" .Dockerfile):$version"
+              docker build -q -f "$df" --build-arg UPSTREAM_VERSION="$version" -t "$image" "$dir"
+              kind load docker-image "$image" --name chart-testing
+            done
+          done
 
       - name: Install
         if: steps.list-changed.outputs.changed == 'true'
