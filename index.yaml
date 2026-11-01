@@ -250,6 +250,60 @@ entries:
     urls:
     - https://github.com/oreondev/helm-charts/releases/download/crawl4ai-0.1.0/crawl4ai-0.1.0.tgz
     version: 0.1.0
+  evolution:
+  - annotations:
+      artifacthub.io/category: integration-delivery
+      artifacthub.io/changes: |
+        - kind: changed
+          description: Rewritten for Evolution API 2.3.7 (evoapicloud image); one replica with Recreate, HPA removed (sessions cannot be shared between pods)
+        - kind: added
+          description: Migrations in an init container, generated API key, database/Redis/metrics settings, Prometheus metrics with ServiceMonitor and alerts, HTTPRoute, values schema
+        - kind: security
+          description: Runs as non-root with a read-only root filesystem; masks the image's example .env (example API key, telemetry); no database URL in logs
+      artifacthub.io/images: |
+        - name: evolution-api
+          image: evoapicloud/evolution-api:v2.3.7
+      artifacthub.io/license: MIT
+      artifacthub.io/links: |
+        - name: Evolution API documentation
+          url: https://doc.evolution-api.com
+        - name: Kubernetes production readiness checklist
+          url: https://www.oreonit.com/kubernetes-production-readiness-checklist/
+      artifacthub.io/operator: "false"
+      artifacthub.io/prerelease: "false"
+    apiVersion: v2
+    appVersion: 2.3.7
+    created: "2026-11-01T13:00:12.732694167Z"
+    description: Evolution API (WhatsApp via Baileys or the Cloud API) for Kubernetes
+      - migrations in an init container, Node as PID 1 with a heap cap sized from
+      the memory limit, non-root and read-only, probes that do not call WhatsApp,
+      Redis-backed sessions without a volume, generated API key, Ingress or Gateway
+      API, and Prometheus metrics, ServiceMonitor and alerts.
+    digest: 90134d4e705264957bf3949a1887cba719054c98995a282778bceacb26b5157f
+    home: https://www.oreonit.com/containerization-orchestration-management-kubernetes-openshift/
+    icon: https://raw.githubusercontent.com/oreondev/helm-charts/main/icon.png
+    keywords:
+    - evolution-api
+    - whatsapp
+    - whatsapp-api
+    - baileys
+    - chatbot
+    - n8n
+    - chatwoot
+    - messaging
+    kubeVersion: '>=1.25.0-0'
+    maintainers:
+    - email: info@oreonit.com
+      name: Oreon IT
+      url: https://www.oreonit.com/
+    name: evolution
+    sources:
+    - https://github.com/oreondev/helm-charts
+    - https://github.com/evolution-foundation/evolution-api
+    type: application
+    urls:
+    - https://github.com/oreondev/helm-charts/releases/download/evolution-0.2.0/evolution-0.2.0.tgz
+    version: 0.2.0
   gateway-api-baseline:
   - annotations:
       artifacthub.io/category: networking
@@ -952,4 +1006,4 @@ entries:
     urls:
     - https://github.com/oreondev/helm-charts/releases/download/velero-backup-schedules-0.1.0/velero-backup-schedules-0.1.0.tgz
     version: 0.1.0
-generated: "2026-11-01T12:02:39.646288922Z"
+generated: "2026-11-01T13:00:12.732730475Z"
