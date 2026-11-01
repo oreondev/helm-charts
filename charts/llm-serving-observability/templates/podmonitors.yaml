@@ -1,0 +1,41 @@
+{{- range $name, $t := .Values.scrape }}
+{{- if $t.enabled }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: {{ include "lso.fullname" $ }}-{{ $name }}
+  labels:
+    {{- include "lso.labels" $ | nindent 4 }}
+    {{- with $t.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  jobLabel: app.kubernetes.io/name
+  namespaceSelector:
+    {{- toYaml $t.namespaceSelector | nindent 4 }}
+  selector:
+    {{- toYaml $t.selector | nindent 4 }}
+  podMetricsEndpoints:
+    - port: {{ $t.port }}
+      path: /metrics
+      interval: {{ $t.interval }}
+      {{- if eq $name "dcgm" }}
+      # dcgm-exporter labels each GPU with the namespace/pod/container using it; keep those instead of the
+      # exporter pod's own (as the GPU Operator's ServiceMonitor does).
+      honorLabels: true
+      # Clear the exporter pod's own namespace/pod/container, so a GPU no workload uses has none (instead of
+      # looking assigned to the exporter).
+      relabelings:
+        - { targetLabel: namespace, replacement: "" }
+        - { targetLabel: pod, replacement: "" }
+        - { targetLabel: container, replacement: "" }
+      {{- end }}
+      {{- if eq $name "vllm" }}
+      relabelings:
+        # job="vllm", which the default vllm.upMatcher selects.
+        - targetLabel: job
+          replacement: vllm
+      {{- end }}
+{{- end }}
+{{- end }}

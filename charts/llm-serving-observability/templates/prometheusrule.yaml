@@ -1,0 +1,204 @@
+{{- if .Values.prometheusRule.enabled }}
+{{- $v := .Values }}
+{{- $vm := $v.vllm.matchers }}
+{{- $ign := ternary (printf "model_name!~%q" $v.vllm.ignoreModels) "" (not (empty $v.vllm.ignoreModels)) }}
+{{- $s := include "lso.sel" (list $vm) }}
+{{- $si := include "lso.sel" (list $vm $ign) }}
+{{- $a := $v.vllm.alerts }}
+{{- $gm := $v.gpu.matchers }}
+{{- $g := $v.gpu.alerts }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "lso.fullname" . }}
+  namespace: {{ $v.prometheusRule.namespace | default .Release.Namespace }}
+  labels:
+    {{- include "lso.labels" . | nindent 4 }}
+    {{- with $v.prometheusRule.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  groups:
+    {{- if $v.vllm.enabled }}
+    - name: llm-serving-vllm-recording
+      interval: {{ $v.prometheusRule.interval }}
+      rules:
+        # Per model (and namespace): what the dashboards and alerts read.
+        - record: llm:vllm_requests:rate5m
+          expr: sum by (namespace, model_name) (rate(vllm:request_success_total{{ $s }}[5m]))
+        - record: llm:vllm_errors:ratio_rate5m
+          expr: |
+            sum by (namespace, model_name) (rate(vllm:request_success_total{{ include "lso.sel" (list $vm "finished_reason=\"error\"") }}[5m]))
+              / sum by (namespace, model_name) (rate(vllm:request_success_total{{ $s }}[5m]))
+        - record: llm:vllm_generation_tokens:rate5m
+          expr: sum by (namespace, model_name) (rate(vllm:generation_tokens_total{{ $s }}[5m]))
+        - record: llm:vllm_prompt_tokens:rate5m
+          expr: sum by (namespace, model_name) (rate(vllm:prompt_tokens_total{{ $s }}[5m]))
+        - record: llm:vllm_time_to_first_token_seconds:p95_5m
+          expr: histogram_quantile(0.95, sum by (namespace, model_name, le) (rate(vllm:time_to_first_token_seconds_bucket{{ $s }}[5m])))
+        - record: llm:vllm_inter_token_latency_seconds:p95_5m
+          expr: histogram_quantile(0.95, sum by (namespace, model_name, le) (rate(vllm:inter_token_latency_seconds_bucket{{ $s }}[5m])))
+        - record: llm:vllm_e2e_request_latency_seconds:p95_5m
+          expr: histogram_quantile(0.95, sum by (namespace, model_name, le) (rate(vllm:e2e_request_latency_seconds_bucket{{ $s }}[5m])))
+        - record: llm:vllm_requests_waiting:max
+          expr: max by (namespace, model_name) (vllm:num_requests_waiting{{ $s }})
+        - record: llm:vllm_kv_cache_usage:max
+          expr: max by (namespace, model_name) (vllm:kv_cache_usage_perc{{ $s }})
+        - record: llm:vllm_prefix_cache_hit:ratio_rate5m
+          expr: |
+            sum by (namespace, model_name) (rate(vllm:prefix_cache_hits_total{{ $s }}[5m]))
+              / sum by (namespace, model_name) (rate(vllm:prefix_cache_queries_total{{ $s }}[5m]))
+    - name: llm-serving-vllm-alerts
+      interval: {{ $v.prometheusRule.interval }}
+      rules:
+        {{- if $a.down.enabled }}
+        - alert: VLLMServerDown
+          expr: up{ {{- $v.vllm.upMatcher -}} } == 0
+          for: {{ $a.down.for }}
+          labels:
+            severity: critical
+          annotations:
+            summary: 'vLLM server {{ "{{" }} $labels.namespace {{ "}}" }}/{{ "{{" }} $labels.pod {{ "}}" }} is not answering scrapes'
+            description: The model behind it is unavailable or overloaded. Check the pod; a restart reloads the weights, which takes minutes for large models.
+        # A deleted or never-scheduled pod leaves no up series at all, so up == 0 alone stays silent.
+        - alert: VLLMNoTargets
+          expr: absent(up{ {{- $v.vllm.upMatcher -}} })
+          for: {{ $a.down.for }}
+          labels:
+            severity: critical
+          annotations:
+            summary: No vLLM server is being scraped
+            description: Every vLLM pod is gone (scaled to zero, evicted, unschedulable for lack of GPUs) or the scrape configuration lost them.
+        {{- end }}
+        {{- if $a.queue.enabled }}
+        - alert: VLLMRequestsQueued
+          expr: llm:vllm_requests_waiting:max{{ include "lso.sel" (list $ign) }} > {{ $a.queue.waiting }}
+          for: {{ $a.queue.for }}
+          labels:
+            severity: {{ $a.severity }}
+          annotations:
+            summary: '{{ "{{" }} $value {{ "}}" }} requests waiting for {{ "{{" }} $labels.model_name {{ "}}" }}'
+            description: Every running slot is busy; time to first token grows with the queue. Add replicas (autoscale on vllm:num_requests_waiting) or raise --max-num-seqs if the KV cache has room.
+        {{- end }}
+        {{- if $a.kvCache.enabled }}
+        - alert: VLLMKVCacheFull
+          expr: llm:vllm_kv_cache_usage:max{{ include "lso.sel" (list $ign) }} > {{ $a.kvCache.usage }}
+          for: {{ $a.kvCache.for }}
+          labels:
+            severity: {{ $a.severity }}
+          annotations:
+            summary: '{{ "{{" }} $labels.model_name {{ "}}" }} KV cache is {{ "{{" }} $value | humanizePercentage {{ "}}" }} full'
+            description: New requests wait or preempt running ones. Raise --gpu-memory-utilization, lower --max-model-len, quantise the KV cache (--kv-cache-dtype fp8) or add GPUs.
+        {{- end }}
+        {{- if $a.preemptions.enabled }}
+        - alert: VLLMPreemptions
+          expr: sum by (namespace, model_name) (rate(vllm:num_preemptions_total{{ $si }}[5m])) * 60 > {{ $a.preemptions.perMinute }}
+          for: {{ $a.preemptions.for }}
+          labels:
+            severity: {{ $a.severity }}
+          annotations:
+            summary: '{{ "{{" }} $labels.model_name {{ "}}" }} preempts {{ "{{" }} $value | printf "%.1f" {{ "}}" }} requests a minute'
+            description: Preempted requests are recomputed from the start, which wastes GPU time and inflates latency. The KV cache is too small for the traffic.
+        {{- end }}
+        {{- if $a.errors.enabled }}
+        - alert: VLLMRequestErrors
+          expr: llm:vllm_errors:ratio_rate5m{{ include "lso.sel" (list $ign) }} > {{ $a.errors.ratio }}
+          for: {{ $a.errors.for }}
+          labels:
+            severity: {{ $a.severity }}
+          annotations:
+            summary: '{{ "{{" }} $labels.model_name {{ "}}" }} fails {{ "{{" }} $value | humanizePercentage {{ "}}" }} of requests'
+            description: Requests finishing with an internal error (500s to clients). Check the vLLM log for KV transfer or engine errors.
+        {{- end }}
+        {{- if $a.timeToFirstToken.enabled }}
+        - alert: VLLMSlowTimeToFirstToken
+          expr: llm:vllm_time_to_first_token_seconds:p95_5m{{ include "lso.sel" (list $ign) }} > {{ $a.timeToFirstToken.p95Seconds }}
+          for: {{ $a.timeToFirstToken.for }}
+          labels:
+            severity: {{ $a.severity }}
+          annotations:
+            summary: '{{ "{{" }} $labels.model_name {{ "}}" }} p95 time to first token is {{ "{{" }} $value | humanizeDuration {{ "}}" }}'
+            description: Users wait before anything streams. Usually queueing (see VLLMRequestsQueued) or long prompts; prefix caching and chunked prefill help the latter.
+        {{- end }}
+        {{- if $a.interTokenLatency.enabled }}
+        - alert: VLLMSlowTokenGeneration
+          expr: llm:vllm_inter_token_latency_seconds:p95_5m{{ include "lso.sel" (list $ign) }} > {{ $a.interTokenLatency.p95Seconds }}
+          for: {{ $a.interTokenLatency.for }}
+          labels:
+            severity: {{ $a.severity }}
+          annotations:
+            summary: '{{ "{{" }} $labels.model_name {{ "}}" }} p95 inter-token latency is {{ "{{" }} $value | humanizeDuration {{ "}}" }}'
+            description: Streaming is slow. Large batches or a GPU at its compute limit; check GPU utilisation and the batch size.
+        {{- end }}
+    {{- end }}
+    {{- if $v.gpu.enabled }}
+    - name: llm-serving-gpu-recording
+      interval: {{ $v.prometheusRule.interval }}
+      rules:
+        - record: llm:gpu_memory_used:ratio
+          expr: |
+            max by (Hostname, gpu, UUID, modelName, namespace, pod) (
+              DCGM_FI_DEV_FB_USED{{ include "lso.sel" (list $gm) }}
+                / (DCGM_FI_DEV_FB_USED{{ include "lso.sel" (list $gm) }} + DCGM_FI_DEV_FB_FREE{{ include "lso.sel" (list $gm) }})
+            )
+        - record: llm:gpu_utilisation:avg5m
+          expr: max by (Hostname, gpu, UUID, modelName, namespace, pod) (avg_over_time(DCGM_FI_DEV_GPU_UTIL{{ include "lso.sel" (list $gm) }}[5m]))
+        - record: llm:gpus:count
+          expr: count by (modelName) (DCGM_FI_DEV_GPU_UTIL{{ include "lso.sel" (list $gm) }})
+        - record: llm:gpus_assigned:count
+          expr: count by (modelName) (DCGM_FI_DEV_GPU_UTIL{{ include "lso.sel" (list $gm "pod!=\"\"" "pod!~\".*dcgm-exporter.*\"") }})
+    - name: llm-serving-gpu-alerts
+      interval: {{ $v.prometheusRule.interval }}
+      rules:
+        {{- if $g.xid.enabled }}
+        - alert: GPUXidError
+          expr: max by (Hostname, gpu, UUID, modelName) (DCGM_FI_DEV_XID_ERRORS{{ include "lso.sel" (list $gm) }}) > 0{{ range $g.xid.ignore }} != {{ . }}{{ end }}
+          labels:
+            severity: critical
+          annotations:
+            summary: 'GPU {{ "{{" }} $labels.gpu {{ "}}" }} on {{ "{{" }} $labels.Hostname {{ "}}" }} reported XID {{ "{{" }} $value {{ "}}" }}'
+            description: XID errors are driver, memory or hardware faults (79 = fell off the bus, 48/63/64 = ECC, 31/43 = application faults). Look the code up in NVIDIA's XID catalogue; drain the node if it repeats.
+        {{- end }}
+        {{- if $g.temperature.enabled }}
+        - alert: GPUHot
+          expr: max by (Hostname, gpu, modelName) (DCGM_FI_DEV_GPU_TEMP{{ include "lso.sel" (list $gm) }}) > {{ $g.temperature.celsius }}
+          for: {{ $g.temperature.for }}
+          labels:
+            severity: {{ $g.severity }}
+          annotations:
+            summary: 'GPU {{ "{{" }} $labels.gpu {{ "}}" }} on {{ "{{" }} $labels.Hostname {{ "}}" }} is at {{ "{{" }} $value {{ "}}" }}°C'
+            description: Hot GPUs throttle their clocks, which shows up as slower token generation.
+        {{- end }}
+        {{- if $g.memory.enabled }}
+        - alert: GPUMemoryFull
+          expr: llm:gpu_memory_used:ratio > {{ $g.memory.ratio }}
+          for: {{ $g.memory.for }}
+          labels:
+            severity: {{ $g.severity }}
+          annotations:
+            summary: 'GPU {{ "{{" }} $labels.gpu {{ "}}" }} on {{ "{{" }} $labels.Hostname {{ "}}" }} memory is {{ "{{" }} $value | humanizePercentage {{ "}}" }} used'
+            description: vLLM reserves --gpu-memory-utilization (90% by default) up front, so this fires only above that; anything sharing the GPU risks out-of-memory errors.
+        {{- end }}
+        {{- if $g.rowRemapFailure.enabled }}
+        - alert: GPURowRemapFailure
+          expr: max by (Hostname, gpu, UUID, modelName) (DCGM_FI_DEV_ROW_REMAP_FAILURE{{ include "lso.sel" (list $gm) }}) > 0
+          labels:
+            severity: critical
+          annotations:
+            summary: 'GPU {{ "{{" }} $labels.gpu {{ "}}" }} on {{ "{{" }} $labels.Hostname {{ "}}" }} failed to remap a memory row'
+            description: The GPU has an uncorrectable memory fault it can no longer work around. Drain the node and replace the card (or the node, in the cloud).
+        {{- end }}
+        {{- if $g.idle.enabled }}
+        - alert: GPUAllocatedIdle
+          # Assigned = dcgm-exporter attached the pod using it (and not the exporter's own pod, for scrapes that
+          # keep target labels).
+          expr: llm:gpu_utilisation:avg5m{pod!="", pod!~".*dcgm-exporter.*"} < {{ $g.idle.utilisationBelow }}
+          for: {{ $g.idle.for }}
+          labels:
+            severity: {{ $g.idle.severity }}
+          annotations:
+            summary: 'GPU {{ "{{" }} $labels.gpu {{ "}}" }} on {{ "{{" }} $labels.Hostname {{ "}}" }} is assigned to {{ "{{" }} $labels.namespace {{ "}}" }}/{{ "{{" }} $labels.pod {{ "}}" }} but {{ "{{" }} $value | printf "%.0f" {{ "}}" }}% busy'
+            description: An idle GPU costs the same as a busy one. Scale the model down out of hours, share the GPU (time-slicing or MIG), or move it to a smaller GPU.
+        {{- end }}
+    {{- end }}
+{{- end }}

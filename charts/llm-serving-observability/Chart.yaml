@@ -1,0 +1,38 @@
+apiVersion: v2
+name: llm-serving-observability
+description: Alerts, recording rules and Grafana dashboards for self-hosted LLM serving on Kubernetes - vLLM (queue, KV cache, preemptions, errors, time to first token, inter-token latency, tokens per second, prefix cache) and NVIDIA GPUs via DCGM (XID errors, temperature, memory, row remap failures, GPUs assigned but idle), with optional PodMonitors and SLO examples for slo-burn-rate-alerts.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+kubeVersion: ">=1.25.0-0"
+home: https://www.oreonit.com/observability-and-monitoring-consultancy-services/
+icon: https://raw.githubusercontent.com/oreondev/helm-charts/main/icon.png
+sources:
+  - https://github.com/oreondev/helm-charts
+keywords:
+  - vllm
+  - llm
+  - gpu
+  - dcgm
+  - nvidia
+  - prometheus
+  - alerting
+  - grafana
+  - observability
+maintainers:
+  - name: Oreon IT
+    email: info@oreonit.com
+    url: https://www.oreonit.com/
+annotations:
+  artifacthub.io/license: MIT
+  artifacthub.io/category: monitoring-logging
+  artifacthub.io/prerelease: "false"
+  artifacthub.io/operator: "false"
+  artifacthub.io/links: |
+    - name: vLLM metrics
+      url: https://docs.vllm.ai/en/latest/design/metrics.html
+    - name: DCGM exporter
+      url: https://github.com/NVIDIA/dcgm-exporter
+  artifacthub.io/changes: |
+    - kind: added
+      description: First release; tested against a real vLLM 0.32.0 (CPU image) and dcgm-exporter's default counters

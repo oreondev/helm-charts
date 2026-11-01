@@ -10,10 +10,32 @@ Every chart is versioned on its own ([SemVer](https://semver.org/): patch for fi
 | gateway-api-baseline | 0.1.0 | - | released |
 | k8s-cost-waste-alerts | 0.2.1 | - | released |
 | kyverno-production-policies | 0.1.1 | - | released |
+| llm-serving-observability | 0.1.0 | - | released |
 | namespace-baseline | 0.1.0 | - | released |
 | otel-collector-baseline | 0.1.3 | - | released |
 | slo-burn-rate-alerts | 0.3.2 | - | released |
 | velero-backup-schedules | 0.1.0 | - | released |
+
+## 2026-11-01
+
+### llm-serving-observability 0.1.0
+
+First release. Rules and dashboards for vLLM and NVIDIA GPUs (DCGM). Installs no exporter.
+
+**vLLM:**
+- Recording rules per model: requests, errors, tokens, p95 TTFT, inter-token and end-to-end latency, queue, KV cache, prefix-cache hit ratio.
+- Alerts: down, no targets, queue, KV cache full, preemptions, errors, TTFT, inter-token latency.
+
+**GPUs:**
+- Alerts: XID errors (with an ignore list), row remap failure, temperature, memory, assigned but idle.
+
+**Scraping:**
+- Optional PodMonitors. The DCGM one keeps the exporter's workload labels and clears its own, so idle GPUs are not attributed to the exporter.
+- README examples for TTFT and availability SLOs with slo-burn-rate-alerts, and two vLLM-on-Kubernetes gotchas (`VLLM_PORT` from a Service called `vllm`, a 64 MiB `/dev/shm`).
+
+**Testing:**
+- Against a real vLLM 0.32.0 (official CPU image, `facebook/opt-125m`, under load) on a kind cluster: all 10 vLLM recording rules and 18 dashboard queries returned data; `VLLMServerDown` and `VLLMSlowTokenGeneration` fired.
+- The remaining alerts and the GPU dashboard were forced with exporters emitting dcgm-exporter's and vLLM's exact series (12 of 13 alerts fired). No real GPU was used.
 
 ## 2026-10-31
 

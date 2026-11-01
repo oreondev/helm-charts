@@ -1,0 +1,118 @@
+# Alerts, recording rules and Grafana dashboards for self-hosted LLM serving: vLLM (OpenAI-compatible server)
+# and the NVIDIA GPUs under it (DCGM exporter, as installed by the NVIDIA GPU Operator). Installs no exporter;
+# it packages the monitoring that teams otherwise write by hand on top of kube-prometheus-stack.
+# For embedding servers see the text-embeddings-inference chart; for SLO burn-rate alerts on these metrics,
+# the slo-burn-rate-alerts chart (examples in the README).
+
+nameOverride: ""
+fullnameOverride: ""
+
+prometheusRule:
+  enabled: true
+  # Empty: release namespace.
+  namespace: ""
+  # Labels the Prometheus Operator selects rules by (kube-prometheus-stack: release: <its release name>).
+  labels: {}
+  interval: 30s
+
+dashboards:
+  enabled: true
+  namespace: ""
+  labels:
+    grafana_dashboard: "1"
+  annotations: {}
+
+# Optional PodMonitors, for clusters where nothing scrapes vLLM or DCGM yet.
+scrape:
+  vllm:
+    enabled: false
+    labels: {}
+    # Pods running the vLLM OpenAI server (/metrics on the API port).
+    namespaceSelector:
+      any: true
+    selector:
+      matchLabels:
+        app.kubernetes.io/name: vllm
+    port: http
+    interval: 15s
+  dcgm:
+    # The GPU Operator's dcgm-exporter normally brings its own ServiceMonitor (dcgmExporter.serviceMonitor.enabled).
+    enabled: false
+    labels: {}
+    namespaceSelector:
+      matchNames: [gpu-operator]
+    selector:
+      matchLabels:
+        app: nvidia-dcgm-exporter
+    port: gpu-metrics
+    interval: 30s
+
+vllm:
+  enabled: true
+  # Extra label matchers on every vLLM query, e.g. namespace=~"ai|inference".
+  matchers: ""
+  # Matcher for the up{} series of the vLLM scrape jobs.
+  upMatcher: 'job=~".*vllm.*"'
+  # Models expected to be quiet (regex on model_name), left out of the traffic-based alerts.
+  ignoreModels: ""
+  alerts:
+    severity: warning
+    down:
+      enabled: true
+      for: 5m
+    # Requests waiting for a slot: the engine is saturated (more replicas, or a higher --max-num-seqs).
+    queue:
+      enabled: true
+      waiting: 10
+      for: 10m
+    # KV cache full: requests start being preempted and recomputed.
+    kvCache:
+      enabled: true
+      usage: 0.95
+      for: 15m
+    preemptions:
+      enabled: true
+      perMinute: 1
+      for: 15m
+    # Share of finished requests with finished_reason="error".
+    errors:
+      enabled: true
+      ratio: 0.02
+      for: 10m
+    timeToFirstToken:
+      enabled: true
+      p95Seconds: 2
+      for: 15m
+    interTokenLatency:
+      enabled: true
+      p95Seconds: 0.2
+      for: 15m
+
+gpu:
+  enabled: true
+  # Extra label matchers on every DCGM query, e.g. Hostname=~"gpu-pool-.*".
+  matchers: ""
+  alerts:
+    severity: warning
+    # Any XID error (DCGM_FI_DEV_XID_ERRORS holds the last XID code): driver, ECC or hardware faults.
+    xid:
+      enabled: true
+      # XID codes to ignore, e.g. [13, 43] (application faults some workloads raise routinely).
+      ignore: []
+    temperature:
+      enabled: true
+      celsius: 85
+      for: 10m
+    memory:
+      enabled: true
+      ratio: 0.95
+      for: 15m
+    # Row remapping failed: the GPU's memory has an unrecoverable fault and the card needs replacing.
+    rowRemapFailure:
+      enabled: true
+    # A GPU assigned to a pod but idle: the most expensive waste in a cluster.
+    idle:
+      enabled: true
+      utilisationBelow: 5
+      for: 2h
+      severity: info

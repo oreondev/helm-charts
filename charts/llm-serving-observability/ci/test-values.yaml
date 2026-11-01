@@ -1,0 +1,10 @@
+# chart-testing: every rule and dashboard, and both PodMonitors.
+scrape:
+  vllm:
+    enabled: true
+  dcgm:
+    enabled: true
+gpu:
+  alerts:
+    xid:
+      ignore: [13, 43]

@@ -1,0 +1,15 @@
+LLM serving observability {{ .Chart.Version }}: rules{{ if .Values.dashboards.enabled }} and dashboards{{ end }} for
+{{- if .Values.vllm.enabled }} vLLM{{ end }}{{ if and .Values.vllm.enabled .Values.gpu.enabled }} and{{ end }}{{ if .Values.gpu.enabled }} NVIDIA GPUs (DCGM){{ end }}.
+
+Check that Prometheus has the inputs:
+{{- if .Values.vllm.enabled }}
+  vllm:num_requests_running        (vLLM's /metrics; vllm.upMatcher: {{ .Values.vllm.upMatcher }})
+{{- end }}
+{{- if .Values.gpu.enabled }}
+  DCGM_FI_DEV_GPU_UTIL             (dcgm-exporter; the GPU Operator's ServiceMonitor or scrape.dcgm)
+{{- end }}
+{{- if not .Values.prometheusRule.labels }}
+
+prometheusRule.labels is empty: kube-prometheus-stack only loads rules labelled release=<its release name>
+unless ruleSelectorNilUsesHelmValues=false.
+{{- end }}
