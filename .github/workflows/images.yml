@@ -88,7 +88,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=${{ matrix.image }}
 
       - name: Scan (critical and high, fixable)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0 (pinned by commit; old 0.x tags were removed)
         with:
           image-ref: ${{ env.IMAGE }}:scan
           severity: CRITICAL,HIGH
