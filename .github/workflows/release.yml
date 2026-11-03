@@ -58,7 +58,8 @@ jobs:
           cp /tmp/render.py /tmp/pages/render.py
           git fetch origin gh-pages && git checkout gh-pages && git reset --hard origin/gh-pages
           python3 /tmp/pages/render.py .
-          if [ -n "$(git status --porcelain)" ]; then
+          # only the generated files: chart-releaser leaves .cr-release-packages/ untracked here
+          if [ -n "$(git status --porcelain -- index.html oreon-logo.svg favicon.svg)" ]; then
             git add index.html oreon-logo.svg favicon.svg
             git commit -m "Regenerate landing page"
             git push origin gh-pages
