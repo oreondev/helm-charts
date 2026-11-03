@@ -762,6 +762,56 @@ entries:
     urls:
     - https://github.com/oreondev/helm-charts/releases/download/otel-collector-baseline-0.1.2/otel-collector-baseline-0.1.2.tgz
     version: 0.1.2
+  searxng:
+  - annotations:
+      artifacthub.io/category: ai-machine-learning
+      artifacthub.io/changes: |
+        - kind: added
+          description: First release, for SearXNG 2026.10.29
+      artifacthub.io/images: |
+        - name: searxng
+          image: searxng/searxng:2026.10.29-cff884f98
+        - name: valkey
+          image: valkey/valkey:8.1-alpine
+      artifacthub.io/license: MIT
+      artifacthub.io/links: |
+        - name: SearXNG documentation
+          url: https://docs.searxng.org/
+      artifacthub.io/operator: "false"
+      artifacthub.io/prerelease: "false"
+    apiVersion: v2
+    appVersion: 2026.10.29-cff884f98
+    created: "2026-11-03T13:45:17.939311778Z"
+    description: SearXNG metasearch on Kubernetes as the search backend for LLM tools
+      and agents (Firecrawl, Open WebUI, Perplexica, LangChain) or as a public instance
+      - JSON API mode, a curated engine set instead of 120 default engines, stable
+      secret key across replicas, rate limiter with Valkey sidecar or external, non-root
+      and read-only, NetworkPolicy, per-engine Prometheus metrics, alerts and a Grafana
+      dashboard.
+    digest: 8285b9debee74dc5e37be26addb98622a08e568c581d48ca4f88388e96959519
+    home: https://www.oreonit.com/containerization-orchestration-management-kubernetes-openshift/
+    icon: https://raw.githubusercontent.com/oreondev/helm-charts/main/icon.png
+    keywords:
+    - searxng
+    - search
+    - metasearch
+    - llm
+    - rag
+    - ai-agents
+    - privacy
+    kubeVersion: '>=1.29.0-0'
+    maintainers:
+    - email: info@oreonit.com
+      name: Oreon IT
+      url: https://www.oreonit.com/
+    name: searxng
+    sources:
+    - https://github.com/oreondev/helm-charts
+    - https://github.com/searxng/searxng
+    type: application
+    urls:
+    - https://github.com/oreondev/helm-charts/releases/download/searxng-0.1.0/searxng-0.1.0.tgz
+    version: 0.1.0
   slo-burn-rate-alerts:
   - annotations:
       artifacthub.io/category: monitoring-logging
@@ -960,6 +1010,57 @@ entries:
     urls:
     - https://github.com/oreondev/helm-charts/releases/download/slo-burn-rate-alerts-0.2.1/slo-burn-rate-alerts-0.2.1.tgz
     version: 0.2.1
+  text-embeddings-inference:
+  - annotations:
+      artifacthub.io/category: ai-machine-learning
+      artifacthub.io/changes: |
+        - kind: added
+          description: First release, for Text Embeddings Inference 1.9.4
+      artifacthub.io/images: |
+        - name: text-embeddings-inference-cpu
+          image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.9.4
+        - name: text-embeddings-inference-ada
+          image: ghcr.io/huggingface/text-embeddings-inference:89-1.9.4
+      artifacthub.io/license: MIT
+      artifacthub.io/links: |
+        - name: TEI documentation
+          url: https://huggingface.co/docs/text-embeddings-inference
+      artifacthub.io/operator: "false"
+      artifacthub.io/prerelease: "false"
+    apiVersion: v2
+    appVersion: 1.9.4
+    created: "2026-11-03T13:45:18.119135835Z"
+    description: Hugging Face Text Embeddings Inference on Kubernetes - several embedding,
+      reranker and classifier models per release on CPU or NVIDIA GPUs (image variant
+      picked from the accelerator), model cache kept across restarts (StatefulSet
+      PVCs or a shared volume), generated API key, non-root and read-only, OpenAI-compatible
+      /v1/embeddings for Mem0, LangChain and LiteLLM, KEDA scaling on the request
+      queue, ServiceMonitor, alerts and a Grafana dashboard.
+    digest: 13fd17d6fabed98359f4add027d6475f0b1fb2bf454f60c4d92a9be77a237225
+    home: https://www.oreonit.com/containerization-orchestration-management-kubernetes-openshift/
+    icon: https://raw.githubusercontent.com/oreondev/helm-charts/main/icon.png
+    keywords:
+    - text-embeddings-inference
+    - tei
+    - embeddings
+    - reranker
+    - rag
+    - llm
+    - gpu
+    - huggingface
+    kubeVersion: '>=1.25.0-0'
+    maintainers:
+    - email: info@oreonit.com
+      name: Oreon IT
+      url: https://www.oreonit.com/
+    name: text-embeddings-inference
+    sources:
+    - https://github.com/oreondev/helm-charts
+    - https://github.com/huggingface/text-embeddings-inference
+    type: application
+    urls:
+    - https://github.com/oreondev/helm-charts/releases/download/text-embeddings-inference-0.1.0/text-embeddings-inference-0.1.0.tgz
+    version: 0.1.0
   velero-backup-schedules:
   - annotations:
       artifacthub.io/category: storage
@@ -1006,4 +1107,4 @@ entries:
     urls:
     - https://github.com/oreondev/helm-charts/releases/download/velero-backup-schedules-0.1.0/velero-backup-schedules-0.1.0.tgz
     version: 0.1.0
-generated: "2026-11-01T13:00:12.732730475Z"
+generated: "2026-11-03T13:45:18.119163106Z"
