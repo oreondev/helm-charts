@@ -1,0 +1,21 @@
+SearXNG {{ include "searxng.imageTag" . }} is starting as {{ include "searxng.fullname" . }} in {{ .Release.Namespace }} ({{ .Values.mode }} mode, {{ .Values.engines.profile }} engines).
+{{- if eq .Values.mode "api" }}
+
+Search API (inside the cluster):
+  http://{{ include "searxng.fullname" . }}.{{ .Release.Namespace }}.svc:{{ .Values.service.port }}/search?q=kubernetes&format=json
+
+Firecrawl:   firecrawl.env.SEARXNG_ENDPOINT=http://{{ include "searxng.fullname" . }}.{{ .Release.Namespace }}.svc:{{ .Values.service.port }}
+Open WebUI:  SEARXNG_QUERY_URL=http://{{ include "searxng.fullname" . }}.{{ .Release.Namespace }}.svc:{{ .Values.service.port }}/search?q=<query>
+{{- if not .Values.networkPolicy.enabled }}
+
+The rate limiter is off in api mode: anything that can reach the Service searches without limit. Keep it
+private, or set networkPolicy.enabled with allowedPodLabels.
+{{- end }}
+{{- else if and (eq (include "searxng.valkeyMode" .) "sidecar") (or .Values.autoscaling.enabled (gt (int .Values.replicaCount) 1)) }}
+
+Note: each replica has its own Valkey sidecar, so rate limits are counted per pod. Use valkey.mode=external
+for one shared limit.
+{{- end }}
+
+Local access:
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "searxng.fullname" . }} 8080:{{ .Values.service.port }}

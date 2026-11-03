@@ -1,0 +1,28 @@
+# chart-testing: a small CPU embedding model on emptyDir and a reranker on a persistent cache, monitoring on.
+models:
+- name: bge-small
+  modelId: BAAI/bge-small-en-v1.5
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      memory: 1536Mi
+- name: reranker
+  modelId: cross-encoder/ms-marco-MiniLM-L-6-v2
+  cache:
+    mode: persistent
+    size: 1Gi
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      memory: 1536Mi
+metrics:
+  serviceMonitor:
+    enabled: true
+  prometheusRule:
+    enabled: true
+  dashboard:
+    enabled: true

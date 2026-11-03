@@ -1,0 +1,159 @@
+{{- $v := .Values }}
+{{- $valkey := include "searxng.valkeyMode" . }}
+{{- $probe := dict "httpGet" (dict "path" "/healthz" "port" "http") }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "searxng.fullname" . }}
+  labels:
+    {{- include "searxng.labels" . | nindent 4 }}
+spec:
+  {{- if not $v.autoscaling.enabled }}
+  replicas: {{ $v.replicaCount }}
+  {{- end }}
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      {{- include "searxng.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "searxng.selectorLabels" . | nindent 8 }}
+        {{- with $v.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      annotations:
+        checksum/config: {{ printf "%s%s%s" (include "searxng.settings" .) (include "searxng.limiterToml" .) (include "searxng.secretData" .) | sha256sum }}
+        {{- with $v.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "searxng.serviceAccountName" . }}
+      automountServiceAccountToken: {{ $v.automountServiceAccountToken }}
+      enableServiceLinks: false
+      {{- with $v.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $v.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
+      securityContext:
+        {{- toYaml $v.podSecurityContext | nindent 8 }}
+      terminationGracePeriodSeconds: 40
+      {{- if eq $valkey "sidecar" }}
+      initContainers:
+        # Native sidecar: in-memory Valkey for the rate limiter, loopback only.
+        - name: valkey
+          image: {{ $v.valkey.sidecar.image.repository }}:{{ $v.valkey.sidecar.image.tag }}
+          imagePullPolicy: {{ $v.image.pullPolicy }}
+          restartPolicy: Always
+          args: ["--bind", "127.0.0.1", "--port", "6379", "--save", "", "--appendonly", "no",
+                 "--maxmemory", "{{ $v.valkey.sidecar.maxmemory }}", "--maxmemory-policy", "allkeys-lru", "--loglevel", "warning"]
+          startupProbe:
+            exec: { command: [valkey-cli, ping] }
+            periodSeconds: 1
+            failureThreshold: 30
+          livenessProbe:
+            exec: { command: [valkey-cli, ping] }
+            periodSeconds: 30
+          securityContext:
+            {{- toYaml $v.securityContext | nindent 12 }}
+          resources:
+            {{- toYaml $v.valkey.sidecar.resources | nindent 12 }}
+          volumeMounts:
+            - { name: valkey-data, mountPath: /data }
+      {{- end }}
+      containers:
+        - name: searxng
+          image: {{ include "searxng.image" . }}
+          imagePullPolicy: {{ $v.image.pullPolicy }}
+          # granian directly: the image entrypoint only creates settings.yml when missing and checks volume
+          # ownership (warning on every start with a read-only config mount).
+          command: ["/usr/local/searxng/.venv/bin/granian", "searx.webapp:app"]
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          env:
+            - name: SEARXNG_SECRET
+              valueFrom: { secretKeyRef: { name: {{ default (include "searxng.fullname" .) $v.existingSecret }}, key: {{ ternary $v.existingSecretKey "secret-key" (not (empty $v.existingSecret)) }} } }
+            {{- if eq $valkey "sidecar" }}
+            - { name: SEARXNG_VALKEY_URL, value: "valkey://127.0.0.1:6379/0" }
+            {{- else if eq $valkey "external" }}
+            - name: SEARXNG_VALKEY_URL
+              valueFrom: { secretKeyRef: { name: {{ default (include "searxng.fullname" .) $v.valkey.existingSecret }}, key: {{ ternary $v.valkey.existingSecretKey "valkey-url" (not (empty $v.valkey.existingSecret)) }} } }
+            {{- end }}
+            - { name: GRANIAN_WORKERS, value: {{ $v.server.workers | quote }} }
+            - { name: GRANIAN_BLOCKING_THREADS, value: {{ $v.server.blockingThreads | quote }} }
+            {{- with $v.env }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          startupProbe:
+            {{- toYaml $probe | nindent 12 }}
+            periodSeconds: {{ $v.probes.startup.periodSeconds }}
+            failureThreshold: {{ $v.probes.startup.failureThreshold }}
+          livenessProbe:
+            {{- toYaml $probe | nindent 12 }}
+            periodSeconds: {{ $v.probes.liveness.periodSeconds }}
+            timeoutSeconds: {{ $v.probes.liveness.timeoutSeconds }}
+          readinessProbe:
+            {{- toYaml $probe | nindent 12 }}
+            periodSeconds: {{ $v.probes.readiness.periodSeconds }}
+            timeoutSeconds: {{ $v.probes.readiness.timeoutSeconds }}
+          securityContext:
+            {{- toYaml $v.securityContext | nindent 12 }}
+          resources:
+            {{- toYaml $v.resources | nindent 12 }}
+          volumeMounts:
+            - { name: config, mountPath: /etc/searxng, readOnly: true }
+            - { name: cache, mountPath: /var/cache/searxng }
+            - { name: tmp, mountPath: /tmp }
+            {{- with $v.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+      volumes:
+        - name: config
+          secret:
+            secretName: {{ include "searxng.fullname" . }}
+            items:
+              - { key: settings.yml, path: settings.yml }
+              - { key: limiter.toml, path: limiter.toml }
+        - name: cache
+          emptyDir:
+            sizeLimit: 256Mi
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi
+        {{- if eq $valkey "sidecar" }}
+        - name: valkey-data
+          emptyDir:
+            medium: Memory
+            sizeLimit: 16Mi
+        {{- end }}
+        {{- with $v.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with $v.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $v.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $v.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      topologySpreadConstraints:
+        {{- if $v.topologySpreadConstraints }}
+        {{- toYaml $v.topologySpreadConstraints | nindent 8 }}
+        {{- else }}
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              {{- include "searxng.selectorLabels" . | nindent 14 }}
+        {{- end }}

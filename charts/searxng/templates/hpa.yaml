@@ -1,0 +1,28 @@
+{{- if .Values.autoscaling.enabled }}
+{{- $a := .Values.autoscaling }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "searxng.fullname" . }}
+  labels:
+    {{- include "searxng.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "searxng.fullname" . }}
+  minReplicas: {{ $a.minReplicas }}
+  maxReplicas: {{ $a.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ $a.targetCPUUtilizationPercentage }}
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0
+    scaleDown:
+      stabilizationWindowSeconds: 300
+{{- end }}

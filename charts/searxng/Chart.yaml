@@ -1,0 +1,40 @@
+apiVersion: v2
+name: searxng
+description: SearXNG metasearch on Kubernetes as the search backend for LLM tools and agents (Firecrawl, Open WebUI, Perplexica, LangChain) or as a public instance - JSON API mode, a curated engine set instead of 120 default engines, stable secret key across replicas, rate limiter with Valkey sidecar or external, non-root and read-only, NetworkPolicy, per-engine Prometheus metrics, alerts and a Grafana dashboard.
+type: application
+version: 0.1.0
+appVersion: "2026.10.29-cff884f98"
+kubeVersion: ">=1.29.0-0"
+home: https://www.oreonit.com/containerization-orchestration-management-kubernetes-openshift/
+icon: https://raw.githubusercontent.com/oreondev/helm-charts/main/icon.png
+sources:
+  - https://github.com/oreondev/helm-charts
+  - https://github.com/searxng/searxng
+keywords:
+  - searxng
+  - search
+  - metasearch
+  - llm
+  - rag
+  - ai-agents
+  - privacy
+maintainers:
+  - name: Oreon IT
+    email: info@oreonit.com
+    url: https://www.oreonit.com/
+annotations:
+  artifacthub.io/license: MIT
+  artifacthub.io/category: ai-machine-learning
+  artifacthub.io/prerelease: "false"
+  artifacthub.io/operator: "false"
+  artifacthub.io/images: |
+    - name: searxng
+      image: searxng/searxng:2026.10.29-cff884f98
+    - name: valkey
+      image: valkey/valkey:8.1-alpine
+  artifacthub.io/links: |
+    - name: SearXNG documentation
+      url: https://docs.searxng.org/
+  artifacthub.io/changes: |
+    - kind: added
+      description: First release, for SearXNG 2026.10.29

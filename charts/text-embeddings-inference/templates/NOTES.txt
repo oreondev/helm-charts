@@ -1,0 +1,14 @@
+Text Embeddings Inference {{ .Chart.AppVersion }} is starting in {{ .Release.Namespace }}. Models:
+{{- range (include "tei.models" . | fromJson).models }}
+  {{ .name | printf "%-14s" }} {{ .modelId }} ({{ .accelerator }}, cache {{ .cache.mode }})
+      http://{{ include "tei.fullname" $ }}-{{ .name }}.{{ $.Release.Namespace }}.svc:{{ $.Values.service.port }}
+{{- end }}
+{{- if .Values.auth.enabled }}
+
+API key (Authorization: Bearer <key>):
+  kubectl -n {{ .Release.Namespace }} get secret {{ default (include "tei.fullname" .) .Values.auth.existingSecret }} -o jsonpath='{.data.{{ ternary .Values.auth.existingSecretKey "api-key" (not (empty .Values.auth.existingSecret)) }}}' | base64 -d
+{{- end }}
+
+OpenAI-compatible embeddings (Mem0 llm.openaiBaseUrl, LangChain OpenAIEmbeddings, LiteLLM):
+  POST http://<service>:{{ .Values.service.port }}/v1/embeddings   {"model": "<name>", "input": ["..."]}
+Native API: /embed, /rerank (rerankers), /predict (classifiers), /info, /docs.

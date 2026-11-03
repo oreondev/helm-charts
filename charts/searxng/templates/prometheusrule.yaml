@@ -1,0 +1,48 @@
+{{- if and .Values.metrics.enabled .Values.metrics.prometheusRule.enabled }}
+{{- $r := .Values.metrics.prometheusRule }}
+{{- $name := include "searxng.fullname" . }}
+{{- $sel := printf "namespace=%q, job=%q" .Release.Namespace $name }}
+{{- $ign := ternary (printf ", engine_name!~%q" $r.ignoreEngines) "" (not (empty $r.ignoreEngines)) }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "searxng.labels" . | nindent 4 }}
+    {{- with $r.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  groups:
+    - name: searxng
+      rules:
+        - alert: SearXNGDown
+          expr: sum(up{ {{- $sel -}} }) == 0 or absent(up{ {{- $sel -}} })
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: SearXNG {{ .Release.Namespace }}/{{ $name }} is not answering scrapes
+            description: Tools that search through it (Firecrawl /search, agents) fail or return nothing.
+        - alert: SearXNGNoResults
+          # Searches arrive but no engine returns anything: usually the egress IP is blocked or rate limited.
+          expr: |
+            sum(increase(searxng_engines_request_count_total{ {{- $sel -}} }[30m])) > 0
+              and sum(increase(searxng_engines_result_count_total{ {{- $sel -}} }[30m])) == 0
+          for: 15m
+          labels:
+            severity: critical
+          annotations:
+            summary: SearXNG returns no results from any engine
+            description: Check the engines' errors at /stats/errors; search engines often block cloud egress IPs (set outgoingProxies).
+        - alert: SearXNGEngineUnreliable
+          expr: |
+            min by (engine_name) (searxng_engines_reliability_total{ {{- $sel }}{{ $ign -}} }) < {{ $r.engineReliability }}
+              and on(engine_name) sum by (engine_name) (increase(searxng_engines_request_count_total{ {{- $sel -}} }[30m])) > 0
+          for: 30m
+          labels:
+            severity: warning
+          annotations:
+            summary: 'SearXNG engine {{ "{{" }} $labels.engine_name {{ "}}" }} succeeds on {{ "{{" }} $value {{ "}}" }}% of requests'
+            description: The engine is blocking, timing out or changed its page. Disable it (engines.disabled), give it a proxy, or add it to ignoreEngines.
+{{- end }}

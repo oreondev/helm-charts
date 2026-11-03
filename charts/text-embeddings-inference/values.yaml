@@ -1,0 +1,172 @@
+# Hugging Face Text Embeddings Inference (TEI): embeddings, rerankers and sequence classifiers for RAG and
+# agent memory, on CPU or NVIDIA GPUs. One Deployment (or StatefulSet) and Service per model.
+
+image:
+  repository: ghcr.io/huggingface/text-embeddings-inference
+  # Empty: <variant>-<appVersion>, the variant from each model's accelerator (see below).
+  tag: ""
+  pullPolicy: IfNotPresent
+imagePullSecrets: []
+
+nameOverride: ""
+fullnameOverride: ""
+
+# Bearer token for every model's API (TEI --api-key; /health stays open). Clients send
+# "Authorization: Bearer <key>"; OpenAI SDKs do this with api_key. Empty: generated once and kept.
+auth:
+  enabled: true
+  apiKey: ""
+  existingSecret: ""
+  existingSecretKey: api-key
+
+# Hugging Face token for gated or private models (HF_TOKEN).
+huggingface:
+  token: ""
+  existingSecret: ""
+  existingSecretKey: hf-token
+
+# Settings every model inherits; each entry in models can override any of them.
+modelDefaults:
+  # cpu | cpu-arm64 | turing (T4) | ampere (A100, A30) | ampere-86 (A10, A40, RTX 30) | ada (L4, L40S, RTX 40)
+  # | hopper (H100, H200) | blackwell (B200) | blackwell-120 (RTX 50). Picks the image variant; GPU variants
+  # request one nvidia.com/gpu.
+  accelerator: cpu
+  revision: ""
+  # float16 or float32 (TEI --dtype); empty: TEI's default for the backend.
+  dtype: ""
+  # Pooling override (cls, mean, splade, last-token); empty: from the model's config.
+  pooling: ""
+  maxConcurrentRequests: 512
+  maxBatchTokens: 16384
+  maxClientBatchSize: 32
+  # Truncate inputs longer than the model's maximum instead of returning 413.
+  autoTruncate: true
+  # Request body limit in bytes.
+  payloadLimit: 2000000
+  replicaCount: 1
+  resources:
+    requests:
+      cpu: "1"
+      memory: 1Gi
+    limits:
+      memory: 2Gi
+  # Model files (downloaded from the Hub on start):
+  #   emptyDir:      downloaded on every pod start (seconds for small models, minutes for large ones)
+  #   persistent:    a PVC per replica (StatefulSet), downloaded once and kept across restarts
+  #   existingClaim: a ReadWriteMany volume shared by all replicas and models
+  cache:
+    mode: emptyDir
+    size: 10Gi
+    storageClass: ""
+    existingClaim: ""
+  autoscaling:
+    # CPU HPA (CPU models), or KEDA on the request queue (keda.enabled).
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 4
+    targetCPUUtilizationPercentage: 70
+    keda:
+      enabled: false
+      prometheusAddress: http://kube-prometheus-stack-prometheus.monitoring:9090
+      # Replicas = queued requests / queuedPerReplica.
+      queuedPerReplica: 64
+  nodeSelector: {}
+  tolerations: []
+  # e.g. nvidia when the GPU nodes need the NVIDIA runtime class.
+  runtimeClassName: ""
+  extraArgs: []
+  env: []
+
+# The models to serve. name becomes the Service name suffix: <release>-text-embeddings-inference-<name>.
+models:
+  - name: bge-small
+    modelId: BAAI/bge-small-en-v1.5
+#  - name: bge-m3
+#    modelId: BAAI/bge-m3
+#    accelerator: ada
+#    cache: { mode: persistent, size: 20Gi }
+#    resources: { requests: { cpu: "2", memory: 8Gi }, limits: { memory: 16Gi } }
+#  - name: reranker
+#    modelId: BAAI/bge-reranker-v2-m3
+#    accelerator: ada
+
+service:
+  type: ClusterIP
+  port: 8080
+  annotations: {}
+
+podDisruptionBudget:
+  enabled: true
+  maxUnavailable: 1
+
+# Only these pods (any namespace) and namespaces may call the models, plus the monitoring namespaces (for
+# /metrics, which is on the same port).
+networkPolicy:
+  enabled: false
+  allowedPodLabels: []
+  allowedNamespaceLabels: []
+  metricsNamespaceSelector:
+    matchLabels:
+      kubernetes.io/metadata.name: monitoring
+
+metrics:
+  # TEI's /metrics (on the API port, not behind the API key): request, queue, tokenization and inference
+  # durations, batch sizes, queue length, failures by reason.
+  enabled: true
+  serviceMonitor:
+    enabled: false
+    interval: 30s
+    labels: {}
+  prometheusRule:
+    enabled: false
+    labels: {}
+    # p95 request latency above this many seconds for 15 minutes.
+    latencySeconds: 2
+    # Requests waiting in the queue, per pod, for 10 minutes.
+    queueSize: 128
+    # Share of requests that failed.
+    failureRatio: 0.05
+  dashboard:
+    enabled: false
+    labels:
+      grafana_dashboard: "1"
+    annotations: {}
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+automountServiceAccountToken: false
+
+podAnnotations: {}
+podLabels: {}
+priorityClassName: ""
+affinity: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+  fsGroupChangePolicy: OnRootMismatch
+  seccompProfile:
+    type: RuntimeDefault
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: [ALL]
+
+probes:
+  # Model download and load happen before /health answers; large models on emptyDir need the full budget.
+  startup:
+    periodSeconds: 5
+    failureThreshold: 180
+  liveness:
+    periodSeconds: 20
+    timeoutSeconds: 5
+  readiness:
+    periodSeconds: 10
+    timeoutSeconds: 5
+
+extraObjects: []

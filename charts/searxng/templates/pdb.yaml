@@ -1,0 +1,13 @@
+{{- if and .Values.podDisruptionBudget.enabled (or .Values.autoscaling.enabled (gt (int .Values.replicaCount) 1)) }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "searxng.fullname" . }}
+  labels:
+    {{- include "searxng.labels" . | nindent 4 }}
+spec:
+  maxUnavailable: {{ .Values.podDisruptionBudget.maxUnavailable }}
+  selector:
+    matchLabels:
+      {{- include "searxng.selectorLabels" . | nindent 6 }}
+{{- end }}

@@ -1,0 +1,244 @@
+# SearXNG (privacy-respecting metasearch engine) on Kubernetes: as the search backend for LLM tools and agents
+# (Firecrawl /search, Open WebUI, Perplexica, LangChain/LlamaIndex tools) or as a public instance.
+
+image:
+  repository: searxng/searxng
+  # SearXNG publishes dated rolling builds (YYYY.MM.DD-<commit>); defaults to appVersion.
+  tag: ""
+  digest: ""
+  pullPolicy: IfNotPresent
+imagePullSecrets: []
+
+nameOverride: ""
+fullnameOverride: ""
+
+# api:    backend for programs. JSON (and CSV/RSS) output on, rate limiter off, keep it inside the cluster.
+# public: an instance people use in a browser. Rate limiter and bot detection on (needs Valkey),
+#         public_instance features, JSON off unless you add it in formats.
+mode: api
+
+# Output formats for /search?format=... Empty: html+json+csv+rss in api mode, html in public mode.
+formats: []
+
+# Signs image proxy URLs and preferences cookies (server.secret_key). Upstream writes a random one on a
+# container's first start, so every replica (and every restart without a volume) has a different one and
+# proxied images break. Empty: generated once and kept across upgrades.
+secretKey: ""
+existingSecret: ""
+existingSecretKey: secret-key
+
+# Public URL (server.base_url), used in links, OpenSearch and the image proxy. Empty: from the ingress host.
+baseUrl: ""
+instanceName: SearXNG
+
+engines:
+  # curated: only the engines in engines.curated are loaded. On general queries it returns the same results
+  #          as upstream's defaults, loads none of the torrent, piratebay and onion engines upstream enables,
+  #          and uses less memory.
+  # default: upstream's defaults (121 engines enabled; each query uses those in its category).
+  profile: curated
+  # Upstream ships google and bing disabled (they answer automated traffic with CAPTCHAs); add them
+  # to `extra` to switch them on.
+  curated:
+    - google cse
+    - duckduckgo
+    - brave
+    - startpage
+    - mojeek
+    - wikipedia
+    - wikidata
+    - github
+    - stackoverflow
+    - superuser
+    - askubuntu
+    - pypi
+    - docker hub
+    - arch linux wiki
+    - mdn
+    - arxiv
+    - semantic scholar
+    - pubmed
+    - bing news
+    - currency
+  # Engines to add to the profile and switch on (names from upstream searx/settings.yml), e.g. [google].
+  extra: []
+  # Engines to switch off on top of the profile.
+  disabled: []
+
+# Seconds an engine request may take (outgoing.request_timeout / max_request_timeout).
+requestTimeout: 3.0
+maxRequestTimeout: 8.0
+
+# Outgoing proxies for engine requests (outgoing.proxies), e.g. when search engines block your egress IPs.
+#   all://: [socks5h://user:pass@proxy:1080]
+outgoingProxies: {}
+
+# Rate limiter and bot detection (public mode). Needs Valkey.
+limiter:
+  # Addresses whose X-Forwarded-For is trusted: your ingress controller / load balancer.
+  trustedProxies:
+    - 10.0.0.0/8
+    - 172.16.0.0/12
+    - 192.168.0.0/16
+    - fd00::/8
+  # Addresses that are never limited (e.g. your own office).
+  passIps: []
+  blockIps: []
+
+valkey:
+  # none:     no Valkey (api mode default).
+  # sidecar:  valkey-server as a native sidecar, in memory (public mode default when mode=public and this is auto).
+  # external: your Valkey or Redis (url or existingSecret).
+  # auto:     none in api mode, sidecar in public mode.
+  mode: auto
+  url: ""
+  existingSecret: ""
+  existingSecretKey: valkey-url
+  sidecar:
+    image:
+      repository: valkey/valkey
+      tag: 8.1-alpine
+    maxmemory: 64mb
+    resources:
+      requests:
+        cpu: 10m
+        memory: 16Mi
+      limits:
+        memory: 96Mi
+
+# Anything else in settings.yml, deep-merged over what the chart renders (use_default_settings stays on).
+settings: {}
+#  ui:
+#    default_theme: simple
+#  search:
+#    safe_search: 1
+#    autocomplete: duckduckgo
+
+# Granian (the WSGI server in the image).
+server:
+  # One worker per pod: engine statistics (/metrics) are kept per worker process, so with several workers
+  # each scrape sees a different worker's counters. Scale with replicas.
+  workers: 1
+  # Threads per worker for concurrent searches; engine requests run in their own threads.
+  blockingThreads: 8
+
+replicaCount: 2
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 70
+podDisruptionBudget:
+  enabled: true
+  maxUnavailable: 1
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    memory: 768Mi
+
+env: []
+
+service:
+  type: ClusterIP
+  port: 8080
+  annotations: {}
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: search.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+httpRoute:
+  enabled: false
+  annotations: {}
+  parentRefs: []
+  hostnames: []
+  timeouts:
+    request: 30s
+
+# Only let pods with these labels (and the ingress controller namespaces) reach SearXNG. Useful in api mode,
+# where anything that can reach the Service gets unlimited searches.
+networkPolicy:
+  enabled: false
+  # Pods (any namespace) allowed to query, e.g. {app.kubernetes.io/name: firecrawl}.
+  allowedPodLabels: []
+  # Namespaces allowed to query (e.g. the ingress controller's).
+  allowedNamespaceLabels: []
+  metricsNamespaceSelector:
+    matchLabels:
+      kubernetes.io/metadata.name: monitoring
+
+metrics:
+  # /metrics (open metrics, basic auth): per-engine request counts, response times, result counts and
+  # reliability.
+  enabled: false
+  # Empty: generated once and kept. It is written into settings.yml (open_metrics), so it lives in the
+  # chart's Secret.
+  password: ""
+  serviceMonitor:
+    enabled: false
+    interval: 60s
+    labels: {}
+  prometheusRule:
+    enabled: false
+    labels: {}
+    # Engine reliability (share of successful requests, 0-100) below this for 30 minutes.
+    engineReliability: 50
+    # Engines expected to be unreliable (regex), left out of the alert.
+    ignoreEngines: ""
+  dashboard:
+    enabled: false
+    labels:
+      grafana_dashboard: "1"
+    annotations: {}
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+automountServiceAccountToken: false
+
+podAnnotations: {}
+podLabels: {}
+priorityClassName: ""
+nodeSelector: {}
+tolerations: []
+affinity: {}
+topologySpreadConstraints: []
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 977
+  runAsGroup: 977
+  fsGroup: 977
+  seccompProfile:
+    type: RuntimeDefault
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: [ALL]
+
+probes:
+  startup:
+    periodSeconds: 2
+    failureThreshold: 60
+  liveness:
+    periodSeconds: 20
+    timeoutSeconds: 5
+  readiness:
+    periodSeconds: 10
+    timeoutSeconds: 3
+
+extraVolumes: []
+extraVolumeMounts: []
+extraObjects: []

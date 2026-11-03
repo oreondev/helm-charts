@@ -14,7 +14,9 @@ Every chart is versioned on its own ([SemVer](https://semver.org/): patch for fi
 | llm-serving-observability | 0.1.0 | - | released |
 | namespace-baseline | 0.1.0 | - | released |
 | otel-collector-baseline | 0.1.3 | - | released |
+| searxng | 0.1.0 | SearXNG 2026.10.29-cff884f98 | released |
 | slo-burn-rate-alerts | 0.3.2 | - | released |
+| text-embeddings-inference | 0.1.0 | TEI 1.9.4 | released |
 | velero-backup-schedules | 0.1.0 | - | released |
 
 Images built here ([images/](images)):
@@ -22,6 +24,32 @@ Images built here ([images/](images)):
 | Image | Version | Used by |
 |---|---|---|
 | ghcr.io/oreondev/crawl4ai-server | 0.9.5 | crawl4ai |
+
+## 2026-11-03
+
+### searxng 0.1.0 (SearXNG 2026.10.29-cff884f98)
+
+**Modes:**
+- **api** (default): JSON, CSV and RSS on, limiter off. Upstream returns 403 for `format=json`.
+- **public**: limiter and bot detection with a Valkey native sidecar or an external Valkey, trusted proxies from values. Tested: scripted clients 429, browsers 200.
+
+**Changes from the image:**
+- **Secret key:** generated once and shared by all replicas. Upstream writes a random one per container, which breaks image-proxy links and cookies across pods.
+- **Engines:** a curated profile of 20 web, IT and science engines. It returns the same results as the defaults on general queries, uses 15-25% less memory, and loads no torrent or onion engines.
+- **Process:** Granian started directly, one worker per pod, because engine statistics are per worker process. Non-root (uid 977), read-only root filesystem, config from a Secret.
+- **Monitoring:** `/metrics` with basic auth, ServiceMonitor, alerts (down, no results from any engine, an unreliable engine), Grafana dashboard.
+- **NetworkPolicy:** an allow list for api mode. Tested: listed client 200, others blocked.
+
+### text-embeddings-inference 0.1.0 (TEI 1.9.4)
+
+**Models:** several per release, each a Deployment or StatefulSet with its own Service. The image variant comes from `accelerator` (`cpu`, `cpu-arm64`, `turing`, `ampere`, `ampere-86`, `ada`, `hopper`, `blackwell`, `blackwell-120`). GPU variants request `nvidia.com/gpu`, tolerate GPU taints and use Recreate.
+
+**Changes from the image:**
+- **Model cache:** `persistent` (a PVC per replica) or a shared ReadWriteMany claim. Restarting bge-small: 30-31 s on an empty cache, 7-9 s with the kept cache.
+- **API key:** generated (`--api-key`); `/health` stays open.
+- **Runtime:** port 8080 as uid 1000, read-only root filesystem. Thread pools sized to the pod's CPU instead of the image's fixed 8 (no throughput change measured on 2 CPUs).
+- **Monitoring:** ServiceMonitor on `/metrics` (API port, no key) with a `model` label. Alerts: model down, p95 latency, queue backlog, failure ratio, memory. Grafana dashboard.
+- **Scaling:** KEDA on `te_queue_size`, or a CPU HPA.
 
 ## 2026-11-01
 

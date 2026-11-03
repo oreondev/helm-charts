@@ -1,0 +1,12 @@
+# chart-testing: api mode with monitoring objects and the NetworkPolicy.
+replicaCount: 1
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+  prometheusRule:
+    enabled: true
+  dashboard:
+    enabled: true
+networkPolicy:
+  enabled: true

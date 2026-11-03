@@ -1,0 +1,41 @@
+apiVersion: v2
+name: text-embeddings-inference
+description: Hugging Face Text Embeddings Inference on Kubernetes - several embedding, reranker and classifier models per release on CPU or NVIDIA GPUs (image variant picked from the accelerator), model cache kept across restarts (StatefulSet PVCs or a shared volume), generated API key, non-root and read-only, OpenAI-compatible /v1/embeddings for Mem0, LangChain and LiteLLM, KEDA scaling on the request queue, ServiceMonitor, alerts and a Grafana dashboard.
+type: application
+version: 0.1.0
+appVersion: "1.9.4"
+kubeVersion: ">=1.25.0-0"
+home: https://www.oreonit.com/containerization-orchestration-management-kubernetes-openshift/
+icon: https://raw.githubusercontent.com/oreondev/helm-charts/main/icon.png
+sources:
+  - https://github.com/oreondev/helm-charts
+  - https://github.com/huggingface/text-embeddings-inference
+keywords:
+  - text-embeddings-inference
+  - tei
+  - embeddings
+  - reranker
+  - rag
+  - llm
+  - gpu
+  - huggingface
+maintainers:
+  - name: Oreon IT
+    email: info@oreonit.com
+    url: https://www.oreonit.com/
+annotations:
+  artifacthub.io/license: MIT
+  artifacthub.io/category: ai-machine-learning
+  artifacthub.io/prerelease: "false"
+  artifacthub.io/operator: "false"
+  artifacthub.io/images: |
+    - name: text-embeddings-inference-cpu
+      image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.9.4
+    - name: text-embeddings-inference-ada
+      image: ghcr.io/huggingface/text-embeddings-inference:89-1.9.4
+  artifacthub.io/links: |
+    - name: TEI documentation
+      url: https://huggingface.co/docs/text-embeddings-inference
+  artifacthub.io/changes: |
+    - kind: added
+      description: First release, for Text Embeddings Inference 1.9.4

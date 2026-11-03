@@ -1,0 +1,18 @@
+{{- if and .Values.metrics.enabled .Values.metrics.dashboard.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "tei.fullname" . }}-dashboard
+  labels:
+    {{- include "tei.labels" (dict "ctx" .) | nindent 4 }}
+    {{- with .Values.metrics.dashboard.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with .Values.metrics.dashboard.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+data:
+  text-embeddings-inference.json: |-
+    {{- .Files.Get "dashboards/text-embeddings-inference.json" | nindent 4 }}
+{{- end }}

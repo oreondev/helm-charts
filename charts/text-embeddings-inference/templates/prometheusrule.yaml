@@ -1,0 +1,64 @@
+{{- if and .Values.metrics.enabled .Values.metrics.prometheusRule.enabled }}
+{{- $r := .Values.metrics.prometheusRule }}
+{{- $full := include "tei.fullname" . }}
+{{- $sel := printf "namespace=%q, job=~%q" .Release.Namespace (printf "%s-.*" $full) }}
+{{- $pod := printf "namespace=%q, pod=~%q, container=\"tei\"" .Release.Namespace (printf "%s-.*" $full) }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ $full }}
+  labels:
+    {{- include "tei.labels" (dict "ctx" .) | nindent 4 }}
+    {{- with $r.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  groups:
+    - name: text-embeddings-inference
+      rules:
+        - alert: TEIModelDown
+          expr: sum by (service, model) (up{ {{- $sel -}} }) == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: 'Embeddings model {{ "{{" }} $labels.model {{ "}}" }} has no pod answering'
+            description: RAG ingestion and search, agent memory and anything else embedding text through this model fail. Check the pod; a first start downloads the model before /health answers.
+        - alert: TEISlowRequests
+          expr: |
+            histogram_quantile(0.95, sum by (le, service, model) (rate(te_request_duration_bucket{ {{- $sel -}} }[5m]))) > {{ $r.latencySeconds }}
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: 'Embeddings model {{ "{{" }} $labels.model {{ "}}" }} p95 latency is {{ "{{" }} $value | humanizeDuration {{ "}}" }}'
+            description: Requests queue behind full batches. Add replicas or a GPU, or lower maxBatchTokens if single requests are large.
+        - alert: TEIQueueBacklog
+          expr: max by (pod, model) (te_queue_size{ {{- $sel -}} }) > {{ $r.queueSize }}
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: '{{ "{{" }} $value {{ "}}" }} requests queued on {{ "{{" }} $labels.pod {{ "}}" }}'
+            description: The model cannot keep up. Scale it out (autoscaling.keda scales on this queue).
+        - alert: TEIRequestFailures
+          expr: |
+            sum by (service, model) (rate(te_request_failure{ {{- $sel -}} }[5m]))
+              / sum by (service, model) (rate(te_request_count{ {{- $sel -}} }[5m])) > {{ $r.failureRatio }}
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: 'Embeddings model {{ "{{" }} $labels.model {{ "}}" }} fails {{ "{{" }} $value | humanizePercentage {{ "}}" }} of requests'
+            description: See te_request_failure by err (tokenization, validation, batch_size, overloaded). Inputs over the model's limit fail unless autoTruncate is on.
+        - alert: TEIMemoryNearLimit
+          expr: |
+            max by (pod) (container_memory_working_set_bytes{ {{- $pod -}} }
+              / on(namespace, pod, container) kube_pod_container_resource_limits{ {{- $pod }}, resource="memory"}) > 0.9
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: 'TEI pod {{ "{{" }} $labels.pod {{ "}}" }} uses {{ "{{" }} $value | humanizePercentage {{ "}}" }} of its memory limit'
+            description: Large batches of long inputs need more memory. Raise the limit or lower maxBatchTokens.
+{{- end }}

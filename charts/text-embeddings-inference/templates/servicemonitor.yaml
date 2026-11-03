@@ -1,0 +1,25 @@
+{{- if and .Values.metrics.enabled .Values.metrics.serviceMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "tei.fullname" . }}
+  labels:
+    {{- include "tei.labels" (dict "ctx" .) | nindent 4 }}
+    {{- with .Values.metrics.serviceMonitor.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  # Every model's Service.
+  selector:
+    matchLabels:
+      {{- include "tei.selectorLabels" (dict "ctx" .) | nindent 6 }}
+  endpoints:
+    # TEI serves /metrics on the API port, without the API key.
+    - port: http
+      path: /metrics
+      interval: {{ .Values.metrics.serviceMonitor.interval }}
+      relabelings:
+        # The model name as a label on every series.
+        - sourceLabels: [__meta_kubernetes_service_label_app_kubernetes_io_component]
+          targetLabel: model
+{{- end }}

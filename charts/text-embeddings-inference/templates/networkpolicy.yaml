@@ -1,0 +1,38 @@
+{{- if .Values.networkPolicy.enabled }}
+{{- $n := .Values.networkPolicy }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "tei.fullname" . }}
+  labels:
+    {{- include "tei.labels" (dict "ctx" .) | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "tei.selectorLabels" (dict "ctx" .) | nindent 6 }}
+  policyTypes: [Ingress]
+  ingress:
+    {{- if or $n.allowedPodLabels $n.allowedNamespaceLabels }}
+    - from:
+        {{- range $n.allowedPodLabels }}
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              {{- toYaml . | nindent 14 }}
+        {{- end }}
+        {{- range $n.allowedNamespaceLabels }}
+        - namespaceSelector:
+            matchLabels:
+              {{- toYaml . | nindent 14 }}
+        {{- end }}
+      ports:
+        - { port: 8080, protocol: TCP }
+    {{- end }}
+    {{- if .Values.metrics.enabled }}
+    - from:
+        - namespaceSelector:
+            {{- toYaml $n.metricsNamespaceSelector | nindent 12 }}
+      ports:
+        - { port: 8080, protocol: TCP }
+    {{- end }}
+{{- end }}

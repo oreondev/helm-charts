@@ -1,0 +1,3 @@
+# chart-testing: public mode, rate limiter with the Valkey sidecar.
+mode: public
+replicaCount: 1
