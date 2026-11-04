@@ -304,6 +304,65 @@ entries:
     urls:
     - https://github.com/oreondev/helm-charts/releases/download/evolution-0.2.0/evolution-0.2.0.tgz
     version: 0.2.0
+  firecrawl:
+  - annotations:
+      artifacthub.io/category: ai-machine-learning
+      artifacthub.io/changes: |
+        - kind: added
+          description: First release, for Firecrawl 2.11.621
+      artifacthub.io/images: |
+        - name: firecrawl
+          image: ghcr.io/firecrawl/firecrawl:2.11.621
+        - name: playwright-service
+          image: ghcr.io/firecrawl/playwright-service@sha256:637fb8c8399634b02c2179da72566ce11644435e5d93e895bdbde4b1f9b0882a
+        - name: nuq-postgres
+          image: ghcr.io/firecrawl/nuq-postgres@sha256:d719b36160eac2fcbe16dc7e7360ddb9c82c40ea5da183d07bf4a755c6a0b2ae
+        - name: nginx-unprivileged
+          image: nginxinc/nginx-unprivileged:1.29-alpine
+        - name: redis
+          image: redis:7.4-alpine
+      artifacthub.io/license: MIT
+      artifacthub.io/links: |
+        - name: Firecrawl self-hosting documentation
+          url: https://docs.firecrawl.dev/contributing/self-host
+        - name: Kubernetes production readiness checklist
+          url: https://www.oreonit.com/kubernetes-production-readiness-checklist/
+      artifacthub.io/operator: "false"
+      artifacthub.io/prerelease: "false"
+    apiVersion: v2
+    appVersion: 2.11.621
+    created: "2026-11-04T22:11:43.961224569Z"
+    description: Firecrawl (web scraping and crawling API for LLMs) on Kubernetes
+      - API, queue workers and Playwright as separate Deployments with their own resources,
+      probes and scaling, a token gate (self-hosted Firecrawl accepts any key), NuQ
+      queue on bundled or managed PostgreSQL with the schema applied per release and
+      WAL sized for the volume, KEDA scaling on queue depth, pinned image digests,
+      non-root and read-only, NetworkPolicy, PodMonitor, alerts and a Grafana dashboard.
+    digest: 4ba840bb86f6b8f13f23705d801b72e53d71c606c28dc4147ce5d63762d45cb3
+    home: https://www.oreonit.com/containerization-orchestration-management-kubernetes-openshift/
+    icon: https://raw.githubusercontent.com/oreondev/helm-charts/main/icon.png
+    keywords:
+    - firecrawl
+    - web-scraping
+    - crawler
+    - llm
+    - rag
+    - playwright
+    - keda
+    - ai
+    kubeVersion: '>=1.25.0-0'
+    maintainers:
+    - email: info@oreonit.com
+      name: Oreon IT
+      url: https://www.oreonit.com/
+    name: firecrawl
+    sources:
+    - https://github.com/oreondev/helm-charts
+    - https://github.com/firecrawl/firecrawl
+    type: application
+    urls:
+    - https://github.com/oreondev/helm-charts/releases/download/firecrawl-0.1.0/firecrawl-0.1.0.tgz
+    version: 0.1.0
   gateway-api-baseline:
   - annotations:
       artifacthub.io/category: networking
@@ -607,6 +666,58 @@ entries:
     type: application
     urls:
     - https://github.com/oreondev/helm-charts/releases/download/llm-serving-observability-0.1.0/llm-serving-observability-0.1.0.tgz
+    version: 0.1.0
+  mem0:
+  - annotations:
+      artifacthub.io/category: ai-machine-learning
+      artifacthub.io/changes: |
+        - kind: added
+          description: First release, for Mem0 2.2.1
+      artifacthub.io/images: |
+        - name: mem0-server
+          image: ghcr.io/oreondev/mem0-server:2.2.1
+        - name: mem0-dashboard
+          image: ghcr.io/oreondev/mem0-dashboard:2.2.1
+      artifacthub.io/license: MIT
+      artifacthub.io/links: |
+        - name: Mem0 open-source documentation
+          url: https://docs.mem0.ai/open-source/overview
+        - name: Image build files
+          url: https://github.com/oreondev/helm-charts/tree/main/images/mem0
+      artifacthub.io/operator: "false"
+      artifacthub.io/prerelease: "false"
+    apiVersion: v2
+    appVersion: 2.2.1
+    created: "2026-11-04T22:11:44.169549246Z"
+    description: Mem0 self-hosted memory server and dashboard for AI agents on Kubernetes
+      - pinned images built from the upstream release (non-root, read-only), database
+      and pgvector setup, migrations and first-admin bootstrap in init containers,
+      probes that do not write to the database, request-log pruning CronJob, OpenAI-compatible
+      endpoints for private LLMs, Ingress or Gateway API, and Prometheus metrics,
+      alerts and a Grafana dashboard.
+    digest: 69602c99adecb17cda7134928010c54a88228d4e01659246c2bb6e9357700d70
+    home: https://www.oreonit.com/containerization-orchestration-management-kubernetes-openshift/
+    icon: https://raw.githubusercontent.com/oreondev/helm-charts/main/icon.png
+    keywords:
+    - mem0
+    - memory
+    - ai-agents
+    - llm
+    - rag
+    - pgvector
+    - ai
+    kubeVersion: '>=1.25.0-0'
+    maintainers:
+    - email: info@oreonit.com
+      name: Oreon IT
+      url: https://www.oreonit.com/
+    name: mem0
+    sources:
+    - https://github.com/oreondev/helm-charts
+    - https://github.com/mem0ai/mem0
+    type: application
+    urls:
+    - https://github.com/oreondev/helm-charts/releases/download/mem0-0.1.0/mem0-0.1.0.tgz
     version: 0.1.0
   namespace-baseline:
   - annotations:
@@ -1107,4 +1218,4 @@ entries:
     urls:
     - https://github.com/oreondev/helm-charts/releases/download/velero-backup-schedules-0.1.0/velero-backup-schedules-0.1.0.tgz
     version: 0.1.0
-generated: "2026-11-03T13:45:18.119163106Z"
+generated: "2026-11-04T22:11:44.169574774Z"
