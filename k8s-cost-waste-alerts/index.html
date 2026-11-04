@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>k8s-cost-waste-alerts Helm chart | Oreon IT</title>
+<meta name="description" content="What a Kubernetes cluster costs and where the money is wasted - cluster cost and showback per namespace with node prices from flat rates, an instance-type ">
+<link rel="canonical" href="https://www.oreonit.com/helm-charts/k8s-cost-waste-alerts/">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<style>
+:root{--bg:#fff;--fg:#14213d;--muted:#5b6478;--line:#e3e6ee;--code:#f3f5f9;--accent:#e8590c}
+@media (prefers-color-scheme:dark){:root{--bg:#0b1220;--fg:#e8ecf4;--muted:#9aa3b5;--line:#1f2a40;--code:#141d30;--accent:#ff8a3d}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:980px;margin:0 auto;padding:40px 16px 56px}
+h1{margin:0 0 6px;font-size:30px;letter-spacing:-.01em}
+.badges{margin:4px 0 12px} .badges img{display:block}
+.lead{color:var(--muted);margin:0 0 20px}
+a{color:var(--accent)}
+pre{background:var(--code);border:1px solid var(--line);padding:14px 16px;border-radius:10px;overflow-x:auto;margin:0}
+table{width:100%;border-collapse:collapse;margin:24px 0 40px}
+td,th{text-align:left;padding:11px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+td:nth-child(1){white-space:nowrap}
+td:nth-child(2){white-space:nowrap;color:var(--muted)}
+td a{text-decoration:none} td a:hover{text-decoration:underline}
+.card{position:relative;overflow:hidden;border-radius:18px;padding:32px;color:#e8ecf4;
+  background:radial-gradient(120% 140% at 100% 0%,rgba(245,130,21,.28) 0,rgba(245,130,21,0) 45%),linear-gradient(135deg,#0f1d3a 0%,#14274d 60%,#0b1430 100%);
+  box-shadow:0 20px 50px -25px rgba(10,20,45,.6)}
+.card:before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:linear-gradient(#fdb813,#e23b26)}
+.brand{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.brand img{height:52px;width:auto}
+.card h2{margin:0;font-size:22px;color:#fff}
+.card p{color:#b9c3d6;margin:10px 0 0;max-width:680px}
+.tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:24px 0}
+.tile{display:block;padding:16px 18px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
+  color:#fff;text-decoration:none;transition:background .15s,border-color .15s,transform .15s}
+.tile:hover{background:rgba(255,255,255,.1);border-color:rgba(253,184,19,.55);transform:translateY(-2px)}
+.tile strong{display:block;font-size:16px}
+.tile em{display:block;font-style:normal;color:#b9c3d6;font-size:14px;margin:4px 0 10px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips span{font:12px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;padding:4px 7px;border-radius:6px;background:rgba(253,184,19,.12);color:#fdd27a}
+.cta{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.btn{display:inline-block;padding:12px 18px;border-radius:10px;font-weight:600;text-decoration:none}
+.btn.primary{background:linear-gradient(90deg,#f58215,#e23b26);color:#fff}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.ghost{color:#fff;border:1px solid rgba(255,255,255,.3)}
+.btn.ghost:hover{border-color:#fff}
+footer{margin-top:28px;font-size:14px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px 18px}
+footer a{color:var(--muted)}
+@media (max-width:700px){.tiles{grid-template-columns:1fr} .card{padding:24px 20px} td:nth-child(3),th:nth-child(3){display:none}}
+
+.crumb{font-size:14px;color:var(--muted);margin:0 0 10px} .crumb a{color:var(--muted)}
+.meta{color:var(--muted);margin:0 0 22px}
+.doc h2{margin:34px 0 10px;font-size:22px} .doc h3{margin:24px 0 8px;font-size:18px}
+.doc table{margin:16px 0 24px;display:block;overflow-x:auto} .doc td,.doc th{white-space:normal}
+.doc code{background:var(--code);padding:1px 5px;border-radius:5px;font-size:.92em} .doc pre code{padding:0;background:none}
+.doc pre{margin:12px 0 18px}
+.card.small{padding:24px;margin-top:40px}
+</style></head><body><main>
+<p class="crumb"><a href="../">Oreon IT Helm charts</a> / k8s-cost-waste-alerts</p>
+<h1>k8s-cost-waste-alerts Helm chart</h1>
+<p class="meta">Version 0.2.1 · app 0.1.0 · MIT · <a href="https://github.com/oreondev/helm-charts/tree/main/charts/k8s-cost-waste-alerts">source</a> · <a href="https://artifacthub.io/packages/helm/oreonit/k8s-cost-waste-alerts">Artifact Hub</a></p>
+<article class="doc">
+
+<p>What a Kubernetes cluster costs, who uses it, and where the money is wasted, as Prometheus rules and a Grafana dashboard. No SaaS and no cloud billing export: kube-state-metrics and the kubelet's cAdvisor metrics, which kube-prometheus-stack already scrapes, plus node prices from a flat rate, your instance-type price list, or <a href="https://www.opencost.io/">OpenCost</a>.</p>
+<table>
+<thead>
+<tr>
+<th>Alert</th>
+<th>Fires when</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>NamespaceCPUOverRequested</code></td>
+<td>a namespace leaves more than 70 % of its CPU requests unused (24 h average) and requests at least 2 cores</td>
+<td>warning, 1h</td>
+</tr>
+<tr>
+<td><code>NamespaceMemoryOverRequested</code></td>
+<td>same for memory, at least 4 GiB requested</td>
+<td>warning, 1h</td>
+</tr>
+<tr>
+<td><code>ClusterCPUUnderCommitted</code> / <code>ClusterMemoryUnderCommitted</code></td>
+<td>less than 40 % of allocatable capacity is requested across the cluster (nodes oversized or autoscaler not scaling in)</td>
+<td>info, 6h</td>
+</tr>
+<tr>
+<td><code>UnusedPersistentVolumeClaim</code></td>
+<td>a PVC has not been mounted by any pod for 7 days</td>
+<td>info, 7d</td>
+</tr>
+<tr>
+<td><code>UnusedLoadBalancerService</code></td>
+<td>a LoadBalancer service has had no ready endpoints for a day</td>
+<td>warning, 1d</td>
+</tr>
+<tr>
+<td><code>HPAAtMaxReplicas</code></td>
+<td>an HPA has sat at maxReplicas for 2 hours</td>
+<td>info, 2h</td>
+</tr>
+<tr>
+<td><code>HPAMinEqualsMax</code></td>
+<td>an HPA has minReplicas equal to maxReplicas (autoscaling off)</td>
+<td>info, 1h</td>
+</tr>
+<tr>
+<td><code>ContainersWithoutCPURequests</code></td>
+<td>running containers in a namespace have no CPU request</td>
+<td>info, 1h</td>
+</tr>
+<tr>
+<td><code>DeploymentScaledToZero</code></td>
+<td>a Deployment has had zero replicas for 7 days</td>
+<td>info, 7d</td>
+</tr>
+</tbody>
+</table>
+<p>Recording rules (<code>costwaste:*</code>) price every node, then give:</p>
+<ul>
+<li><strong>Cluster cost per month</strong> and the split into <strong>requested</strong> (what pods reserve) and <strong>unrequested</strong> capacity (paid for, used by nobody).</li>
+<li><strong>Showback per namespace</strong>: requests priced at the node each pod runs on.</li>
+<li><strong>Waste per namespace</strong>: requests above real usage, in money. The headline figure leaves out the system namespaces in <code>excludeNamespaces</code>; an "all namespaces" figure sits next to it.</li>
+<li><strong>Savings levers</strong> per month: right-sizing, consolidating unrequested capacity, moving on-demand nodes to spot, committing the steady baseline, idle volumes and idle load balancers. They overlap, so read them as separate options, not a total.</li>
+<li>Cluster commitment ratios, idle PVCs and LoadBalancers, HPAs at their limits, containers without requests.</li>
+</ul>
+<p>The dashboard shows all of it: cost tiles, a savings table, cost by namespace, a node table (instance type, spot or on-demand, cost, how much is requested), monthly run-rate trends, and the namespace table.</p>
+<h2 id="pricing-sources">Pricing sources</h2>
+<table>
+<thead>
+<tr>
+<th><code>pricing.source</code></th>
+<th>Node price comes from</th>
+<th>Needs</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>static</code> (default)</td>
+<td><code>cpuCoreHour</code> × vCPUs + <code>memoryGiBHour</code> × GiB, the same for every node</td>
+<td>nothing</td>
+</tr>
+<tr>
+<td><code>instanceType</code></td>
+<td><code>pricing.instanceTypes</code> (on-demand $/hour per <code>node.kubernetes.io/instance-type</code>), spot nodes discounted by <code>spotDiscount</code>; unknown types fall back to the static rates</td>
+<td>node labels in kube-state-metrics (below)</td>
+</tr>
+<tr>
+<td><code>opencost</code></td>
+<td>OpenCost's <code>node_total_hourly_cost</code>, <code>node_cpu_hourly_cost</code>, <code>node_ram_hourly_cost</code>, <code>kubecost_node_is_spot</code>: the cloud provider's price list, spot included</td>
+<td>OpenCost scraped by the same Prometheus</td>
+</tr>
+</tbody>
+</table>
+<p>With <code>instanceType</code>, kube-state-metrics has to export the node labels. In kube-prometheus-stack:</p>
+<pre><code class="language-yaml">kube-state-metrics:
+  metricLabelsAllowlist:
+    - nodes=[node.kubernetes.io/instance-type,karpenter.sh/capacity-type,eks.amazonaws.com/capacityType,cloud.google.com/gke-spot,cloud.google.com/gke-preemptible,kubernetes.azure.com/scalesetpriority]
+</code></pre>
+<p>Spot and preemptible nodes are recognised from the Karpenter, EKS, GKE and AKS labels above (all sources) or from OpenCost.</p>
+<pre><code class="language-yaml">pricing:
+  source: instanceType
+  currency: USD
+  instanceTypes:
+    m6i.large: 0.096
+    m6i.xlarge: 0.192
+    m6i.2xlarge: 0.384
+</code></pre>
+<p>An instance price is split into CPU and memory in the ratio of <code>cpuCoreHour</code> to <code>memoryGiBHour</code>, so keep those two at sensible list prices even when the source is not <code>static</code>.</p>
+<p>OpenCost, and some agents, re-export kube-state-metrics series under their own job. The rules deduplicate them (<code>max without (job, instance, …)</code>), so installing OpenCost next to kube-state-metrics does not count requests or capacity twice.</p>
+<h2 id="install">Install</h2>
+<pre><code class="language-bash">helm repo add oreonit https://oreondev.github.io/helm-charts
+helm install cost oreonit/k8s-cost-waste-alerts -n monitoring \
+  --set prometheusRule.labels.release=kube-prometheus-stack \
+  --set pricing.currency=GBP --set pricing.cpuCoreHour=0.026 --set pricing.memoryGiBHour=0.0035
+</code></pre>
+<p>The over-requested alerts use a 24-hour average, so they start firing a day after install. The dashboard is useful after a few minutes.</p>
+<h2 id="values">Values</h2>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>prometheusRule.labels</code></td>
+<td><code>{}</code></td>
+<td>Prometheus Operator ruleSelector labels</td>
+</tr>
+<tr>
+<td><code>prometheusRule.interval</code></td>
+<td><code>1m</code></td>
+<td>Recording rule interval</td>
+</tr>
+<tr>
+<td><code>dashboard.*</code></td>
+<td>enabled, <code>grafana_dashboard: "1"</code></td>
+<td>Dashboard ConfigMap for the Grafana sidecar</td>
+</tr>
+<tr>
+<td><code>excludeNamespaces</code></td>
+<td><code>kube-.*\|gmp-.*\|gke-.*\|monitoring\|kyverno</code></td>
+<td>System namespaces: the alerts, the headline waste figure and the savings levers leave them out</td>
+</tr>
+<tr>
+<td><code>pricing.currency</code></td>
+<td><code>USD</code></td>
+<td><code>USD</code>, <code>GBP</code> or <code>EUR</code> (dashboard unit)</td>
+</tr>
+<tr>
+<td><code>pricing.cpuCoreHour</code></td>
+<td><code>0.032</code></td>
+<td>Price of one vCPU-hour</td>
+</tr>
+<tr>
+<td><code>pricing.memoryGiBHour</code></td>
+<td><code>0.0043</code></td>
+<td>Price of one GiB-hour</td>
+</tr>
+<tr>
+<td><code>pricing.source</code></td>
+<td><code>static</code></td>
+<td><code>static</code>, <code>instanceType</code> or <code>opencost</code> (see Pricing sources)</td>
+</tr>
+<tr>
+<td><code>pricing.instanceTypes</code></td>
+<td><code>{}</code></td>
+<td>On-demand $/hour per instance type (<code>instanceType</code> source)</td>
+</tr>
+<tr>
+<td><code>pricing.spotDiscount</code></td>
+<td><code>0.65</code></td>
+<td>Discount of spot on on-demand: prices spot nodes (<code>instanceType</code>) and the spot lever</td>
+</tr>
+<tr>
+<td><code>pricing.storageGiBMonth</code> / <code>loadBalancerHour</code></td>
+<td><code>0.10</code> / <code>0.025</code></td>
+<td>Prices for the idle-volume and idle-load-balancer levers</td>
+</tr>
+<tr>
+<td><code>savings.spotEligibleShare</code></td>
+<td><code>0.5</code></td>
+<td>Share of on-demand node spend that could run on spot</td>
+</tr>
+<tr>
+<td><code>savings.commitmentDiscount</code></td>
+<td><code>0.3</code></td>
+<td>Discount of a 1-year commitment on the 7-day minimum of on-demand spend</td>
+</tr>
+<tr>
+<td><code>savings.idleHeadroom</code></td>
+<td><code>0.2</code></td>
+<td>Share of unrequested capacity kept as headroom (not counted as saveable)</td>
+</tr>
+<tr>
+<td><code>thresholds.cpuWasteRatio</code> / <code>memoryWasteRatio</code></td>
+<td><code>0.7</code></td>
+<td>Unused share of requests that triggers the over-requested alerts</td>
+</tr>
+<tr>
+<td><code>thresholds.minCpuRequestCores</code> / <code>minMemoryRequestGiB</code></td>
+<td><code>2</code> / <code>4</code></td>
+<td>Ignore namespaces requesting less than this</td>
+</tr>
+<tr>
+<td><code>thresholds.clusterCpuCommitRatio</code> / <code>clusterMemoryCommitRatio</code></td>
+<td><code>0.4</code></td>
+<td>Under-committed threshold</td>
+</tr>
+<tr>
+<td><code>alerts.&lt;name&gt;.enabled</code> / <code>severity</code> / <code>for</code></td>
+<td>see table</td>
+<td>Per-alert switches</td>
+</tr>
+<tr>
+<td><code>alertLabels</code></td>
+<td><code>{}</code></td>
+<td>Labels added to every alert (team, routing)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="how-to-read-it">How to read it</h2>
+<ul>
+<li><strong>Over-requested namespaces</strong> are the usual first win: memory requests set "to be safe" decide how many nodes you pay for. Right-size with VPA recommendations, then let the autoscaler remove nodes.</li>
+<li><strong>Under-committed cluster</strong> with over-requested namespaces means both problems at once: fix requests first, then node pool minimums and machine types.</li>
+<li><strong>Prices</strong> are a model, not an invoice. OpenCost gets you list prices per node; discounts you already have (Savings Plans, CUDs, enterprise agreements) are not in them, so the commitment lever overstates the saving if a commitment already covers the baseline.</li>
+<li><strong>Unrequested capacity</strong> only turns into savings when nodes go away: right-size requests first, then let the autoscaler or Karpenter consolidate.</li>
+<li><code>UnusedLoadBalancerService</code> needs kube-state-metrics 2.6 or newer (<code>kube_endpoint_address</code>); on older versions it stays silent rather than guessing.</li>
+</ul>
+<p>Background: <a href="https://www.oreonit.com/gke-cost-optimization-levers-that-work/">GKE cost optimisation levers</a>, <a href="https://www.oreonit.com/eks-cost-optimization-12-levers-that-actually-work/">EKS cost optimisation</a>, <a href="https://www.oreonit.com/cost-observability-finops/">cost observability and FinOps</a>. If you want the findings turned into a prioritised savings plan with the changes made, that is the <a href="https://www.oreonit.com/cloud-cost-optimization-review/">cloud cost optimisation review</a>.</p>
+<h2 id="licence">Licence</h2>
+<p>MIT. Maintained by <a href="https://www.oreonit.com/">Oreon IT</a>.</p>
+</article>
+<section class="card small" aria-labelledby="by">
+  <div class="brand"><img src="../oreon-logo.svg" alt="Oreon IT"><h2 id="by">Maintained by Oreon IT</h2></div>
+  <p>A London cloud, DevOps and SRE consultancy. If you want this chart rolled out and tuned for your platform, we can help.</p>
+  <div class="cta" style="margin-top:18px"><a class="btn primary" href="https://www.oreonit.com/book-a-consultation/?utm_source=helm-charts&utm_medium=referral&utm_campaign=oss">Book a free 30-minute call</a>
+  <a class="btn ghost" href="../">All charts</a></div>
+</section>
+<footer><span>MIT licence</span><a href="https://github.com/oreondev/helm-charts">Source</a><a href="https://github.com/oreondev/helm-charts/issues">Report an issue</a><a href="https://www.oreonit.com/?utm_source=helm-charts&utm_medium=referral&utm_campaign=oss">oreonit.com</a></footer>
+</main></body></html>

@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>text-embeddings-inference Helm chart | Oreon IT</title>
+<meta name="description" content="Hugging Face Text Embeddings Inference on Kubernetes - several embedding, reranker and classifier models per release on CPU or NVIDIA GPUs (image variant p">
+<link rel="canonical" href="https://www.oreonit.com/helm-charts/text-embeddings-inference/">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<style>
+:root{--bg:#fff;--fg:#14213d;--muted:#5b6478;--line:#e3e6ee;--code:#f3f5f9;--accent:#e8590c}
+@media (prefers-color-scheme:dark){:root{--bg:#0b1220;--fg:#e8ecf4;--muted:#9aa3b5;--line:#1f2a40;--code:#141d30;--accent:#ff8a3d}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:980px;margin:0 auto;padding:40px 16px 56px}
+h1{margin:0 0 6px;font-size:30px;letter-spacing:-.01em}
+.badges{margin:4px 0 12px} .badges img{display:block}
+.lead{color:var(--muted);margin:0 0 20px}
+a{color:var(--accent)}
+pre{background:var(--code);border:1px solid var(--line);padding:14px 16px;border-radius:10px;overflow-x:auto;margin:0}
+table{width:100%;border-collapse:collapse;margin:24px 0 40px}
+td,th{text-align:left;padding:11px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+td:nth-child(1){white-space:nowrap}
+td:nth-child(2){white-space:nowrap;color:var(--muted)}
+td a{text-decoration:none} td a:hover{text-decoration:underline}
+.card{position:relative;overflow:hidden;border-radius:18px;padding:32px;color:#e8ecf4;
+  background:radial-gradient(120% 140% at 100% 0%,rgba(245,130,21,.28) 0,rgba(245,130,21,0) 45%),linear-gradient(135deg,#0f1d3a 0%,#14274d 60%,#0b1430 100%);
+  box-shadow:0 20px 50px -25px rgba(10,20,45,.6)}
+.card:before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:linear-gradient(#fdb813,#e23b26)}
+.brand{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.brand img{height:52px;width:auto}
+.card h2{margin:0;font-size:22px;color:#fff}
+.card p{color:#b9c3d6;margin:10px 0 0;max-width:680px}
+.tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:24px 0}
+.tile{display:block;padding:16px 18px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
+  color:#fff;text-decoration:none;transition:background .15s,border-color .15s,transform .15s}
+.tile:hover{background:rgba(255,255,255,.1);border-color:rgba(253,184,19,.55);transform:translateY(-2px)}
+.tile strong{display:block;font-size:16px}
+.tile em{display:block;font-style:normal;color:#b9c3d6;font-size:14px;margin:4px 0 10px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips span{font:12px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;padding:4px 7px;border-radius:6px;background:rgba(253,184,19,.12);color:#fdd27a}
+.cta{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.btn{display:inline-block;padding:12px 18px;border-radius:10px;font-weight:600;text-decoration:none}
+.btn.primary{background:linear-gradient(90deg,#f58215,#e23b26);color:#fff}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.ghost{color:#fff;border:1px solid rgba(255,255,255,.3)}
+.btn.ghost:hover{border-color:#fff}
+footer{margin-top:28px;font-size:14px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px 18px}
+footer a{color:var(--muted)}
+@media (max-width:700px){.tiles{grid-template-columns:1fr} .card{padding:24px 20px} td:nth-child(3),th:nth-child(3){display:none}}
+
+.crumb{font-size:14px;color:var(--muted);margin:0 0 10px} .crumb a{color:var(--muted)}
+.meta{color:var(--muted);margin:0 0 22px}
+.doc h2{margin:34px 0 10px;font-size:22px} .doc h3{margin:24px 0 8px;font-size:18px}
+.doc table{margin:16px 0 24px;display:block;overflow-x:auto} .doc td,.doc th{white-space:normal}
+.doc code{background:var(--code);padding:1px 5px;border-radius:5px;font-size:.92em} .doc pre code{padding:0;background:none}
+.doc pre{margin:12px 0 18px}
+.card.small{padding:24px;margin-top:40px}
+</style></head><body><main>
+<p class="crumb"><a href="../">Oreon IT Helm charts</a> / text-embeddings-inference</p>
+<h1>text-embeddings-inference Helm chart</h1>
+<p class="meta">Version 0.1.0 · app 1.9.4 · MIT · <a href="https://github.com/oreondev/helm-charts/tree/main/charts/text-embeddings-inference">source</a> · <a href="https://artifacthub.io/packages/helm/oreonit/text-embeddings-inference">Artifact Hub</a></p>
+<article class="doc">
+
+<p><a href="https://github.com/huggingface/text-embeddings-inference">Hugging Face Text Embeddings Inference</a> (TEI: a fast server for embedding, reranker and classifier models) on Kubernetes, on CPU or NVIDIA GPUs. One release serves several models, each with its own Deployment (or StatefulSet) and Service, so RAG pipelines and agent memory (Mem0, LangChain, LlamaIndex, LiteLLM, Open WebUI) embed and rerank on your own infrastructure instead of a paid API.</p>
+<p>What the chart does compared with running the image as documented (<code>docker run -p 8080:80 -v $volume:/data ... --model-id ...</code>), measured on 1.9.4:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Image as documented</th>
+<th>This chart</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Models</td>
+<td>one per container</td>
+<td>a list: <code>models: [{name, modelId, accelerator, ...}]</code>, a Service each</td>
+</tr>
+<tr>
+<td>Image variant</td>
+<td>pick the tag by GPU generation yourself (<code>cpu-</code>, <code>turing-</code>, <code>86-</code>, <code>89-</code>, <code>hopper-</code>, <code>100-</code>, <code>120-</code> ...)</td>
+<td>from <code>accelerator: cpu | ada | hopper | ...</code>; GPU variants request <code>nvidia.com/gpu</code>, tolerate GPU taints and use Recreate</td>
+</tr>
+<tr>
+<td>Model files</td>
+<td>downloaded into the container on start unless you mount a volume</td>
+<td><code>cache.mode</code>: <code>persistent</code> (a PVC per replica via a StatefulSet) or a shared ReadWriteMany claim. Restarting bge-small on CPU: 30-31 s on an empty cache, 7-9 s with the kept cache (download plus TEI's optimised model files); large models save minutes</td>
+</tr>
+<tr>
+<td>Authentication</td>
+<td>none unless you pass <code>--api-key</code></td>
+<td>API key generated and kept, <code>Authorization: Bearer</code>; <code>/health</code> stays open for probes</td>
+</tr>
+<tr>
+<td>User / filesystem</td>
+<td>root, port 80</td>
+<td>uid 1000 on port 8080, read-only root filesystem, no capabilities</td>
+</tr>
+<tr>
+<td>Threads</td>
+<td><code>RAYON_NUM_THREADS=8</code> whatever the CPU</td>
+<td>sized to the pod's CPU limit or request</td>
+</tr>
+<tr>
+<td>Probes</td>
+<td>none</td>
+<td>startup probe with a budget for the download, liveness and readiness on <code>/health</code></td>
+</tr>
+<tr>
+<td>Scaling</td>
+<td>none</td>
+<td>CPU HPA, or KEDA on TEI's own queue length (<code>te_queue_size</code>), which also works for GPU models</td>
+</tr>
+<tr>
+<td>Monitoring</td>
+<td><code>/metrics</code></td>
+<td>ServiceMonitor with a <code>model</code> label, alerts (model down, p95 latency, queue backlog, failure ratio, memory near the limit), Grafana dashboard</td>
+</tr>
+</tbody>
+</table>
+<p>Tested on a kind cluster with <code>BAAI/bge-small-en-v1.5</code> and <code>cross-encoder/ms-marco-MiniLM-L-6-v2</code>: OpenAI-compatible <code>/v1/embeddings</code>, <code>/rerank</code>, 401 without the key, every alert and dashboard query evaluating against Prometheus.</p>
+<h2 id="install">Install</h2>
+<pre><code class="language-bash">helm repo add oreonit https://oreondev.github.io/helm-charts
+helm install embeddings oreonit/text-embeddings-inference -n ai --create-namespace -f embeddings.yaml
+kubectl -n ai get secret embeddings-tei -o jsonpath='{.data.api-key}' | base64 -d
+</code></pre>
+<p><code>embeddings.yaml</code> with a multilingual embedding model and a reranker on an L4 GPU node pool (GKE), and a small CPU model:</p>
+<pre><code class="language-yaml">models:
+  - name: bge-m3
+    modelId: BAAI/bge-m3
+    accelerator: ada                    # 89-&lt;version&gt; image, one nvidia.com/gpu
+    cache: { mode: persistent, size: 20Gi }
+    resources:
+      requests: { cpu: &quot;2&quot;, memory: 8Gi }
+      limits: { memory: 16Gi }
+    nodeSelector:
+      cloud.google.com/gke-accelerator: nvidia-l4
+    autoscaling:
+      keda: { enabled: true }           # 1-4 replicas, one per 64 queued requests
+  - name: reranker
+    modelId: BAAI/bge-reranker-v2-m3
+    accelerator: ada
+    cache: { mode: persistent, size: 10Gi }
+    nodeSelector:
+      cloud.google.com/gke-accelerator: nvidia-l4
+  - name: minilm
+    modelId: sentence-transformers/all-MiniLM-L6-v2
+    resources:
+      requests: { cpu: &quot;1&quot;, memory: 1Gi }
+      limits: { cpu: &quot;2&quot;, memory: 2Gi }
+
+metrics:
+  serviceMonitor: { enabled: true }
+  prometheusRule: { enabled: true }
+  dashboard: { enabled: true }
+</code></pre>
+<h3 id="using-it">Using it</h3>
+<p>Every model answers the OpenAI embeddings API, so most clients only need a base URL and the key:</p>
+<pre><code class="language-python">from openai import OpenAI
+client = OpenAI(base_url=&quot;http://embeddings-tei-bge-m3.ai.svc:8080/v1&quot;, api_key=KEY)
+client.embeddings.create(model=&quot;bge-m3&quot;, input=[&quot;Kubernetes autoscaling&quot;, &quot;Prometheus alerting&quot;])
+</code></pre>
+<ul>
+<li><strong>Mem0:</strong> <code>llm.openaiBaseUrl</code> pointing at the model's <code>/v1</code>. Set the collection's embedding dimensions to the model's: 1024 for bge-m3, 384 for MiniLM.</li>
+<li><strong>LiteLLM:</strong> a model with <code>api_base: http://...:8080/v1</code>.</li>
+<li><strong>Rerankers:</strong> answer <code>POST /rerank</code> with <code>{"query": ..., "texts": [...]}</code>.</li>
+<li><strong>Classifiers:</strong> answer <code>POST /predict</code>.</li>
+</ul>
+<p>The API docs are at <code>/docs</code>.</p>
+<h3 id="choosing-hardware">Choosing hardware</h3>
+<ul>
+<li><strong>CPU:</strong> small models (MiniLM, bge-small, e5-small) run well on CPU for moderate traffic. Throughput scales with cores; on 2 CPUs, bge-small embedded about 80 texts per second in batches of 32.</li>
+<li><strong>GPU:</strong> large models (bge-m3, gte-large, Qwen3-Embedding) and rerankers under load belong on a GPU; set <code>accelerator</code> to the GPU generation.</li>
+<li><strong>Batching:</strong> <code>maxBatchTokens</code> and <code>maxConcurrentRequests</code> trade latency for throughput. The dashboard's queue versus inference panel shows which one is the bottleneck.</li>
+</ul>
+<h2 id="values">Values</h2>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Default</th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>models[]</code></td>
+<td><code>bge-small</code></td>
+<td><code>name</code>, <code>modelId</code> plus any <code>modelDefaults</code> key</td>
+</tr>
+<tr>
+<td><code>modelDefaults.accelerator</code></td>
+<td><code>cpu</code></td>
+<td><code>cpu</code>, <code>cpu-arm64</code>, <code>turing</code>, <code>ampere</code>, <code>ampere-86</code>, <code>ada</code>, <code>hopper</code>, <code>blackwell</code>, <code>blackwell-120</code></td>
+</tr>
+<tr>
+<td><code>modelDefaults.revision</code> / <code>.dtype</code> / <code>.pooling</code></td>
+<td></td>
+<td>TEI options</td>
+</tr>
+<tr>
+<td><code>modelDefaults.maxConcurrentRequests</code> / <code>.maxBatchTokens</code> / <code>.maxClientBatchSize</code> / <code>.autoTruncate</code> / <code>.payloadLimit</code></td>
+<td>512 / 16384 / 32 / true / 2 MB</td>
+<td></td>
+</tr>
+<tr>
+<td><code>modelDefaults.replicaCount</code> / <code>.resources</code></td>
+<td>1 / 1 CPU, 1Gi, limit 2Gi</td>
+<td></td>
+</tr>
+<tr>
+<td><code>modelDefaults.cache.mode</code> / <code>.size</code> / <code>.storageClass</code> / <code>.existingClaim</code></td>
+<td><code>emptyDir</code> / 10Gi</td>
+<td><code>persistent</code> makes the workload a StatefulSet</td>
+</tr>
+<tr>
+<td><code>modelDefaults.autoscaling.*</code></td>
+<td>off</td>
+<td>CPU HPA or <code>keda</code></td>
+</tr>
+<tr>
+<td><code>modelDefaults.nodeSelector</code> / <code>.tolerations</code> / <code>.runtimeClassName</code> / <code>.extraArgs</code> / <code>.env</code></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>auth.enabled</code> / <code>.apiKey</code> / <code>.existingSecret</code></td>
+<td>on / generated</td>
+<td></td>
+</tr>
+<tr>
+<td><code>huggingface.token</code> / <code>.existingSecret</code></td>
+<td></td>
+<td>gated and private models</td>
+</tr>
+<tr>
+<td><code>networkPolicy.*</code></td>
+<td>off</td>
+<td>callers allow list, plus the monitoring namespace</td>
+</tr>
+<tr>
+<td><code>metrics.enabled</code>, <code>.serviceMonitor</code>, <code>.prometheusRule</code>, <code>.dashboard</code></td>
+<td>on, off, off, off</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>Everything is validated by <code>values.schema.json</code>, including each entry in <code>models</code>.</p>
+<h2 id="credits-and-licence">Credits and licence</h2>
+<p>Text Embeddings Inference is developed by <a href="https://github.com/huggingface/text-embeddings-inference">Hugging Face</a> under the Apache-2.0 licence. The chart deploys the upstream images unmodified; models keep their own licences.</p>
+<p>The chart is MIT licensed and maintained by <a href="https://www.oreonit.com/?utm_source=helm-chart&amp;utm_medium=readme&amp;utm_campaign=text-embeddings-inference">Oreon IT</a>, a DevOps, SRE and cloud consultancy in London. If you want embeddings, rerankers and private models run on your own Kubernetes with GPUs sized, scaled and monitored, <a href="https://www.oreonit.com/containerization-orchestration-management-kubernetes-openshift/?utm_source=helm-chart&amp;utm_medium=readme&amp;utm_campaign=text-embeddings-inference">that is the day job</a>.</p>
+</article>
+<section class="card small" aria-labelledby="by">
+  <div class="brand"><img src="../oreon-logo.svg" alt="Oreon IT"><h2 id="by">Maintained by Oreon IT</h2></div>
+  <p>A London cloud, DevOps and SRE consultancy. If you want this chart rolled out and tuned for your platform, we can help.</p>
+  <div class="cta" style="margin-top:18px"><a class="btn primary" href="https://www.oreonit.com/book-a-consultation/?utm_source=helm-charts&utm_medium=referral&utm_campaign=oss">Book a free 30-minute call</a>
+  <a class="btn ghost" href="../">All charts</a></div>
+</section>
+<footer><span>MIT licence</span><a href="https://github.com/oreondev/helm-charts">Source</a><a href="https://github.com/oreondev/helm-charts/issues">Report an issue</a><a href="https://www.oreonit.com/?utm_source=helm-charts&utm_medium=referral&utm_campaign=oss">oreonit.com</a></footer>
+</main></body></html>

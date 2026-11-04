@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>otel-collector-baseline Helm chart | Oreon IT</title>
+<meta name="description" content="A production OpenTelemetry Collector layout for Kubernetes as values for the OpenTelemetry Operator - a node agent (OTLP, kubelet and host metrics, contain">
+<link rel="canonical" href="https://www.oreonit.com/helm-charts/otel-collector-baseline/">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<style>
+:root{--bg:#fff;--fg:#14213d;--muted:#5b6478;--line:#e3e6ee;--code:#f3f5f9;--accent:#e8590c}
+@media (prefers-color-scheme:dark){:root{--bg:#0b1220;--fg:#e8ecf4;--muted:#9aa3b5;--line:#1f2a40;--code:#141d30;--accent:#ff8a3d}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:980px;margin:0 auto;padding:40px 16px 56px}
+h1{margin:0 0 6px;font-size:30px;letter-spacing:-.01em}
+.badges{margin:4px 0 12px} .badges img{display:block}
+.lead{color:var(--muted);margin:0 0 20px}
+a{color:var(--accent)}
+pre{background:var(--code);border:1px solid var(--line);padding:14px 16px;border-radius:10px;overflow-x:auto;margin:0}
+table{width:100%;border-collapse:collapse;margin:24px 0 40px}
+td,th{text-align:left;padding:11px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+td:nth-child(1){white-space:nowrap}
+td:nth-child(2){white-space:nowrap;color:var(--muted)}
+td a{text-decoration:none} td a:hover{text-decoration:underline}
+.card{position:relative;overflow:hidden;border-radius:18px;padding:32px;color:#e8ecf4;
+  background:radial-gradient(120% 140% at 100% 0%,rgba(245,130,21,.28) 0,rgba(245,130,21,0) 45%),linear-gradient(135deg,#0f1d3a 0%,#14274d 60%,#0b1430 100%);
+  box-shadow:0 20px 50px -25px rgba(10,20,45,.6)}
+.card:before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:linear-gradient(#fdb813,#e23b26)}
+.brand{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.brand img{height:52px;width:auto}
+.card h2{margin:0;font-size:22px;color:#fff}
+.card p{color:#b9c3d6;margin:10px 0 0;max-width:680px}
+.tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:24px 0}
+.tile{display:block;padding:16px 18px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
+  color:#fff;text-decoration:none;transition:background .15s,border-color .15s,transform .15s}
+.tile:hover{background:rgba(255,255,255,.1);border-color:rgba(253,184,19,.55);transform:translateY(-2px)}
+.tile strong{display:block;font-size:16px}
+.tile em{display:block;font-style:normal;color:#b9c3d6;font-size:14px;margin:4px 0 10px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips span{font:12px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;padding:4px 7px;border-radius:6px;background:rgba(253,184,19,.12);color:#fdd27a}
+.cta{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.btn{display:inline-block;padding:12px 18px;border-radius:10px;font-weight:600;text-decoration:none}
+.btn.primary{background:linear-gradient(90deg,#f58215,#e23b26);color:#fff}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.ghost{color:#fff;border:1px solid rgba(255,255,255,.3)}
+.btn.ghost:hover{border-color:#fff}
+footer{margin-top:28px;font-size:14px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px 18px}
+footer a{color:var(--muted)}
+@media (max-width:700px){.tiles{grid-template-columns:1fr} .card{padding:24px 20px} td:nth-child(3),th:nth-child(3){display:none}}
+
+.crumb{font-size:14px;color:var(--muted);margin:0 0 10px} .crumb a{color:var(--muted)}
+.meta{color:var(--muted);margin:0 0 22px}
+.doc h2{margin:34px 0 10px;font-size:22px} .doc h3{margin:24px 0 8px;font-size:18px}
+.doc table{margin:16px 0 24px;display:block;overflow-x:auto} .doc td,.doc th{white-space:normal}
+.doc code{background:var(--code);padding:1px 5px;border-radius:5px;font-size:.92em} .doc pre code{padding:0;background:none}
+.doc pre{margin:12px 0 18px}
+.card.small{padding:24px;margin-top:40px}
+</style></head><body><main>
+<p class="crumb"><a href="../">Oreon IT Helm charts</a> / otel-collector-baseline</p>
+<h1>otel-collector-baseline Helm chart</h1>
+<p class="meta">Version 0.1.3 · app 0.1.0 · MIT · <a href="https://github.com/oreondev/helm-charts/tree/main/charts/otel-collector-baseline">source</a> · <a href="https://artifacthub.io/packages/helm/oreonit/otel-collector-baseline">Artifact Hub</a></p>
+<article class="doc">
+
+<p>The OpenTelemetry Collector layout we run on client clusters, as values for the <a href="https://github.com/open-telemetry/opentelemetry-operator">OpenTelemetry Operator</a>. The operator does the deploying; this chart says what the collectors are and what they do.</p>
+<pre><code>pods ──OTLP──▶ agent (DaemonSet, one per node)        ──OTLP──▶ gateway (Deployment)         ──▶ backends
+               otlp, kubeletstats, hostmetrics, filelog           drop health checks, redact,       OTLP / OTLP-HTTP
+               k8sattributes, resourcedetection, resource         tail sampling, batch               Google Cloud
+               memory_limiter, batch                                                                 Prometheus remote write
+                                                                                                     Datadog, Elasticsearch
+</code></pre>
+<ul>
+<li><strong>Agent</strong>: receives OTLP from the pods on its node (through a node-local Service, so traffic never crosses nodes), scrapes the kubelet (node, pod, container, volume metrics) and the host (CPU, memory, disk, filesystem, load, network), tails container logs with checkpointing, and enriches everything with Kubernetes metadata and the labels you choose.</li>
+<li><strong>Gateway</strong>: the only place that holds backend credentials. Filters health-check spans, deletes sensitive attributes, optionally tail-samples (every error and every slow trace kept, a percentage of the rest; agents route by trace ID so a trace lands on one replica), batches, exports. Replicas or an autoscaler, with a PodDisruptionBudget.</li>
+<li><strong>Backends</strong>: enable any number and say which signals each takes. Credentials are <code>${env:NAME}</code> references resolved from <code>gateway.env</code>.</li>
+<li><strong>Instrumentation</strong>: one <code>Instrumentation</code> object for the operator's auto-instrumentation (Java, Node.js, Python, .NET, Go), pointing at the node-local agent.</li>
+<li><strong>Monitoring</strong>: operator-generated ServiceMonitors, a PrometheusRule (export failures, full queues, refused data, dropped data, unavailable pods, restarts) and a Grafana dashboard.</li>
+<li><strong>RBAC</strong> for the k8sattributes and kubeletstats receivers.</li>
+</ul>
+<p>With no backend enabled everything goes to the <code>debug</code> exporter, so a fresh install shows data moving in the gateway log before you commit to a destination.</p>
+<h2 id="install">Install</h2>
+<pre><code class="language-bash">helm repo add oreonit https://oreondev.github.io/helm-charts
+helm install otel oreonit/otel-collector-baseline -n observability --create-namespace -f otel.yaml
+</code></pre>
+<p><code>otel.yaml</code>, Grafana Cloud over OTLP:</p>
+<pre><code class="language-yaml">clusterName: prod-eu
+environment: production
+
+gateway:
+  env:
+    - name: GRAFANA_CLOUD_AUTH          # base64 of &quot;&lt;instance id&gt;:&lt;token&gt;&quot;
+      valueFrom: {secretKeyRef: {name: grafana-cloud, key: auth}}
+
+backends:
+  otlphttp:
+    enabled: true
+    endpoint: https://otlp-gateway-prod-eu-west-2.grafana.net/otlp
+    headers:
+      Authorization: &quot;Basic ${env:GRAFANA_CLOUD_AUTH}&quot;
+
+processing:
+  tailSampling:
+    enabled: true
+    percentage: 10
+
+instrumentation:
+  enabled: true
+
+monitoring:
+  enabled: true
+  labels:
+    release: kube-prometheus-stack
+</code></pre>
+<p>Google Cloud (Cloud Trace, Cloud Logging, Managed Service for Prometheus) with Workload Identity on the gateway's ServiceAccount:</p>
+<pre><code class="language-yaml">clusterName: prod-gke
+image: otel/opentelemetry-collector-contrib:0.163.2     # contrib carries the Google exporters
+agent:
+  receivers:
+    filelog:
+      enabled: false                                     # GKE already ships container logs
+  resourceDetectors: [env, gcp]
+backends:
+  googlecloud:
+    enabled: true
+  googlemanagedprometheus:
+    enabled: true
+</code></pre>
+<p>Then instrument an app without touching its image:</p>
+<pre><code class="language-bash">kubectl -n shop patch deployment checkout -p \
+  '{&quot;spec&quot;:{&quot;template&quot;:{&quot;metadata&quot;:{&quot;annotations&quot;:{&quot;instrumentation.opentelemetry.io/inject-java&quot;:&quot;observability/otel&quot;}}}}}'
+</code></pre>
+<p>Check:</p>
+<pre><code class="language-bash">kubectl -n observability get opentelemetrycollectors
+kubectl -n observability logs deploy/otel-gateway-collector --tail=50
+</code></pre>
+<h2 id="values">Values</h2>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>clusterName</code></td>
+<td><code>""</code> (required)</td>
+<td><code>k8s.cluster.name</code> on everything</td>
+</tr>
+<tr>
+<td><code>environment</code></td>
+<td><code>""</code></td>
+<td><code>deployment.environment.name</code></td>
+</tr>
+<tr>
+<td><code>image</code></td>
+<td><code>""</code></td>
+<td>Collector image; empty = operator default. Contrib needed for Google, Datadog, Elasticsearch</td>
+</tr>
+<tr>
+<td><code>telemetry.{metricsPort,level,logLevel,readers}</code></td>
+<td>8888 / normal / info / true</td>
+<td>Collector self-telemetry; <code>readers: false</code> for collectors older than 0.123</td>
+</tr>
+<tr>
+<td><code>agent.enabled</code></td>
+<td><code>true</code></td>
+<td>Node agent DaemonSet</td>
+</tr>
+<tr>
+<td><code>agent.receivers.otlp.enabled</code></td>
+<td><code>true</code></td>
+<td>OTLP gRPC 4317 and HTTP 4318</td>
+</tr>
+<tr>
+<td><code>agent.receivers.kubeletstats.*</code></td>
+<td>on, 30s, node/pod/container/volume</td>
+<td>Kubelet metrics</td>
+</tr>
+<tr>
+<td><code>agent.receivers.hostmetrics.*</code></td>
+<td>on, 30s, cpu/memory/disk/filesystem/load/network</td>
+<td>Host metrics from <code>/hostfs</code></td>
+</tr>
+<tr>
+<td><code>agent.receivers.filelog.*</code></td>
+<td>on, checkpointed at <code>/var/lib/otelcol/filelog</code></td>
+<td>Container logs; <code>excludeNamespaces</code>, <code>startAt</code></td>
+</tr>
+<tr>
+<td><code>agent.k8sattributes.{extractMetadata,extractLabels,extractAnnotations}</code></td>
+<td>see values.yaml</td>
+<td>Kubernetes metadata and label/annotation copies</td>
+</tr>
+<tr>
+<td><code>agent.resourceDetectors</code></td>
+<td><code>[env]</code></td>
+<td>Add <code>gcp</code>, <code>eks</code>, <code>ec2</code>, <code>aks</code>, <code>azure</code></td>
+</tr>
+<tr>
+<td><code>agent.{memoryLimiter,batch,resources,tolerations,nodeSelector,priorityClassName,podAnnotations,securityContext,env,extraVolumes,extraVolumeMounts}</code></td>
+<td></td>
+<td>Workload settings; tolerates every taint by default</td>
+</tr>
+<tr>
+<td><code>agent.extraConfig</code> / <code>agent.extraSpec</code></td>
+<td><code>{}</code></td>
+<td>Deep-merged into the collector config / the OpenTelemetryCollector spec</td>
+</tr>
+<tr>
+<td><code>gateway.enabled</code></td>
+<td><code>true</code></td>
+<td>Gateway Deployment; off = the agent exports straight to the backends</td>
+</tr>
+<tr>
+<td><code>gateway.{replicas,autoscaler,podDisruptionBudget}</code></td>
+<td>2 / off / minAvailable 1</td>
+<td>Scale and availability</td>
+</tr>
+<tr>
+<td><code>gateway.{memoryLimiter,batch,resources,tolerations,nodeSelector,affinity,topologySpreadConstraints,priorityClassName,podAnnotations,env,extraVolumes,extraVolumeMounts,extraConfig,extraSpec}</code></td>
+<td></td>
+<td>Workload settings; <code>env</code> carries the backend secrets</td>
+</tr>
+<tr>
+<td><code>processing.dropHealthChecks.{enabled,paths}</code></td>
+<td>on, <code>/healthz</code> <code>/readyz</code> <code>/livez</code> <code>/health</code> <code>/ready</code> <code>/live</code> <code>/metrics</code> <code>/ping</code></td>
+<td>Filter spans by <code>url.path</code>, <code>http.route</code>, <code>http.target</code></td>
+</tr>
+<tr>
+<td><code>processing.tailSampling.{enabled,decisionWait,numTraces,errorsAlways,slowMs,percentage,extraPolicies}</code></td>
+<td>off, 10s, 100000, true, 2000, 10</td>
+<td>Tail sampling in the gateway</td>
+</tr>
+<tr>
+<td><code>processing.redact.{enabled,attributes,patterns}</code></td>
+<td>on, auth/cookie/api-key headers</td>
+<td>Attributes deleted from spans and logs</td>
+</tr>
+<tr>
+<td><code>processing.resourceAttributes</code></td>
+<td><code>{}</code></td>
+<td>Extra resource attributes on everything</td>
+</tr>
+<tr>
+<td><code>backends.otlp</code> / <code>backends.otlphttp</code></td>
+<td>off</td>
+<td><code>endpoint</code>, <code>headers</code>, <code>tls</code>, <code>compression</code>, <code>signals</code></td>
+</tr>
+<tr>
+<td><code>backends.googlecloud</code></td>
+<td>off</td>
+<td><code>project</code>, <code>signals</code> (traces, logs)</td>
+</tr>
+<tr>
+<td><code>backends.googlemanagedprometheus</code></td>
+<td>off</td>
+<td><code>project</code>; metrics</td>
+</tr>
+<tr>
+<td><code>backends.prometheusremotewrite</code></td>
+<td>off</td>
+<td><code>endpoint</code>, <code>headers</code>, <code>tls</code>, <code>resourceToTelemetryConversion</code>; metrics</td>
+</tr>
+<tr>
+<td><code>backends.datadog</code></td>
+<td>off</td>
+<td><code>site</code>, <code>apiKey</code>, <code>signals</code></td>
+</tr>
+<tr>
+<td><code>backends.elasticsearch</code></td>
+<td>off</td>
+<td><code>endpoints</code>, <code>apiKey</code>, <code>mappingMode</code>, <code>tls</code>, <code>signals</code></td>
+</tr>
+<tr>
+<td><code>backends.debug</code></td>
+<td>off</td>
+<td><code>verbosity</code>, <code>signals</code></td>
+</tr>
+<tr>
+<td><code>instrumentation.{enabled,name,namespace,endpoint,propagators,sampler,resourceAttributes,env,java,nodejs,python,dotnet,go}</code></td>
+<td>off</td>
+<td>Instrumentation object</td>
+</tr>
+<tr>
+<td><code>monitoring.{enabled,labels,serviceMonitor,prometheusRule,dashboard,alerts}</code></td>
+<td>off</td>
+<td>Prometheus Operator and Grafana sidecar integration</td>
+</tr>
+</tbody>
+</table>
+<h2 id="notes">Notes</h2>
+<ul>
+<li>The operator names the workloads and Services <code>&lt;name&gt;-collector</code>; the chart's names are <code>&lt;release&gt;-agent</code> and <code>&lt;release&gt;-gateway</code>. The node-local Service <code>&lt;release&gt;-agent-local</code> selects the agent pods by the labels the operator puts on them (<code>app.kubernetes.io/instance: &lt;namespace&gt;.&lt;name&gt;</code>, <code>app.kubernetes.io/component: opentelemetry-collector</code>) with <code>internalTrafficPolicy: Local</code>.</li>
+<li>The health-check filter drops matching spans only; a child span of a health check (a DB ping, say) stays and shows as an orphan. Add the route to <code>processing.redact</code> or widen <code>paths</code> if that bothers you.</li>
+<li>Collector internal metric names gained a <code>_total</code> suffix on counters when the collector moved to the OpenTelemetry SDK for its own telemetry. The alerts and the dashboard match both spellings.</li>
+<li>Reading <code>/var/log/pods</code> needs root, so the agent runs as uid 0 when <code>filelog</code> is on and no <code>securityContext</code> is given. Namespaces under the <code>restricted</code> Pod Security Standard reject that: use <code>privileged</code> for the collector namespace, as every log agent needs.</li>
+<li>Tail sampling only works when whole traces reach one process, which is why it lives in the gateway and why agents switch to the <code>loadbalancing</code> exporter (routing by trace ID to the gateway's headless Service) when it is on. Size <code>numTraces</code> × average trace size against the gateway memory limit.</li>
+<li><code>monitoring.labels</code> go on the OpenTelemetryCollector objects, which the operator propagates to the ServiceMonitors it creates, and on the PrometheusRule. kube-prometheus-stack needs its <code>release</code> label there unless its <code>*SelectorNilUsesHelmValues</code> flags are off.</li>
+<li>For Prometheus scraping of annotated pods use the operator's target allocator with a prometheus receiver; this chart deliberately stays with OTLP, kubelet, host and logs. Our <a href="../slo-burn-rate-alerts/">slo-burn-rate-alerts</a> and <a href="../blackbox-slo-probes/">blackbox-slo-probes</a> charts sit on the metrics this one ships.</li>
+</ul>
+<p>The agent and gateway split, the sampling policy and the redaction list are the shape we describe in <a href="https://www.oreonit.com/10-essential-observability-metrics-every-devops-engineer-should-track/">10 observability metrics every DevOps engineer should track</a> and <a href="https://www.oreonit.com/advanced-alerting-strategies-how-to-avoid-alert-fatigue-in-monitoring-systems/">how to avoid alert fatigue</a>. If you would like the pipeline designed around your backends and budget, see our <a href="https://www.oreonit.com/observability-and-monitoring-consultancy-services/">observability consulting</a>.</p>
+<h2 id="licence">Licence</h2>
+<p>MIT. Maintained by <a href="https://www.oreonit.com/">Oreon IT</a>.</p>
+</article>
+<section class="card small" aria-labelledby="by">
+  <div class="brand"><img src="../oreon-logo.svg" alt="Oreon IT"><h2 id="by">Maintained by Oreon IT</h2></div>
+  <p>A London cloud, DevOps and SRE consultancy. If you want this chart rolled out and tuned for your platform, we can help.</p>
+  <div class="cta" style="margin-top:18px"><a class="btn primary" href="https://www.oreonit.com/book-a-consultation/?utm_source=helm-charts&utm_medium=referral&utm_campaign=oss">Book a free 30-minute call</a>
+  <a class="btn ghost" href="../">All charts</a></div>
+</section>
+<footer><span>MIT licence</span><a href="https://github.com/oreondev/helm-charts">Source</a><a href="https://github.com/oreondev/helm-charts/issues">Report an issue</a><a href="https://www.oreonit.com/?utm_source=helm-charts&utm_medium=referral&utm_campaign=oss">oreonit.com</a></footer>
+</main></body></html>

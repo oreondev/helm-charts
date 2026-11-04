@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://www.oreonit.com/helm-charts/</loc><lastmod>2026-11-03</lastmod></url>
+  <url><loc>https://www.oreonit.com/helm-charts/alertmanager-routing-baseline/</loc><lastmod>2026-10-26</lastmod></url>
+  <url><loc>https://www.oreonit.com/helm-charts/blackbox-slo-probes/</loc><lastmod>2026-10-27</lastmod></url>
+  <url><loc>https://www.oreonit.com/helm-charts/crawl4ai/</loc><lastmod>2026-11-01</lastmod></url>
+  <url><loc>https://www.oreonit.com/helm-charts/evolution/</loc><lastmod>2026-11-01</lastmod></url>
+  <url><loc>https://www.oreonit.com/helm-charts/gateway-api-baseline/</loc><lastmod>2026-10-26</lastmod></url>
+  <url><loc>https://www.oreonit.com/helm-charts/k8s-cost-waste-alerts/</loc><lastmod>2026-10-27</lastmod></url>
+  <url><loc>https://www.oreonit.com/helm-charts/kyverno-production-policies/</loc><lastmod>2026-10-26</lastmod></url>
+  <url><loc>https://www.oreonit.com/helm-charts/llm-serving-observability/</loc><lastmod>2026-11-01</lastmod></url>
+  <url><loc>https://www.oreonit.com/helm-charts/namespace-baseline/</loc><lastmod>2026-10-26</lastmod></url>
+  <url><loc>https://www.oreonit.com/helm-charts/otel-collector-baseline/</loc><lastmod>2026-10-27</lastmod></url>
+  <url><loc>https://www.oreonit.com/helm-charts/searxng/</loc><lastmod>2026-11-03</lastmod></url>
+  <url><loc>https://www.oreonit.com/helm-charts/slo-burn-rate-alerts/</loc><lastmod>2026-10-27</lastmod></url>
+  <url><loc>https://www.oreonit.com/helm-charts/text-embeddings-inference/</loc><lastmod>2026-11-03</lastmod></url>
+  <url><loc>https://www.oreonit.com/helm-charts/velero-backup-schedules/</loc><lastmod>2026-10-26</lastmod></url>
+</urlset>

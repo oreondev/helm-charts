@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>slo-burn-rate-alerts Helm chart | Oreon IT</title>
+<meta name="description" content="SLOs as values. Generates Prometheus recording rules, multi-window multi-burn-rate page and ticket alerts, and a Grafana SLO / error-budget dashboard for P">
+<link rel="canonical" href="https://www.oreonit.com/helm-charts/slo-burn-rate-alerts/">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<style>
+:root{--bg:#fff;--fg:#14213d;--muted:#5b6478;--line:#e3e6ee;--code:#f3f5f9;--accent:#e8590c}
+@media (prefers-color-scheme:dark){:root{--bg:#0b1220;--fg:#e8ecf4;--muted:#9aa3b5;--line:#1f2a40;--code:#141d30;--accent:#ff8a3d}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:980px;margin:0 auto;padding:40px 16px 56px}
+h1{margin:0 0 6px;font-size:30px;letter-spacing:-.01em}
+.badges{margin:4px 0 12px} .badges img{display:block}
+.lead{color:var(--muted);margin:0 0 20px}
+a{color:var(--accent)}
+pre{background:var(--code);border:1px solid var(--line);padding:14px 16px;border-radius:10px;overflow-x:auto;margin:0}
+table{width:100%;border-collapse:collapse;margin:24px 0 40px}
+td,th{text-align:left;padding:11px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+td:nth-child(1){white-space:nowrap}
+td:nth-child(2){white-space:nowrap;color:var(--muted)}
+td a{text-decoration:none} td a:hover{text-decoration:underline}
+.card{position:relative;overflow:hidden;border-radius:18px;padding:32px;color:#e8ecf4;
+  background:radial-gradient(120% 140% at 100% 0%,rgba(245,130,21,.28) 0,rgba(245,130,21,0) 45%),linear-gradient(135deg,#0f1d3a 0%,#14274d 60%,#0b1430 100%);
+  box-shadow:0 20px 50px -25px rgba(10,20,45,.6)}
+.card:before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:linear-gradient(#fdb813,#e23b26)}
+.brand{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.brand img{height:52px;width:auto}
+.card h2{margin:0;font-size:22px;color:#fff}
+.card p{color:#b9c3d6;margin:10px 0 0;max-width:680px}
+.tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:24px 0}
+.tile{display:block;padding:16px 18px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
+  color:#fff;text-decoration:none;transition:background .15s,border-color .15s,transform .15s}
+.tile:hover{background:rgba(255,255,255,.1);border-color:rgba(253,184,19,.55);transform:translateY(-2px)}
+.tile strong{display:block;font-size:16px}
+.tile em{display:block;font-style:normal;color:#b9c3d6;font-size:14px;margin:4px 0 10px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips span{font:12px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;padding:4px 7px;border-radius:6px;background:rgba(253,184,19,.12);color:#fdd27a}
+.cta{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.btn{display:inline-block;padding:12px 18px;border-radius:10px;font-weight:600;text-decoration:none}
+.btn.primary{background:linear-gradient(90deg,#f58215,#e23b26);color:#fff}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.ghost{color:#fff;border:1px solid rgba(255,255,255,.3)}
+.btn.ghost:hover{border-color:#fff}
+footer{margin-top:28px;font-size:14px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px 18px}
+footer a{color:var(--muted)}
+@media (max-width:700px){.tiles{grid-template-columns:1fr} .card{padding:24px 20px} td:nth-child(3),th:nth-child(3){display:none}}
+
+.crumb{font-size:14px;color:var(--muted);margin:0 0 10px} .crumb a{color:var(--muted)}
+.meta{color:var(--muted);margin:0 0 22px}
+.doc h2{margin:34px 0 10px;font-size:22px} .doc h3{margin:24px 0 8px;font-size:18px}
+.doc table{margin:16px 0 24px;display:block;overflow-x:auto} .doc td,.doc th{white-space:normal}
+.doc code{background:var(--code);padding:1px 5px;border-radius:5px;font-size:.92em} .doc pre code{padding:0;background:none}
+.doc pre{margin:12px 0 18px}
+.card.small{padding:24px;margin-top:40px}
+</style></head><body><main>
+<p class="crumb"><a href="../">Oreon IT Helm charts</a> / slo-burn-rate-alerts</p>
+<h1>slo-burn-rate-alerts Helm chart</h1>
+<p class="meta">Version 0.3.2 · app 0.3.0 · MIT · <a href="https://github.com/oreondev/helm-charts/tree/main/charts/slo-burn-rate-alerts">source</a> · <a href="https://artifacthub.io/packages/helm/oreonit/slo-burn-rate-alerts">Artifact Hub</a></p>
+<article class="doc">
+
+<p>Write your SLOs as Helm values and get, for each one:</p>
+<ul>
+<li><strong>Recording rules</strong> for the error ratio over every alert window and over the SLO period, plus burn rate, objective, error budget and error budget remaining as metrics.</li>
+<li><strong>Multi-window, multi-burn-rate alerts</strong> as in the Google SRE Workbook: a <em>page</em> alert (1h/5m at 14.4x or 6h/30m at 6x) and a <em>ticket</em> alert (1d/2h at 3x or 3d/6h at 1x).</li>
+<li><strong>A Grafana dashboard</strong> (SLI, budget remaining, burn rates by window, all SLOs in one table, firing alerts), delivered as a ConfigMap for the Grafana sidecar.</li>
+</ul>
+<p>No operator, no CRD of its own, no binary to run. It renders a <code>PrometheusRule</code> and a <code>ConfigMap</code>, which is what most teams end up hand-writing after reading the workbook chapter. Works with kube-prometheus-stack out of the box.</p>
+<h2 id="install">Install</h2>
+<pre><code class="language-bash">helm repo add oreonit https://oreondev.github.io/helm-charts
+helm repo update
+helm install slo oreonit/slo-burn-rate-alerts -n monitoring -f my-slos.yaml
+</code></pre>
+<p><code>my-slos.yaml</code>:</p>
+<pre><code class="language-yaml">prometheusRule:
+  labels:
+    release: kube-prometheus-stack   # whatever your Prometheus ruleSelector expects
+
+slos:
+  - name: api-availability
+    service: api
+    objective: 99.9
+    description: non-5xx responses over all responses
+    sli:
+      errorQuery: sum(rate(http_requests_total{job=&quot;api&quot;,code=~&quot;5..&quot;}[$WINDOW]))
+      totalQuery: sum(rate(http_requests_total{job=&quot;api&quot;}[$WINDOW]))
+
+  - name: api-latency-300ms
+    service: api
+    objective: 95
+    sli:
+      errorQuery: sum(rate(http_request_duration_seconds_count{job=&quot;api&quot;}[$WINDOW])) - sum(rate(http_request_duration_seconds_bucket{job=&quot;api&quot;,le=&quot;0.3&quot;}[$WINDOW]))
+      totalQuery: sum(rate(http_request_duration_seconds_count{job=&quot;api&quot;}[$WINDOW]))
+    alerting:
+      page:
+        enabled: false        # latency only opens tickets
+</code></pre>
+<p>Write <code>$WINDOW</code> wherever the range selector goes. The chart substitutes it for every window it needs (5m, 30m, 1h, 2h, 6h, 1d, 3d and the SLO period, 30d by default). <code>errorQuery / totalQuery</code> must be the share of <strong>bad</strong> events.</p>
+<h2 id="what-gets-generated">What gets generated</h2>
+<p>For an SLO called <code>api-availability</code> with objective 99.9 (budget 0.001):</p>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>slo:sli_error:ratio_rate&lt;window&gt;{slo="api-availability"}</code></td>
+<td>bad / total over <code>&lt;window&gt;</code></td>
+</tr>
+<tr>
+<td><code>slo:error_budget_burn_rate:ratio_rate&lt;window&gt;</code></td>
+<td>error ratio divided by the budget (1 = burning exactly the budget)</td>
+</tr>
+<tr>
+<td><code>slo:objective:ratio</code></td>
+<td>0.999</td>
+</tr>
+<tr>
+<td><code>slo:error_budget:ratio</code></td>
+<td>0.001</td>
+</tr>
+<tr>
+<td><code>slo:period:days</code></td>
+<td>30</td>
+</tr>
+<tr>
+<td><code>slo:error_budget_remaining:ratio</code></td>
+<td>1 - (error ratio over the period / budget); negative once the budget is spent</td>
+</tr>
+</tbody>
+</table>
+<p>Alerts (names configurable with <code>alerting.alertNamePrefix</code>):</p>
+<table>
+<thead>
+<tr>
+<th>Alert</th>
+<th>Fires when</th>
+<th>Default severity</th>
+<th><code>for</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SLOBurnRatePage</code></td>
+<td>burn rate &gt; 14.4 on both 1h and 5m, <strong>or</strong> &gt; 6 on both 6h and 30m</td>
+<td>critical</td>
+<td>2m</td>
+</tr>
+<tr>
+<td><code>SLOBurnRateTicket</code></td>
+<td>burn rate &gt; 3 on both 1d and 2h, <strong>or</strong> &gt; 1 on both 3d and 6h</td>
+<td>warning</td>
+<td>15m</td>
+</tr>
+</tbody>
+</table>
+<p>Both carry the labels <code>slo</code>, <code>service</code>, <code>slo_alert_type</code> (page/ticket), the SLO's own labels and <code>alerting.labels</code>, so routing in Alertmanager is one matcher.</p>
+<p>Why these numbers: a burn rate of 14.4 on a 30-day SLO spends 2 % of the budget in an hour and the whole budget in about two days, which is worth a page. A burn rate of 1 spends exactly the budget and only deserves a ticket. The short window stops the alert from staying open long after the problem is fixed. If your period is not 30 days, set <code>sloPeriodDays</code> and recompute <code>factor = period_hours x budget_fraction / long_window_hours</code> in <code>alerting.*.windows</code>.</p>
+<h2 id="values">Values</h2>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sloPeriodDays</code></td>
+<td><code>30</code></td>
+<td>SLO window in days</td>
+</tr>
+<tr>
+<td><code>rulesBackend</code></td>
+<td><code>prometheus-operator</code></td>
+<td><code>prometheus-operator</code> (PrometheusRule) or <code>gmp</code> (Google Managed Prometheus rules)</td>
+</tr>
+<tr>
+<td><code>gmp.kind</code></td>
+<td><code>ClusterRules</code></td>
+<td><code>Rules</code>, <code>ClusterRules</code> or <code>GlobalRules</code> when <code>rulesBackend: gmp</code></td>
+</tr>
+<tr>
+<td><code>prometheusRule.enabled</code></td>
+<td><code>true</code></td>
+<td>Render the rules object</td>
+</tr>
+<tr>
+<td><code>prometheusRule.namespace</code></td>
+<td>release namespace</td>
+<td>Where to put it</td>
+</tr>
+<tr>
+<td><code>prometheusRule.labels</code></td>
+<td><code>{}</code></td>
+<td>Labels for the Prometheus Operator ruleSelector</td>
+</tr>
+<tr>
+<td><code>prometheusRule.interval</code></td>
+<td><code>30s</code></td>
+<td>Rule group evaluation interval</td>
+</tr>
+<tr>
+<td><code>dashboard.enabled</code></td>
+<td><code>true</code></td>
+<td>Render the dashboard ConfigMap</td>
+</tr>
+<tr>
+<td><code>dashboard.labels</code></td>
+<td><code>grafana_dashboard: "1"</code></td>
+<td>Label the Grafana sidecar watches</td>
+</tr>
+<tr>
+<td><code>dashboard.annotations</code></td>
+<td><code>{}</code></td>
+<td>e.g. <code>grafana_folder: SLOs</code></td>
+</tr>
+<tr>
+<td><code>alerting.alertNamePrefix</code></td>
+<td><code>SLO</code></td>
+<td>Alert name prefix</td>
+</tr>
+<tr>
+<td><code>alerting.labels</code> / <code>annotations</code></td>
+<td><code>{}</code></td>
+<td>Added to every alert</td>
+</tr>
+<tr>
+<td><code>alerting.page.*</code>, <code>alerting.ticket.*</code></td>
+<td>see values.yaml</td>
+<td>enabled, severity, for, windows</td>
+</tr>
+<tr>
+<td><code>slos[]</code></td>
+<td><code>[]</code></td>
+<td>name, service, objective, description, labels, sli.errorQuery, sli.totalQuery, alerting overrides</td>
+</tr>
+<tr>
+<td><code>openslo</code></td>
+<td><code>[]</code></td>
+<td>OpenSLO v1 <code>SLO</code> / <code>SLI</code> documents, as a list or one multi-document YAML string (see below)</td>
+</tr>
+</tbody>
+</table>
+<p>Per-SLO <code>alerting.page</code> / <code>alerting.ticket</code> may override <code>enabled</code>, <code>severity</code> and <code>for</code>; <code>alerting.annotations</code> adds annotations (a <code>runbook_url</code> per SLO is the usual one).</p>
+<h2 id="openslo-input">OpenSLO input</h2>
+<p>SLOs already written in <a href="https://openslo.com/">OpenSLO</a> v1 (for Sloth, Nobl9 or your own tooling) can go in unchanged, as a list under <code>openslo</code> or as a file:</p>
+<pre><code class="language-bash">helm install slo oreonit/slo-burn-rate-alerts -n monitoring --set-file openslo=slos.yaml
+</code></pre>
+<pre><code class="language-yaml">apiVersion: openslo/v1
+kind: SLO
+metadata:
+  name: checkout-availability
+  labels:
+    team: payments
+spec:
+  service: checkout
+  budgetingMethod: Occurrences
+  timeWindow:
+    - duration: 30d
+      isRolling: true
+  objectives:
+    - targetPercent: 99.9
+  indicator:
+    metadata:
+      name: checkout-errors
+    spec:
+      ratioMetric:
+        counter: true
+        bad:
+          metricSource:
+            type: Prometheus
+            spec:
+              query: sum(rate(http_requests_total{job=&quot;checkout&quot;,code=~&quot;5..&quot;}[{{.window}}]))
+        total:
+          metricSource:
+            type: Prometheus
+            spec:
+              query: http_requests_total{job=&quot;checkout&quot;}
+</code></pre>
+<p>Each SLO becomes the same rules, alerts and dashboard rows as an entry in <code>slos</code>, and both lists can be used together.</p>
+<table>
+<thead>
+<tr>
+<th>OpenSLO</th>
+<th>How the chart reads it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>metadata.name</code>, <code>metadata.labels</code></td>
+<td>the <code>slo</code> label and extra labels (list values are joined with commas)</td>
+</tr>
+<tr>
+<td><code>spec.service</code>, <code>spec.description</code></td>
+<td>the <code>service</code> label and the description</td>
+</tr>
+<tr>
+<td><code>objectives[0].target</code> / <code>targetPercent</code></td>
+<td>the objective</td>
+</tr>
+<tr>
+<td><code>ratioMetric.bad</code> + <code>total</code></td>
+<td>errors / total</td>
+</tr>
+<tr>
+<td><code>ratioMetric.good</code> + <code>total</code></td>
+<td>(total − good) / total</td>
+</tr>
+<tr>
+<td><code>indicatorRef</code></td>
+<td>a <code>kind: SLI</code> document in the same list</td>
+</tr>
+<tr>
+<td>query range <code>$WINDOW</code> or <code>{{.window}}</code></td>
+<td>filled in for every window</td>
+</tr>
+<tr>
+<td>a plain counter selector with <code>counter: true</code></td>
+<td>becomes <code>sum(rate(&lt;selector&gt;[window]))</code></td>
+</tr>
+</tbody>
+</table>
+<p>Not supported, and the render fails with the reason rather than producing rules that measure something else: <code>Timeslices</code> and <code>RatioTimeslices</code> budgeting, <code>thresholdMetric</code>, <code>ratioMetric.raw</code>, more than one objective, non-Prometheus metric sources, and a <code>timeWindow</code> other than <code>sloPeriodDays</code> (30d; 28d or 4w with <code>sloPeriodDays: 28</code>). <code>alertPolicies</code> are ignored: the burn-rate alerts come from the chart's <code>alerting</code> values.</p>
+<h2 id="google-managed-prometheus-gke-managed-collection">Google Managed Prometheus (GKE managed collection)</h2>
+<p>Managed collection does not read <code>PrometheusRule</code>. Set <code>rulesBackend: gmp</code> and the chart renders the same groups as a <code>ClusterRules</code> object (<code>monitoring.googleapis.com/v1</code>) that the managed rule evaluator loads by itself:</p>
+<pre><code class="language-yaml">rulesBackend: gmp
+gmp:
+  kind: ClusterRules      # or Rules (one namespace) / GlobalRules (whole project)
+</code></pre>
+<p>Alerts are sent to the Alertmanager named in the <code>OperatorConfig</code> (<code>gmp-public/config</code>); the dashboard works unchanged against the Managed Service for Prometheus data source in Grafana.</p>
+<h2 id="dashboard">Dashboard</h2>
+<p>Imported by the kube-prometheus-stack Grafana sidecar as <strong>SLO overview and burn rates</strong> (uid <code>oreon-slo-overview</code>). It has a data-source variable and an SLO variable fed from <code>slo:objective:ratio</code>, so it needs no editing. If you do not run the sidecar, <code>kubectl get cm &lt;release&gt;-slo-burn-rate-alerts-dashboard -o jsonpath='{.data.slo-overview\.json}'</code> gives you the JSON to import by hand.</p>
+<h2 id="notes-and-limits">Notes and limits</h2>
+<ul>
+<li>Only ratio SLIs (bad / total). Latency SLOs are ratio SLIs too: bad = requests slower than the threshold, as in the example above.</li>
+<li>One period for all SLOs in a release. Install the chart twice if you need 7-day and 30-day SLOs.</li>
+<li>The period-long recording rule (<code>rate(...[30d])</code>) is the expensive one. Keep the queries aggregated (<code>sum(...)</code>) and the label set small.</li>
+<li>Division by zero (no traffic) yields NaN, which never alerts. If "no traffic" is itself an incident, alert on <code>absent()</code> or on the total rate separately.</li>
+<li>Prometheus Operator must load the rule: with kube-prometheus-stack set <code>prometheusRule.labels</code> to its <code>release</code> label, or set <code>ruleSelectorNilUsesHelmValues=false</code> there.</li>
+</ul>
+<p>Background reading: <a href="https://www.oreonit.com/advanced-alerting-strategies-how-to-avoid-alert-fatigue-in-monitoring-systems/">how multi-window burn-rate alerts work</a> and <a href="https://www.oreonit.com/slo-sli-examples-targets-promql/">12 SLO and SLI examples with PromQL</a>. If you want the SLOs defined with you rather than by you, that is what our <a href="https://www.oreonit.com/site-reliability-engineering-sre-consulting-services/">SRE consulting</a> does.</p>
+<h2 id="licence">Licence</h2>
+<p>MIT. Maintained by <a href="https://www.oreonit.com/">Oreon IT</a>.</p>
+</article>
+<section class="card small" aria-labelledby="by">
+  <div class="brand"><img src="../oreon-logo.svg" alt="Oreon IT"><h2 id="by">Maintained by Oreon IT</h2></div>
+  <p>A London cloud, DevOps and SRE consultancy. If you want this chart rolled out and tuned for your platform, we can help.</p>
+  <div class="cta" style="margin-top:18px"><a class="btn primary" href="https://www.oreonit.com/book-a-consultation/?utm_source=helm-charts&utm_medium=referral&utm_campaign=oss">Book a free 30-minute call</a>
+  <a class="btn ghost" href="../">All charts</a></div>
+</section>
+<footer><span>MIT licence</span><a href="https://github.com/oreondev/helm-charts">Source</a><a href="https://github.com/oreondev/helm-charts/issues">Report an issue</a><a href="https://www.oreonit.com/?utm_source=helm-charts&utm_medium=referral&utm_campaign=oss">oreonit.com</a></footer>
+</main></body></html>

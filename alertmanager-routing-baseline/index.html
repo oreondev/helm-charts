@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>alertmanager-routing-baseline Helm chart | Oreon IT</title>
+<meta name="description" content="Alertmanager routing from one values file - teams, page and ticket receivers (Slack, PagerDuty, Opsgenie, email, Teams, webhook), severity routing, critica">
+<link rel="canonical" href="https://www.oreonit.com/helm-charts/alertmanager-routing-baseline/">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<style>
+:root{--bg:#fff;--fg:#14213d;--muted:#5b6478;--line:#e3e6ee;--code:#f3f5f9;--accent:#e8590c}
+@media (prefers-color-scheme:dark){:root{--bg:#0b1220;--fg:#e8ecf4;--muted:#9aa3b5;--line:#1f2a40;--code:#141d30;--accent:#ff8a3d}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:980px;margin:0 auto;padding:40px 16px 56px}
+h1{margin:0 0 6px;font-size:30px;letter-spacing:-.01em}
+.badges{margin:4px 0 12px} .badges img{display:block}
+.lead{color:var(--muted);margin:0 0 20px}
+a{color:var(--accent)}
+pre{background:var(--code);border:1px solid var(--line);padding:14px 16px;border-radius:10px;overflow-x:auto;margin:0}
+table{width:100%;border-collapse:collapse;margin:24px 0 40px}
+td,th{text-align:left;padding:11px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+td:nth-child(1){white-space:nowrap}
+td:nth-child(2){white-space:nowrap;color:var(--muted)}
+td a{text-decoration:none} td a:hover{text-decoration:underline}
+.card{position:relative;overflow:hidden;border-radius:18px;padding:32px;color:#e8ecf4;
+  background:radial-gradient(120% 140% at 100% 0%,rgba(245,130,21,.28) 0,rgba(245,130,21,0) 45%),linear-gradient(135deg,#0f1d3a 0%,#14274d 60%,#0b1430 100%);
+  box-shadow:0 20px 50px -25px rgba(10,20,45,.6)}
+.card:before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:linear-gradient(#fdb813,#e23b26)}
+.brand{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.brand img{height:52px;width:auto}
+.card h2{margin:0;font-size:22px;color:#fff}
+.card p{color:#b9c3d6;margin:10px 0 0;max-width:680px}
+.tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:24px 0}
+.tile{display:block;padding:16px 18px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
+  color:#fff;text-decoration:none;transition:background .15s,border-color .15s,transform .15s}
+.tile:hover{background:rgba(255,255,255,.1);border-color:rgba(253,184,19,.55);transform:translateY(-2px)}
+.tile strong{display:block;font-size:16px}
+.tile em{display:block;font-style:normal;color:#b9c3d6;font-size:14px;margin:4px 0 10px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips span{font:12px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;padding:4px 7px;border-radius:6px;background:rgba(253,184,19,.12);color:#fdd27a}
+.cta{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.btn{display:inline-block;padding:12px 18px;border-radius:10px;font-weight:600;text-decoration:none}
+.btn.primary{background:linear-gradient(90deg,#f58215,#e23b26);color:#fff}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.ghost{color:#fff;border:1px solid rgba(255,255,255,.3)}
+.btn.ghost:hover{border-color:#fff}
+footer{margin-top:28px;font-size:14px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px 18px}
+footer a{color:var(--muted)}
+@media (max-width:700px){.tiles{grid-template-columns:1fr} .card{padding:24px 20px} td:nth-child(3),th:nth-child(3){display:none}}
+
+.crumb{font-size:14px;color:var(--muted);margin:0 0 10px} .crumb a{color:var(--muted)}
+.meta{color:var(--muted);margin:0 0 22px}
+.doc h2{margin:34px 0 10px;font-size:22px} .doc h3{margin:24px 0 8px;font-size:18px}
+.doc table{margin:16px 0 24px;display:block;overflow-x:auto} .doc td,.doc th{white-space:normal}
+.doc code{background:var(--code);padding:1px 5px;border-radius:5px;font-size:.92em} .doc pre code{padding:0;background:none}
+.doc pre{margin:12px 0 18px}
+.card.small{padding:24px;margin-top:40px}
+</style></head><body><main>
+<p class="crumb"><a href="../">Oreon IT Helm charts</a> / alertmanager-routing-baseline</p>
+<h1>alertmanager-routing-baseline Helm chart</h1>
+<p class="meta">Version 0.1.0 · app 0.1.0 · MIT · <a href="https://github.com/oreondev/helm-charts/tree/main/charts/alertmanager-routing-baseline">source</a> · <a href="https://artifacthub.io/packages/helm/oreonit/alertmanager-routing-baseline">Artifact Hub</a></p>
+<article class="doc">
+
+<p>Alertmanager routing that most teams end up hand-writing, generated from a values file:</p>
+<ul>
+<li><strong>Teams</strong>: a set of matchers per team (label <code>team</code>, a namespace regex, whatever you use), each with a <em>page</em> receiver, a <em>ticket</em> receiver and an optional <em>info</em> receiver.</li>
+<li><strong>Severity routing</strong>: <code>critical</code> pages with its own repeat interval, <code>warning</code> goes to chat or a ticket, <code>info</code> goes to the info receiver and repeats once a day.</li>
+<li><strong>Receivers</strong>: Slack, PagerDuty, Opsgenie, email, Microsoft Teams, webhook, with secrets referenced from Kubernetes Secrets and sensible Slack message templates.</li>
+<li><strong>Inhibition</strong>: a critical alert silences warnings with the same alertname and namespace; an SLO page silences the ticket of the same SLO (labels from the <a href="../slo-burn-rate-alerts/">slo-burn-rate-alerts</a> chart).</li>
+<li><strong>Business hours</strong>: per team, mute tickets and info outside working hours while pages still page.</li>
+<li><strong>Watchdog</strong>: the permanent kube-prometheus-stack liveness alert goes to a dead-man's-switch receiver or is dropped, never to a human.</li>
+<li><strong>Fallback</strong>: unmatched alerts have a home; unmatched pages have a pager.</li>
+</ul>
+<p>It renders one <code>AlertmanagerConfig</code> (<code>monitoring.coreos.com/v1alpha1</code>) for the Prometheus Operator.</p>
+<h2 id="install">Install</h2>
+<pre><code class="language-bash">kubectl -n monitoring create secret generic alertmanager-secrets \
+  --from-literal=platform-slack-webhook=https://hooks.slack.com/services/... \
+  --from-literal=platform-pagerduty-routing-key=...
+
+helm repo add oreonit https://oreondev.github.io/helm-charts
+helm install routing oreonit/alertmanager-routing-baseline -n monitoring -f routing.yaml
+</code></pre>
+<p><code>routing.yaml</code>:</p>
+<pre><code class="language-yaml">receivers:
+  platform-slack:
+    slack:
+      apiURL: {name: alertmanager-secrets, key: platform-slack-webhook}
+      channel: &quot;#platform-alerts&quot;
+  platform-pager:
+    pagerduty:
+      routingKey: {name: alertmanager-secrets, key: platform-pagerduty-routing-key}
+      severity: critical
+
+teams:
+  - name: platform
+    matchers: [&quot;team=platform&quot;]
+    page: platform-pager
+    ticket: platform-slack
+  - name: payments
+    matchers:
+      - {name: namespace, value: &quot;payments|checkout&quot;, matchType: &quot;=~&quot;}
+    page: platform-pager
+    ticket: platform-slack
+    muteTicketsOutsideBusinessHours: true
+
+fallback:
+  receiver: platform-slack
+  page: platform-pager
+</code></pre>
+<h2 id="global-or-namespaced-read-this">Global or namespaced: read this</h2>
+<p>The Prometheus Operator, by default, adds a <code>namespace="&lt;object's namespace&gt;"</code> matcher to every route of an <code>AlertmanagerConfig</code>, so the object only routes alerts from its own namespace. For a cluster-wide routing tree do one of these in kube-prometheus-stack:</p>
+<pre><code class="language-yaml">alertmanager:
+  alertmanagerSpec:
+    # Option A: let AlertmanagerConfigs match alerts from any namespace
+    alertmanagerConfigMatcherStrategy:
+      type: None
+    # Option B: make this object the whole configuration (must be in Alertmanager's namespace)
+    alertmanagerConfiguration:
+      name: routing-baseline
+</code></pre>
+<p>With option B the operator uses this object as the root config; <code>alertmanagerConfigSelector</code> is no longer needed. Without either option the chart still works, but only for alerts carrying the release namespace.</p>
+<p>Alerts from the Prometheus Operator's own rules (kube-prometheus-stack defaults) have no <code>team</code> label. Give them one in your <code>additionalRuleLabels</code>, or route them by <code>namespace</code> as in the payments example, or let them land in <code>fallback.receiver</code>.</p>
+<h2 id="values">Values</h2>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>name</code></td>
+<td><code>routing-baseline</code></td>
+<td>AlertmanagerConfig name</td>
+</tr>
+<tr>
+<td><code>labels</code></td>
+<td><code>{}</code></td>
+<td>Labels for the Alertmanager's <code>alertmanagerConfigSelector</code></td>
+</tr>
+<tr>
+<td><code>route.groupBy</code></td>
+<td><code>[alertname, namespace]</code></td>
+<td>Grouping labels</td>
+</tr>
+<tr>
+<td><code>route.groupWait</code> / <code>groupInterval</code> / <code>repeatInterval</code></td>
+<td><code>30s</code> / <code>5m</code> / <code>4h</code></td>
+<td>Root route timings</td>
+</tr>
+<tr>
+<td><code>route.pageRepeatInterval</code></td>
+<td><code>1h</code></td>
+<td>Repeat interval for page severities</td>
+</tr>
+<tr>
+<td><code>severity.label</code></td>
+<td><code>severity</code></td>
+<td>Label carrying severity</td>
+</tr>
+<tr>
+<td><code>severity.page</code> / <code>ticket</code> / <code>info</code></td>
+<td><code>[critical]</code> / <code>[warning]</code> / <code>[info]</code></td>
+<td>Severity values per class</td>
+</tr>
+<tr>
+<td><code>receivers.&lt;name&gt;.&lt;integration&gt;</code></td>
+<td><code>{}</code></td>
+<td><code>slack</code>, <code>pagerduty</code>, <code>opsgenie</code>, <code>email</code>, <code>msteams</code>, <code>webhook</code>; the map is the AlertmanagerConfig field set for that integration</td>
+</tr>
+<tr>
+<td><code>slackDefaults.title</code> / <code>text</code></td>
+<td>see values.yaml</td>
+<td>Slack templates applied when a receiver sets none</td>
+</tr>
+<tr>
+<td><code>teams[]</code></td>
+<td><code>[]</code></td>
+<td><code>name</code>, <code>matchers</code>, <code>page</code>, <code>ticket</code>, <code>info</code>, <code>muteTicketsOutsideBusinessHours</code></td>
+</tr>
+<tr>
+<td><code>fallback.receiver</code> / <code>fallback.page</code></td>
+<td><code>""</code></td>
+<td>Receivers for unmatched alerts / unmatched pages</td>
+</tr>
+<tr>
+<td><code>watchdog.*</code></td>
+<td>enabled, <code>Watchdog</code>, null receiver</td>
+<td>Where the liveness alert goes</td>
+</tr>
+<tr>
+<td><code>inhibit.criticalInhibitsWarning</code></td>
+<td><code>true</code></td>
+<td>Same alertname+namespace</td>
+</tr>
+<tr>
+<td><code>inhibit.pageInhibitsTicket</code></td>
+<td><code>true</code></td>
+<td>Same <code>slo</code> label</td>
+</tr>
+<tr>
+<td><code>inhibit.extra</code></td>
+<td><code>[]</code></td>
+<td>Raw inhibitRules</td>
+</tr>
+<tr>
+<td><code>timeIntervals.businessHours</code></td>
+<td>Mon–Fri 09:00–18:00 UTC</td>
+<td>Defines "outside business hours"</td>
+</tr>
+<tr>
+<td><code>timeIntervals.extra</code></td>
+<td><code>[]</code></td>
+<td>Raw muteTimeIntervals (maintenance, holidays)</td>
+</tr>
+<tr>
+<td><code>extraRoutes</code></td>
+<td><code>[]</code></td>
+<td>Raw routes tried before the team routes</td>
+</tr>
+<tr>
+<td><code>nullReceiver</code></td>
+<td><code>null</code></td>
+<td>Name of the drop receiver</td>
+</tr>
+</tbody>
+</table>
+<p>Matchers accept strings (<code>team=platform</code>, <code>namespace=~"a|b"</code>, <code>severity!=info</code>) or objects (<code>{name, value, matchType}</code>).</p>
+<h2 id="notes">Notes</h2>
+<ul>
+<li>Secrets must live in the release namespace; the operator copies them into the generated Alertmanager configuration.</li>
+<li>Microsoft Teams receivers need Prometheus Operator 0.69 or newer.</li>
+<li>Time intervals are evaluated in UTC by Alertmanager unless the Alertmanager itself is configured with a location; adjust <code>start</code>/<code>end</code> accordingly.</li>
+<li>The chart fails rendering if a team or fallback names a receiver that is not defined, which is cheaper than finding out at 3 a.m.</li>
+</ul>
+<p>The routing here follows the on-call model we run for clients under <a href="https://www.oreonit.com/sre-as-a-service/">SRE as a service</a>: pages are rare and actionable, everything else is a ticket, and nothing wakes anyone for information.</p>
+<h2 id="licence">Licence</h2>
+<p>MIT. Maintained by <a href="https://www.oreonit.com/">Oreon IT</a>.</p>
+</article>
+<section class="card small" aria-labelledby="by">
+  <div class="brand"><img src="../oreon-logo.svg" alt="Oreon IT"><h2 id="by">Maintained by Oreon IT</h2></div>
+  <p>A London cloud, DevOps and SRE consultancy. If you want this chart rolled out and tuned for your platform, we can help.</p>
+  <div class="cta" style="margin-top:18px"><a class="btn primary" href="https://www.oreonit.com/book-a-consultation/?utm_source=helm-charts&utm_medium=referral&utm_campaign=oss">Book a free 30-minute call</a>
+  <a class="btn ghost" href="../">All charts</a></div>
+</section>
+<footer><span>MIT licence</span><a href="https://github.com/oreondev/helm-charts">Source</a><a href="https://github.com/oreondev/helm-charts/issues">Report an issue</a><a href="https://www.oreonit.com/?utm_source=helm-charts&utm_medium=referral&utm_campaign=oss">oreonit.com</a></footer>
+</main></body></html>

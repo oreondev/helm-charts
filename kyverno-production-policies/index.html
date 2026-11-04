@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>kyverno-production-policies Helm chart | Oreon IT</title>
+<meta name="description" content="The Kubernetes production-readiness checklist as Kyverno policies - requests and limits, probes, owner labels, no latest tags, PodDisruptionBudgets and spr">
+<link rel="canonical" href="https://www.oreonit.com/helm-charts/kyverno-production-policies/">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<style>
+:root{--bg:#fff;--fg:#14213d;--muted:#5b6478;--line:#e3e6ee;--code:#f3f5f9;--accent:#e8590c}
+@media (prefers-color-scheme:dark){:root{--bg:#0b1220;--fg:#e8ecf4;--muted:#9aa3b5;--line:#1f2a40;--code:#141d30;--accent:#ff8a3d}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:980px;margin:0 auto;padding:40px 16px 56px}
+h1{margin:0 0 6px;font-size:30px;letter-spacing:-.01em}
+.badges{margin:4px 0 12px} .badges img{display:block}
+.lead{color:var(--muted);margin:0 0 20px}
+a{color:var(--accent)}
+pre{background:var(--code);border:1px solid var(--line);padding:14px 16px;border-radius:10px;overflow-x:auto;margin:0}
+table{width:100%;border-collapse:collapse;margin:24px 0 40px}
+td,th{text-align:left;padding:11px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+td:nth-child(1){white-space:nowrap}
+td:nth-child(2){white-space:nowrap;color:var(--muted)}
+td a{text-decoration:none} td a:hover{text-decoration:underline}
+.card{position:relative;overflow:hidden;border-radius:18px;padding:32px;color:#e8ecf4;
+  background:radial-gradient(120% 140% at 100% 0%,rgba(245,130,21,.28) 0,rgba(245,130,21,0) 45%),linear-gradient(135deg,#0f1d3a 0%,#14274d 60%,#0b1430 100%);
+  box-shadow:0 20px 50px -25px rgba(10,20,45,.6)}
+.card:before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:linear-gradient(#fdb813,#e23b26)}
+.brand{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.brand img{height:52px;width:auto}
+.card h2{margin:0;font-size:22px;color:#fff}
+.card p{color:#b9c3d6;margin:10px 0 0;max-width:680px}
+.tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:24px 0}
+.tile{display:block;padding:16px 18px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
+  color:#fff;text-decoration:none;transition:background .15s,border-color .15s,transform .15s}
+.tile:hover{background:rgba(255,255,255,.1);border-color:rgba(253,184,19,.55);transform:translateY(-2px)}
+.tile strong{display:block;font-size:16px}
+.tile em{display:block;font-style:normal;color:#b9c3d6;font-size:14px;margin:4px 0 10px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips span{font:12px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;padding:4px 7px;border-radius:6px;background:rgba(253,184,19,.12);color:#fdd27a}
+.cta{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.btn{display:inline-block;padding:12px 18px;border-radius:10px;font-weight:600;text-decoration:none}
+.btn.primary{background:linear-gradient(90deg,#f58215,#e23b26);color:#fff}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.ghost{color:#fff;border:1px solid rgba(255,255,255,.3)}
+.btn.ghost:hover{border-color:#fff}
+footer{margin-top:28px;font-size:14px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px 18px}
+footer a{color:var(--muted)}
+@media (max-width:700px){.tiles{grid-template-columns:1fr} .card{padding:24px 20px} td:nth-child(3),th:nth-child(3){display:none}}
+
+.crumb{font-size:14px;color:var(--muted);margin:0 0 10px} .crumb a{color:var(--muted)}
+.meta{color:var(--muted);margin:0 0 22px}
+.doc h2{margin:34px 0 10px;font-size:22px} .doc h3{margin:24px 0 8px;font-size:18px}
+.doc table{margin:16px 0 24px;display:block;overflow-x:auto} .doc td,.doc th{white-space:normal}
+.doc code{background:var(--code);padding:1px 5px;border-radius:5px;font-size:.92em} .doc pre code{padding:0;background:none}
+.doc pre{margin:12px 0 18px}
+.card.small{padding:24px;margin-top:40px}
+</style></head><body><main>
+<p class="crumb"><a href="../">Oreon IT Helm charts</a> / kyverno-production-policies</p>
+<h1>kyverno-production-policies Helm chart</h1>
+<p class="meta">Version 0.1.1 · app 0.1.0 · MIT · <a href="https://github.com/oreondev/helm-charts/tree/main/charts/kyverno-production-policies">source</a> · <a href="https://artifacthub.io/packages/helm/oreonit/kyverno-production-policies">Artifact Hub</a></p>
+<article class="doc">
+
+<p>The <a href="https://www.oreonit.com/kubernetes-production-readiness-checklist/">Kubernetes production readiness checklist</a> as Kyverno policies. Install it in <strong>Audit</strong> mode (the default) and you get a findings list for the whole cluster in a few minutes; move namespaces to <strong>Enforce</strong> when they are clean.</p>
+<table>
+<thead>
+<tr>
+<th>Policy</th>
+<th>Checks</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>require-requests-limits</code></td>
+<td>CPU and memory requests and a memory limit on every container and init container (CPU limit optional)</td>
+<td>on</td>
+</tr>
+<tr>
+<td><code>require-probes</code></td>
+<td>liveness and readiness probes on Deployments, StatefulSets, DaemonSets (startup probe optional)</td>
+<td>on</td>
+</tr>
+<tr>
+<td><code>require-labels</code></td>
+<td>pods carry the labels you route cost and alerts by (<code>app.kubernetes.io/name</code>, <code>team</code> by default)</td>
+<td>on</td>
+</tr>
+<tr>
+<td><code>disallow-latest-tag</code></td>
+<td>images have an explicit tag or digest, and it is not <code>latest</code></td>
+<td>on</td>
+</tr>
+<tr>
+<td><code>require-pdb</code></td>
+<td>Deployments and StatefulSets with 2+ replicas have a PodDisruptionBudget whose selector matches their pod labels</td>
+<td>on</td>
+</tr>
+<tr>
+<td><code>require-topology-spread</code></td>
+<td>Deployments and StatefulSets with 2+ replicas declare <code>topologySpreadConstraints</code> or <code>podAntiAffinity</code></td>
+<td>on</td>
+</tr>
+<tr>
+<td><code>restrict-nodeport</code></td>
+<td>no NodePort services</td>
+<td>on</td>
+</tr>
+<tr>
+<td><code>disallow-default-namespace</code></td>
+<td>nothing runs in <code>default</code></td>
+<td>on</td>
+</tr>
+<tr>
+<td><code>restrict-image-registries</code></td>
+<td>images only from the registries you list</td>
+<td>off</td>
+</tr>
+<tr>
+<td><code>require-ro-rootfs</code></td>
+<td><code>readOnlyRootFilesystem: true</code> on every container</td>
+<td>off</td>
+</tr>
+</tbody>
+</table>
+<p>Pod-level checks are auto-generated by Kyverno for Deployments, StatefulSets, DaemonSets, Jobs and CronJobs, so reports point at the controller, not the pod. Pod Security Admission levels (privileged containers, host namespaces, root) are deliberately not duplicated here: set them as namespace labels, for example with our <a href="../namespace-baseline/">namespace-baseline</a> chart.</p>
+<h2 id="install">Install</h2>
+<p>Needs Kyverno 1.13 or newer (rule-level <code>failureAction</code>).</p>
+<pre><code class="language-bash">helm repo add oreonit https://oreondev.github.io/helm-charts
+helm install readiness oreonit/kyverno-production-policies -n kyverno
+</code></pre>
+<p>Read the findings:</p>
+<pre><code class="language-bash">kubectl get clusterpolicyreport,policyreport -A
+kubectl get policyreport -A -o json \
+  | jq -r '.items[] | .metadata.namespace as $ns | .results[]? | select(.result==&quot;fail&quot;)
+           | [$ns, .policy, .resources[0].kind, .resources[0].name] | @tsv' \
+  | sort | uniq -c | sort -rn
+</code></pre>
+<p>Enforce in one namespace while the rest keeps auditing:</p>
+<pre><code class="language-bash">helm upgrade readiness oreonit/kyverno-production-policies -n kyverno --reuse-values \
+  --set 'enforceNamespaces={staging}'
+</code></pre>
+<p>Enforce everywhere: <code>--set failureAction=Enforce</code>.</p>
+<h2 id="values">Values</h2>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>namePrefix</code></td>
+<td><code>""</code></td>
+<td>Prefix for ClusterPolicy names</td>
+</tr>
+<tr>
+<td><code>failureAction</code></td>
+<td><code>Audit</code></td>
+<td><code>Audit</code> or <code>Enforce</code>, for every policy</td>
+</tr>
+<tr>
+<td><code>enforceNamespaces</code></td>
+<td><code>[]</code></td>
+<td>Namespaces that enforce regardless of <code>failureAction</code></td>
+</tr>
+<tr>
+<td><code>excludeNamespaces</code></td>
+<td><code>kube-*</code>, <code>kyverno</code>, <code>gmp-*</code>, <code>gke-*</code>, <code>calico-*</code>, <code>tigera-operator</code></td>
+<td>Namespaces no policy looks at (wildcards allowed)</td>
+</tr>
+<tr>
+<td><code>background</code></td>
+<td><code>true</code></td>
+<td>Scan existing resources, not only new requests</td>
+</tr>
+<tr>
+<td><code>policies.&lt;name&gt;.enabled</code></td>
+<td>see table</td>
+<td>Turn individual policies on or off</td>
+</tr>
+<tr>
+<td><code>policies.requireRequestsLimits.requireCpuLimit</code></td>
+<td><code>false</code></td>
+<td>Also require CPU limits</td>
+</tr>
+<tr>
+<td><code>policies.requireProbes.requireStartupProbe</code></td>
+<td><code>false</code></td>
+<td>Also require startup probes</td>
+</tr>
+<tr>
+<td><code>policies.requireLabels.labels</code></td>
+<td><code>app.kubernetes.io/name</code>, <code>team</code></td>
+<td>Required pod labels</td>
+</tr>
+<tr>
+<td><code>policies.requirePdb.minReplicas</code></td>
+<td><code>2</code></td>
+<td>Replica count from which a PDB is required</td>
+</tr>
+<tr>
+<td><code>policies.requireTopologySpread.minReplicas</code></td>
+<td><code>2</code></td>
+<td>Replica count from which spreading is required</td>
+</tr>
+<tr>
+<td><code>policies.restrictImageRegistries.registries</code></td>
+<td><code>[]</code></td>
+<td>Allowed image prefixes, e.g. <code>ghcr.io/my-org/*</code></td>
+</tr>
+<tr>
+<td><code>rbac.kyvernoReadPdbs</code></td>
+<td><code>true</code></td>
+<td>Aggregated ClusterRole so Kyverno can list PodDisruptionBudgets for <code>require-pdb</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="notes">Notes</h2>
+<ul>
+<li><code>require-pdb</code> looks up PodDisruptionBudgets through the Kubernetes API (<code>apiCall</code> with Kyverno's <code>label_match</code>). The chart ships an aggregated ClusterRole for that; if your Kyverno installation does not use the <code>rbac.kyverno.io/aggregate-to-*</code> labels, grant the Kyverno controllers <code>list</code> on <code>poddisruptionbudgets.policy</code> yourself. Only <code>matchLabels</code> selectors are compared: a PDB that selects with <code>matchExpressions</code> alone is not seen, so give such PDBs a <code>matchLabels</code> entry or exclude the workload.</li>
+<li>Audit findings for workloads that existed before the policy appear through background scans; give it a couple of minutes after install.</li>
+<li>Exceptions: use Kyverno <code>PolicyException</code> resources for the one workload that genuinely needs a NodePort, rather than turning the policy off.</li>
+<li>A clean report is a readiness checklist you can show an auditor. If you would like the rest of the checklist (upgrades, backups, cost, observability) reviewed, that is the <a href="https://www.oreonit.com/production-readiness-audit-for-kubernetes/">production readiness audit</a>.</li>
+</ul>
+<h2 id="licence">Licence</h2>
+<p>MIT. Maintained by <a href="https://www.oreonit.com/">Oreon IT</a>.</p>
+</article>
+<section class="card small" aria-labelledby="by">
+  <div class="brand"><img src="../oreon-logo.svg" alt="Oreon IT"><h2 id="by">Maintained by Oreon IT</h2></div>
+  <p>A London cloud, DevOps and SRE consultancy. If you want this chart rolled out and tuned for your platform, we can help.</p>
+  <div class="cta" style="margin-top:18px"><a class="btn primary" href="https://www.oreonit.com/book-a-consultation/?utm_source=helm-charts&utm_medium=referral&utm_campaign=oss">Book a free 30-minute call</a>
+  <a class="btn ghost" href="../">All charts</a></div>
+</section>
+<footer><span>MIT licence</span><a href="https://github.com/oreondev/helm-charts">Source</a><a href="https://github.com/oreondev/helm-charts/issues">Report an issue</a><a href="https://www.oreonit.com/?utm_source=helm-charts&utm_medium=referral&utm_campaign=oss">oreonit.com</a></footer>
+</main></body></html>
