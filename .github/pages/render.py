@@ -146,7 +146,9 @@ helm search repo oreonit/</code></pre>
     open(os.path.join(out, "index.html"), "w").write(page)
     for f in ("oreon-logo.svg", "favicon.svg"):
         shutil.copy(os.path.join(HERE, f), os.path.join(out, f))
-    generated = ["index.html", "oreon-logo.svg", "favicon.svg", "sitemap.xml"]
+    # GitHub Pages runs Jekyll unless .nojekyll exists, and Jekyll fails on the {{ }} in Helm examples.
+    open(os.path.join(out, ".nojekyll"), "w").close()
+    generated = ["index.html", "oreon-logo.svg", "favicon.svg", "sitemap.xml", ".nojekyll"]
 
     css = page[page.index("<style>") + 7:page.index("</style>")]
     released = set(idx["entries"])
