@@ -1,0 +1,47 @@
+# chart-testing: a throwaway pgvector PostgreSQL next to the release (extraObjects), admin bootstrap,
+# monitoring objects on.
+database:
+  host: "{{ .Release.Name }}-pg"
+  user: postgres
+  password: ci-password
+auth:
+  admin:
+    email: admin@example.com
+secretEnv:
+  OPENAI_API_KEY: sk-ci-not-used
+metrics:
+  serviceMonitor:
+    enabled: true
+  prometheusRule:
+    enabled: true
+  dashboard:
+    enabled: true
+server:
+  persistence:
+    enabled: false
+extraObjects:
+  - |
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: {{ .Release.Name }}-pg
+    spec:
+      selector: { matchLabels: { app: {{ .Release.Name }}-pg } }
+      template:
+        metadata: { labels: { app: {{ .Release.Name }}-pg } }
+        spec:
+          containers:
+            - name: postgres
+              image: pgvector/pgvector:pg17
+              env:
+                - { name: POSTGRES_PASSWORD, value: ci-password }
+              ports: [{ containerPort: 5432 }]
+              readinessProbe: { exec: { command: [pg_isready, -U, postgres] }, periodSeconds: 3 }
+  - |
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: {{ .Release.Name }}-pg
+    spec:
+      selector: { app: {{ .Release.Name }}-pg }
+      ports: [{ port: 5432 }]

@@ -1,0 +1,79 @@
+{{- if eq .Values.redis.mode "bundled" }}
+{{- $v := .Values }}
+{{- $r := $v.redis.bundled }}
+{{- $ctx := dict "ctx" . "component" "redis" }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "firecrawl.redisName" . }}
+  labels:
+    {{- include "firecrawl.labels" $ctx | nindent 4 }}
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "firecrawl.selectorLabels" $ctx | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "firecrawl.selectorLabels" $ctx | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "firecrawl.serviceAccountName" . }}
+      automountServiceAccountToken: {{ $v.automountServiceAccountToken }}
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        runAsGroup: 999
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: redis
+          image: {{ $r.image.repository }}:{{ $r.image.tag }}
+          imagePullPolicy: {{ $v.image.pullPolicy }}
+          # Crawl state, rate limits and concurrency slots: nothing that must survive a restart, so no
+          # persistence; noeviction so a full Redis errors instead of silently dropping crawl state.
+          args: ["--save", "", "--appendonly", "no", "--maxmemory", "{{ $r.maxmemory }}", "--maxmemory-policy", "noeviction"]
+          ports:
+            - { name: redis, containerPort: 6379, protocol: TCP }
+          readinessProbe:
+            exec: { command: [redis-cli, ping] }
+            periodSeconds: 10
+          livenessProbe:
+            exec: { command: [redis-cli, ping] }
+            periodSeconds: 20
+            timeoutSeconds: 5
+          securityContext:
+            {{- toYaml $v.securityContext | nindent 12 }}
+          resources:
+            {{- toYaml $r.resources | nindent 12 }}
+          volumeMounts:
+            - { name: data, mountPath: /data }
+      volumes:
+        - name: data
+          emptyDir:
+            sizeLimit: 64Mi
+      {{- with $v.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $v.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "firecrawl.redisName" . }}
+  labels:
+    {{- include "firecrawl.labels" $ctx | nindent 4 }}
+spec:
+  ports:
+    - { name: redis, port: 6379, targetPort: redis, protocol: TCP }
+  selector:
+    {{- include "firecrawl.selectorLabels" $ctx | nindent 4 }}
+{{- end }}

@@ -8,10 +8,12 @@ Every chart is versioned on its own ([SemVer](https://semver.org/): patch for fi
 | blackbox-slo-probes | 0.1.1 | - | released |
 | crawl4ai | 0.2.0 | Crawl4AI 0.9.5 | released |
 | evolution | 0.2.0 | Evolution API 2.3.7 | released |
+| firecrawl | 0.1.0 | Firecrawl 2.11.621 | released |
 | gateway-api-baseline | 0.1.0 | - | released |
 | k8s-cost-waste-alerts | 0.2.1 | - | released |
 | kyverno-production-policies | 0.1.1 | - | released |
 | llm-serving-observability | 0.1.0 | - | released |
+| mem0 | 0.1.0 | Mem0 2.2.1 | released |
 | namespace-baseline | 0.1.0 | - | released |
 | otel-collector-baseline | 0.1.3 | - | released |
 | searxng | 0.1.0 | SearXNG 2026.10.29-cff884f98 | released |
@@ -24,6 +26,61 @@ Images built here ([images/](images)):
 | Image | Version | Used by |
 |---|---|---|
 | ghcr.io/oreondev/crawl4ai-server | 0.9.5 | crawl4ai |
+| ghcr.io/oreondev/mem0-server | 2.2.1 | mem0 |
+| ghcr.io/oreondev/mem0-dashboard | 2.2.1 | mem0 |
+
+## 2026-11-04
+
+### firecrawl 0.1.0 (Firecrawl 2.11.621)
+
+First release.
+- **Components:** API, crawl worker, scrape workers (`nuq-worker`), prefetch and reconciler workers, Playwright and the optional extract worker each run as their own Deployment. Upstream runs them as child processes of one 2.49 GiB container.
+- **Token gate:** nginx in the API pods. Self-hosted Firecrawl accepts every request, so the gate only lets through configured keys; keys are generated and kept.
+- **Queue schema:**
+  - The upstream `nuq.sql` is applied by a Job per release, and the workers wait for it in an init container.
+  - On external PostgreSQL, `ALTER SYSTEM` lines are skipped (managed services refuse them) and pg_cron is checked first.
+  - The bundled StatefulSet overrides upstream's WAL settings (`min_wal_size` 4GB, `max_wal_size` 16GB) with 256MB / 4GB.
+- **Shutdown and processes:**
+  - `IS_KUBERNETES=false` on the API only: upstream sleeps 60 s on every SIGTERM "for GCE load balancer drain". The chart uses a 10 s preStop drain instead.
+  - Playwright runs node directly (140 MiB instead of 248 MiB) and SIGTERM is translated to the SIGINT it handles.
+  - `NUQ_WAIT_MODE=listen` (PostgreSQL LISTEN/NOTIFY), so RabbitMQ is only needed for the extract worker (`rabbitmq.mode: bundled | external`).
+  - `EXPRESS_TRUST_PROXY` and X-Forwarded-Proto through the gate, so response URLs are https behind an Ingress.
+- **Images:** the Playwright and nuq-postgres images are published only as `latest`, so the chart pins their digests.
+- **Scaling:** CPU HPAs for the API, nuq-worker and Playwright, or KEDA on queue depth (`nuq_queue_scrape_job_count{status="queued"}`). PodDisruptionBudgets and spread.
+- **Security:**
+  - Non-root and read-only.
+  - NetworkPolicy: the gate is open; the API port is reachable only within the release, and the unauthenticated admin listener only from the monitoring namespace (tested).
+- **Monitoring:** PodMonitor for worker metrics and queue depth, four alerts (backlog, stalled queue, failure ratio, component down) and a Grafana dashboard.
+
+### mem0 0.1.0 (Mem0 2.2.1)
+
+First release, with images built from the upstream release (`images/mem0`).
+- Server image with `mem0ai` pinned to the release. Upstream installs whatever `>=0.1.48` resolves to. It drops `uvicorn --reload` (one process instead of three, 210 vs 233 MiB), runs as non-root and works with a read-only root filesystem.
+- Dashboard image substitutes `NEXT_PUBLIC_*` into a writable copy of `.next`, so its root filesystem can stay read-only.
+- **Init containers:**
+  - create the databases and `CREATE EXTENSION vector`
+  - `alembic upgrade head` (the upstream image never runs migrations)
+  - create the first admin from `auth.admin`, which closes the open `/setup` page
+- `/healthz` and `/readyz` (database check) answered outside the upstream request-log middleware, which writes a row for every request.
+- Generated `JWT_SECRET`, `ADMIN_API_KEY` and admin password. Telemetry is off.
+- CronJob prunes `request_logs` (30 days).
+- `llm.openaiBaseUrl` for OpenAI-compatible private models.
+- Memory history on a PVC with Recreate, or several replicas without it.
+- Ingress or HTTPRoute with separate API and dashboard hosts.
+- Prometheus metrics on port 9090 (never on the API port), ServiceMonitor, four alerts, Grafana dashboard.
+
+### Repository
+
+- Application charts section in the README.
+- `images/` and the `images` workflow:
+  - builds every `images/<app>/*.Dockerfile` for amd64 and arm64
+  - scans with Trivy
+  - pushes `<version>` and `<version>-<commit>` to GHCR, signs them keylessly with cosign, and rebuilds weekly
+- `upstream-releases` workflow: compares application charts with upstream every week (image tags, git tags and pinned digests from `.github/upstream.yaml`) and opens an issue per chart that is behind.
+- `lint-test` also runs for `images/**` changes, and builds and kind-loads this repository's images for the charts that use them.
+- The ServiceMonitor CRD is installed in CI.
+- `upstream-releases` also follows searxng (dated releases, compared by date) and text-embeddings-inference.
+- Docs site: a page per released chart at `https://www.oreonit.com/helm-charts/<chart>/`, rendered from the chart README, with canonical links to oreonit.com and a sitemap.
 
 ## 2026-11-03
 

@@ -1,0 +1,31 @@
+name: upstream-releases
+
+# Weekly: compare each application chart's appVersion (and pinned image digests) with upstream
+# (.github/upstream.yaml) and open or update an "upstream-release" issue for every chart that is behind.
+
+on:
+  schedule:
+    - cron: "41 6 * * 1"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python3 -m pip install --quiet pyyaml
+      - name: Ensure the label exists
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh label create upstream-release --color 0E8A16 --description "Upstream released a newer version" --force
+      - name: Check
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 .github/scripts/check-upstream.py --issues

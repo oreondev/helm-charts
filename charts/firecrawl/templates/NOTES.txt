@@ -1,0 +1,17 @@
+Firecrawl {{ .Chart.AppVersion }} is starting as {{ include "firecrawl.fullname" . }} in {{ .Release.Namespace }}
+(queue: {{ .Values.postgres.mode }} PostgreSQL, Redis: {{ .Values.redis.mode }}).
+{{- if .Values.auth.enabled }}
+
+API key (send as "Authorization: Bearer <key>"; the SDKs do this with api_key):
+  kubectl -n {{ .Release.Namespace }} get secret {{ include "firecrawl.fullname" . }}-gateway-keys -o jsonpath='{.data.api-keys}' | base64 -d
+{{- else }}
+
+WARNING: auth.enabled=false. Self-hosted Firecrawl accepts every request; keep the Service private.
+{{- end }}
+
+Try it:
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "firecrawl.fullname" . }} 3002:{{ .Values.service.port }}
+  curl -s localhost:3002/v2/scrape -H "Authorization: Bearer $KEY" -H 'content-type: application/json' -d '{"url":"https://example.com"}'
+
+Queue schema:
+  kubectl -n {{ .Release.Namespace }} logs job/{{ include "firecrawl.fullname" . }}-schema-{{ .Release.Revision }}

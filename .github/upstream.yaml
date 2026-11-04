@@ -1,0 +1,36 @@
+# Upstream versions the application charts follow, checked weekly by .github/workflows/upstream-releases.yml.
+# source: dockerhub | ghcr (image tags, for charts that deploy the upstream image) or git (release tags, for
+# images built in images/<app>). pattern: regex with one group, the version compared with appVersion.
+crawl4ai:
+  source: dockerhub
+  image: unclecode/crawl4ai
+  pattern: '^(\d+\.\d+\.\d+)$'
+evolution:
+  source: dockerhub
+  image: evoapicloud/evolution-api
+  pattern: '^v(\d+\.\d+\.\d+)$'
+firecrawl:
+  source: ghcr
+  image: firecrawl/firecrawl
+  pattern: '^(\d+\.\d+\.\d+)$'
+  # playwright-service and nuq-postgres are published as "latest" only; the chart pins their digests.
+  digests:
+    - image: firecrawl/playwright-service
+      values: playwright.image.digest
+    - image: firecrawl/nuq-postgres
+      values: postgres.bundled.image.digest
+mem0:
+  source: git
+  repo: https://github.com/mem0ai/mem0.git
+  pattern: '^v(\d+\.\d+\.\d+)$'
+  # built here: bump images/mem0/VERSION together with appVersion
+  imageVersionFile: images/mem0/VERSION
+searxng:
+  source: dockerhub
+  image: searxng/searxng
+  # dated rolling releases (YYYY.M.D-<commit>); compared by date
+  pattern: '^(\d{4}\.\d+\.\d+)-[0-9a-f]+$'
+text-embeddings-inference:
+  source: ghcr
+  image: huggingface/text-embeddings-inference
+  pattern: '^cpu-(\d+\.\d+\.\d+)$'

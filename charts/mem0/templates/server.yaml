@@ -1,0 +1,179 @@
+{{- $v := .Values }}
+{{- $s := $v.server }}
+{{- $image := include "mem0.image" (dict "ctx" . "image" $v.image.server) }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "mem0.serverName" . }}
+  labels:
+    {{- include "mem0.labels" (dict "ctx" . "component" "server") | nindent 4 }}
+spec:
+  replicas: {{ $s.replicaCount }}
+  revisionHistoryLimit: 3
+  {{- if $s.persistence.enabled }}
+  # The history volume is ReadWriteOnce: stop the old pod before the new one mounts it.
+  strategy:
+    type: Recreate
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "mem0.selectorLabels" (dict "ctx" . "component" "server") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "mem0.selectorLabels" (dict "ctx" . "component" "server") | nindent 8 }}
+        {{- with $s.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      annotations:
+        checksum/env: {{ include "mem0.env" . | sha256sum }}
+        checksum/secret: {{ include "mem0.secretData" . | sha256sum }}
+        {{- with $s.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "mem0.serviceAccountName" . }}
+      automountServiceAccountToken: {{ $v.automountServiceAccountToken }}
+      enableServiceLinks: false
+      {{- with $v.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $v.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
+      securityContext:
+        {{- toYaml $v.podSecurityContext | nindent 8 }}
+      terminationGracePeriodSeconds: 30
+      initContainers:
+        # Waits for PostgreSQL, creates the databases (database.createDatabases) and the vector extension.
+        - name: databases
+          image: {{ $image }}
+          imagePullPolicy: {{ $v.image.pullPolicy }}
+          command: ["python", "oreon_bootstrap.py", "databases"]
+          {{- include "mem0.serverEnvBlock" . | nindent 10 }}
+          securityContext:
+            {{- toYaml $v.securityContext | nindent 12 }}
+          resources:
+            requests: { cpu: 10m, memory: 64Mi }
+            limits: { memory: 256Mi }
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+        {{- if $v.database.migrations }}
+        # The upstream image never runs its migrations; the compose file does it in the dev container.
+        - name: migrate
+          image: {{ $image }}
+          imagePullPolicy: {{ $v.image.pullPolicy }}
+          command: ["alembic", "upgrade", "head"]
+          {{- include "mem0.serverEnvBlock" . | nindent 10 }}
+          securityContext:
+            {{- toYaml $v.securityContext | nindent 12 }}
+          resources:
+            requests: { cpu: 10m, memory: 64Mi }
+            limits: { memory: 256Mi }
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+        {{- end }}
+        {{- if $v.auth.admin.email }}
+        # First admin, so the public /setup page is closed before anything can reach it.
+        - name: admin
+          image: {{ $image }}
+          imagePullPolicy: {{ $v.image.pullPolicy }}
+          command: ["python", "oreon_bootstrap.py", "admin"]
+          {{- include "mem0.serverEnvBlock" . | nindent 10 }}
+          securityContext:
+            {{- toYaml $v.securityContext | nindent 12 }}
+          resources:
+            requests: { cpu: 10m, memory: 64Mi }
+            limits: { memory: 256Mi }
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+        {{- end }}
+      containers:
+        - name: server
+          image: {{ $image }}
+          imagePullPolicy: {{ $v.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+            {{- if $v.metrics.enabled }}
+            - name: metrics
+              containerPort: 9090
+              protocol: TCP
+            {{- end }}
+          {{- include "mem0.serverEnvBlock" . | nindent 10 }}
+          # /healthz and /readyz are answered before the upstream request-log middleware (which writes a
+          # database row per request); /readyz also checks the app database.
+          startupProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 2
+            failureThreshold: 60
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 20
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet: { path: /readyz, port: http }
+            periodSeconds: 10
+            timeoutSeconds: 5
+          securityContext:
+            {{- toYaml $v.securityContext | nindent 12 }}
+          resources:
+            {{- toYaml $s.resources | nindent 12 }}
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+            - { name: history, mountPath: /app/history }
+            {{- with $v.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 256Mi
+        - name: history
+          {{- if $s.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ default (printf "%s-history" (include "mem0.serverName" .)) $s.persistence.existingClaim }}
+          {{- else }}
+          emptyDir:
+            sizeLimit: 1Gi
+          {{- end }}
+        {{- with $v.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with $v.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $v.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $v.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if gt (int $s.replicaCount) 1 }}
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              {{- include "mem0.selectorLabels" (dict "ctx" . "component" "server") | nindent 14 }}
+      {{- end }}
+{{- if gt (int $s.replicaCount) 1 }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "mem0.serverName" . }}
+  labels:
+    {{- include "mem0.labels" (dict "ctx" . "component" "server") | nindent 4 }}
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      {{- include "mem0.selectorLabels" (dict "ctx" . "component" "server") | nindent 6 }}
+{{- end }}

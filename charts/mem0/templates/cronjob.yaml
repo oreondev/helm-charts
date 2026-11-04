@@ -1,0 +1,60 @@
+{{- if .Values.requestLogPruning.enabled }}
+{{- $v := .Values }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "mem0.fullname" . }}-prune-request-logs
+  labels:
+    {{- include "mem0.labels" (dict "ctx" . "component" "maintenance") | nindent 4 }}
+spec:
+  schedule: {{ $v.requestLogPruning.schedule | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 1800
+      ttlSecondsAfterFinished: 86400
+      template:
+        metadata:
+          labels:
+            {{- include "mem0.selectorLabels" (dict "ctx" . "component" "maintenance") | nindent 12 }}
+        spec:
+          restartPolicy: Never
+          serviceAccountName: {{ include "mem0.serviceAccountName" . }}
+          automountServiceAccountToken: {{ $v.automountServiceAccountToken }}
+          enableServiceLinks: false
+          {{- with $v.imagePullSecrets }}
+          imagePullSecrets:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          securityContext:
+            {{- toYaml $v.podSecurityContext | nindent 12 }}
+          containers:
+            # Upstream scripts/prune_request_logs.py (REQUEST_LOG_RETENTION_DAYS).
+            - name: prune
+              image: {{ include "mem0.image" (dict "ctx" . "image" $v.image.server) }}
+              imagePullPolicy: {{ $v.image.pullPolicy }}
+              command: ["python", "scripts/prune_request_logs.py"]
+              {{- include "mem0.serverEnvBlock" . | nindent 14 }}
+              securityContext:
+                {{- toYaml $v.securityContext | nindent 16 }}
+              resources:
+                requests: { cpu: 10m, memory: 64Mi }
+                limits: { memory: 256Mi }
+              volumeMounts:
+                - { name: tmp, mountPath: /tmp }
+          volumes:
+            - name: tmp
+              emptyDir:
+                sizeLimit: 64Mi
+          {{- with $v.nodeSelector }}
+          nodeSelector:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with $v.tolerations }}
+          tolerations:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+{{- end }}

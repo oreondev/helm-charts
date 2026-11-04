@@ -1,0 +1,119 @@
+{{- if eq .Values.postgres.mode "bundled" }}
+{{- $v := .Values }}
+{{- $pg := $v.postgres }}
+{{- $b := $pg.bundled }}
+{{- $ctx := dict "ctx" . "component" "postgres" }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "firecrawl.postgresName" . }}
+  labels:
+    {{- include "firecrawl.labels" $ctx | nindent 4 }}
+spec:
+  serviceName: {{ include "firecrawl.postgresName" . }}
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "firecrawl.selectorLabels" $ctx | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "firecrawl.selectorLabels" $ctx | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "firecrawl.serviceAccountName" . }}
+      automountServiceAccountToken: {{ $v.automountServiceAccountToken }}
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      terminationGracePeriodSeconds: 60
+      containers:
+        - name: postgres
+          image: {{ include "firecrawl.imageRef" (dict "image" $b.image "default" "latest") }}
+          imagePullPolicy: {{ $v.image.pullPolicy }}
+          args:
+            - postgres
+            # Command-line settings win over the ALTER SYSTEM values nuq.sql writes.
+            - -c
+            - min_wal_size={{ $b.walSize.min }}
+            - -c
+            - max_wal_size={{ $b.walSize.max }}
+            - -c
+            - shared_buffers={{ $b.sharedBuffers }}
+            - -c
+            - cron.database_name={{ $pg.database }}
+          env:
+            - { name: POSTGRES_DB, value: {{ $pg.database | quote }} }
+            - { name: POSTGRES_USER, value: {{ $pg.user | quote }} }
+            - name: POSTGRES_PASSWORD
+              valueFrom: { secretKeyRef: { name: {{ include "firecrawl.postgresSecretName" . }}, key: {{ include "firecrawl.postgresSecretKey" . }} } }
+            - { name: PGDATA, value: /var/lib/postgresql/data/pgdata }
+          ports:
+            - { name: postgres, containerPort: 5432, protocol: TCP }
+          startupProbe:
+            exec: { command: [sh, -c, 'pg_isready -q -U "$POSTGRES_USER" -d "$POSTGRES_DB"'] }
+            periodSeconds: 2
+            failureThreshold: 150
+          readinessProbe:
+            exec: { command: [sh, -c, 'pg_isready -q -U "$POSTGRES_USER" -d "$POSTGRES_DB"'] }
+            periodSeconds: 10
+          livenessProbe:
+            exec: { command: [sh, -c, 'pg_isready -q -U "$POSTGRES_USER" -d "$POSTGRES_DB"'] }
+            periodSeconds: 20
+            timeoutSeconds: 5
+          securityContext:
+            {{- toYaml $v.securityContext | nindent 12 }}
+          resources:
+            {{- toYaml $b.resources | nindent 12 }}
+          volumeMounts:
+            - { name: data, mountPath: /var/lib/postgresql/data }
+            - { name: run, mountPath: /var/run/postgresql }
+            - { name: tmp, mountPath: /tmp }
+            - { name: shm, mountPath: /dev/shm }
+      volumes:
+        - name: run
+          emptyDir: {}
+        - name: tmp
+          emptyDir:
+            sizeLimit: 256Mi
+        - name: shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 256Mi
+      {{- with $v.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $v.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ReadWriteOnce]
+        {{- with $b.persistence.storageClass }}
+        storageClassName: {{ . }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ $b.persistence.size }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "firecrawl.postgresName" . }}
+  labels:
+    {{- include "firecrawl.labels" $ctx | nindent 4 }}
+spec:
+  ports:
+    - { name: postgres, port: 5432, targetPort: postgres, protocol: TCP }
+  selector:
+    {{- include "firecrawl.selectorLabels" $ctx | nindent 4 }}
+{{- end }}

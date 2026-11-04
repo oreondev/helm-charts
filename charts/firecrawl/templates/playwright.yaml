@@ -1,0 +1,167 @@
+{{- if .Values.playwright.enabled }}
+{{- $v := .Values }}
+{{- $p := $v.playwright }}
+{{- $ctx := dict "ctx" . "component" "playwright" }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "firecrawl.playwrightName" . }}
+  labels:
+    {{- include "firecrawl.labels" $ctx | nindent 4 }}
+spec:
+  {{- if not $p.autoscaling.enabled }}
+  replicas: {{ $p.replicaCount }}
+  {{- end }}
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      {{- include "firecrawl.selectorLabels" $ctx | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "firecrawl.selectorLabels" $ctx | nindent 8 }}
+        {{- with $p.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with $p.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      serviceAccountName: {{ include "firecrawl.serviceAccountName" . }}
+      automountServiceAccountToken: {{ $v.automountServiceAccountToken }}
+      enableServiceLinks: false
+      {{- with $v.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml $v.podSecurityContext | nindent 8 }}
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: playwright
+          image: {{ include "firecrawl.imageRef" (dict "image" $p.image "default" "latest") }}
+          imagePullPolicy: {{ $v.image.pullPolicy }}
+          # node directly instead of "pnpm start". The service only handles SIGINT, so SIGTERM is
+          # translated; otherwise node as PID 1 ignores it and the pod is killed at the grace period.
+          command: ["/bin/sh", "-c", "node dist/api.js & child=$!; trap 'kill -INT $child' TERM INT; wait $child; trap - TERM INT; wait $child"]
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+          env:
+            - { name: PORT, value: "3000" }
+            - { name: MAX_CONCURRENT_PAGES, value: {{ $p.maxConcurrentPages | quote }} }
+            - { name: BLOCK_MEDIA, value: {{ ternary "True" "False" $p.blockMedia | quote }} }
+            - { name: ALLOW_LOCAL_WEBHOOKS, value: {{ ternary "True" "False" $v.firecrawl.allowLocalWebhooks | quote }} }
+            - { name: HOME, value: /tmp }
+            {{- with include "firecrawl.nodeOptions" $p.resources }}
+            - { name: NODE_OPTIONS, value: {{ . | quote }} }
+            {{- end }}
+            {{- range $k := list "PROXY_SERVER" "PROXY_USERNAME" }}
+            {{- with get ($v.firecrawl.env | default dict) $k }}
+            - { name: {{ $k }}, value: {{ . | quote }} }
+            {{- end }}
+            {{- end }}
+            {{- if hasKey ($v.secretEnv | default dict) "PROXY_PASSWORD" }}
+            - name: PROXY_PASSWORD
+              valueFrom: { secretKeyRef: { name: {{ include "firecrawl.fullname" . }}, key: PROXY_PASSWORD } }
+            {{- end }}
+          startupProbe:
+            httpGet: { path: /health, port: http }
+            periodSeconds: 2
+            failureThreshold: 60
+          livenessProbe:
+            httpGet: { path: /health, port: http }
+            periodSeconds: 20
+            timeoutSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet: { path: /health, port: http }
+            periodSeconds: 10
+            timeoutSeconds: 10
+          securityContext:
+            {{- toYaml $v.securityContext | nindent 12 }}
+          resources:
+            {{- toYaml $p.resources | nindent 12 }}
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+            - { name: shm, mountPath: /dev/shm }
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 2Gi
+        - name: shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: {{ $p.shmSize }}
+      {{- with $v.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $v.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $v.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              {{- include "firecrawl.selectorLabels" $ctx | nindent 14 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "firecrawl.playwrightName" . }}
+  labels:
+    {{- include "firecrawl.labels" $ctx | nindent 4 }}
+spec:
+  ports:
+    - { name: http, port: 3000, targetPort: http, protocol: TCP, appProtocol: http }
+  selector:
+    {{- include "firecrawl.selectorLabels" $ctx | nindent 4 }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "firecrawl.playwrightName" . }}
+  labels:
+    {{- include "firecrawl.labels" $ctx | nindent 4 }}
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      {{- include "firecrawl.selectorLabels" $ctx | nindent 6 }}
+{{- if $p.autoscaling.enabled }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "firecrawl.playwrightName" . }}
+  labels:
+    {{- include "firecrawl.labels" $ctx | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "firecrawl.playwrightName" . }}
+  minReplicas: {{ $p.autoscaling.minReplicas }}
+  maxReplicas: {{ $p.autoscaling.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ $p.autoscaling.targetCPUUtilizationPercentage }}
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+{{- end }}
+{{- end }}

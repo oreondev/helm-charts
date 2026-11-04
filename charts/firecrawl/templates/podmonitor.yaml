@@ -1,0 +1,28 @@
+{{- if and .Values.metrics.enabled .Values.metrics.podMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: {{ include "firecrawl.fullname" . }}
+  labels:
+    {{- include "firecrawl.labels" (dict "ctx" . "component" "api") | nindent 4 }}
+    {{- with .Values.metrics.podMonitor.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "firecrawl.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  podMetricsEndpoints:
+    # Workers: job durations by type and status, Node runtime.
+    - port: metrics
+      path: /metrics
+      interval: {{ .Values.metrics.podMonitor.interval }}
+    # API internal admin listener: queue depth (nuq_queue_scrape_job_count) and concurrency queues.
+    - port: admin
+      path: /admin/nuq-metrics
+      interval: {{ .Values.metrics.podMonitor.interval }}
+    - port: admin
+      path: /admin/metrics
+      interval: {{ .Values.metrics.podMonitor.interval }}
+{{- end }}

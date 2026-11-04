@@ -1,0 +1,30 @@
+Mem0 {{ .Chart.AppVersion }} is starting in {{ .Release.Namespace }}.
+
+API:        {{ include "mem0.apiUrl" . }}   (docs at /docs)
+{{- if .Values.dashboard.enabled }}
+Dashboard:  {{ include "mem0.dashboardUrl" . }}
+{{- end }}
+
+Admin API key (header X-API-Key):
+{{- if .Values.auth.existingSecret }}
+  kubectl -n {{ .Release.Namespace }} get secret {{ .Values.auth.existingSecret }} -o jsonpath='{.data.{{ .Values.auth.adminApiKeyKey }}}' | base64 -d
+{{- else }}
+  kubectl -n {{ .Release.Namespace }} get secret {{ include "mem0.fullname" . }} -o jsonpath='{.data.ADMIN_API_KEY}' | base64 -d
+{{- end }}
+{{- if .Values.auth.admin.email }}
+
+Dashboard login: {{ .Values.auth.admin.email }}
+  kubectl -n {{ .Release.Namespace }} get secret {{ include "mem0.fullname" . }} -o jsonpath='{.data.ADMIN_PASSWORD}' | base64 -d
+{{- else if .Values.dashboard.enabled }}
+
+WARNING: auth.admin.email is not set. Until someone registers, the dashboard's /setup page makes
+whoever reaches it first the admin. Set auth.admin.email, or finish /setup before exposing it.
+{{- end }}
+
+Local access:
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "mem0.serverName" . }} 8000:{{ .Values.server.service.port }}
+  curl -s localhost:8000/search -H "X-API-Key: $KEY" -H 'content-type: application/json' -d '{"query":"preferences","filters":{"user_id":"alice"}}'
+
+Setup steps run as init containers:
+  kubectl -n {{ .Release.Namespace }} logs deploy/{{ include "mem0.serverName" . }} -c databases
+  kubectl -n {{ .Release.Namespace }} logs deploy/{{ include "mem0.serverName" . }} -c migrate

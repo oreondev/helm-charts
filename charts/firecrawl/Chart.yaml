@@ -1,0 +1,49 @@
+apiVersion: v2
+name: firecrawl
+description: Firecrawl (web scraping and crawling API for LLMs) on Kubernetes - API, queue workers and Playwright as separate Deployments with their own resources, probes and scaling, a token gate (self-hosted Firecrawl accepts any key), NuQ queue on bundled or managed PostgreSQL with the schema applied per release and WAL sized for the volume, KEDA scaling on queue depth, pinned image digests, non-root and read-only, NetworkPolicy, PodMonitor, alerts and a Grafana dashboard.
+type: application
+version: 0.1.0
+appVersion: "2.11.621"
+kubeVersion: ">=1.25.0-0"
+home: https://www.oreonit.com/containerization-orchestration-management-kubernetes-openshift/
+icon: https://raw.githubusercontent.com/oreondev/helm-charts/main/icon.png
+sources:
+  - https://github.com/oreondev/helm-charts
+  - https://github.com/firecrawl/firecrawl
+keywords:
+  - firecrawl
+  - web-scraping
+  - crawler
+  - llm
+  - rag
+  - playwright
+  - keda
+  - ai
+maintainers:
+  - name: Oreon IT
+    email: info@oreonit.com
+    url: https://www.oreonit.com/
+annotations:
+  artifacthub.io/license: MIT
+  artifacthub.io/category: ai-machine-learning
+  artifacthub.io/prerelease: "false"
+  artifacthub.io/operator: "false"
+  artifacthub.io/images: |
+    - name: firecrawl
+      image: ghcr.io/firecrawl/firecrawl:2.11.621
+    - name: playwright-service
+      image: ghcr.io/firecrawl/playwright-service@sha256:637fb8c8399634b02c2179da72566ce11644435e5d93e895bdbde4b1f9b0882a
+    - name: nuq-postgres
+      image: ghcr.io/firecrawl/nuq-postgres@sha256:d719b36160eac2fcbe16dc7e7360ddb9c82c40ea5da183d07bf4a755c6a0b2ae
+    - name: nginx-unprivileged
+      image: nginxinc/nginx-unprivileged:1.29-alpine
+    - name: redis
+      image: redis:7.4-alpine
+  artifacthub.io/links: |
+    - name: Firecrawl self-hosting documentation
+      url: https://docs.firecrawl.dev/contributing/self-host
+    - name: Kubernetes production readiness checklist
+      url: https://www.oreonit.com/kubernetes-production-readiness-checklist/
+  artifacthub.io/changes: |
+    - kind: added
+      description: First release, for Firecrawl 2.11.621

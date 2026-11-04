@@ -1,0 +1,56 @@
+{{- if and .Values.metrics.enabled .Values.metrics.prometheusRule.enabled }}
+{{- $r := .Values.metrics.prometheusRule }}
+{{- $name := include "mem0.serverName" . }}
+{{- $sel := printf "namespace=%q, job=%q" .Release.Namespace $name }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "mem0.fullname" . }}
+  labels:
+    {{- include "mem0.labels" (dict "ctx" . "component" "server") | nindent 4 }}
+    {{- with $r.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  groups:
+    - name: mem0
+      rules:
+        - alert: Mem0ServerDown
+          expr: sum(up{ {{- $sel -}} }) == 0 or absent(up{ {{- $sel -}} })
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: Mem0 server {{ .Release.Namespace }}/{{ $name }} is not answering scrapes
+            description: Agents cannot add or search memories. Check the pod and its init containers (databases, migrate).
+        - alert: Mem0ServerNotReady
+          # /readyz checks the app database.
+          expr: |
+            sum(kube_pod_status_ready{namespace="{{ .Release.Namespace }}", pod=~"{{ $name }}-[a-z0-9]+-[a-z0-9]+", condition="true"}) == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: No Mem0 server pod is ready
+            description: The readiness check cannot reach the app database ({{ .Values.database.appName }} on {{ .Values.database.host }}).
+        - alert: Mem0HighErrorRate
+          expr: |
+            sum(rate(http_requests_total{ {{- $sel }}, status="5xx"}[5m]))
+              / sum(rate(http_requests_total{ {{- $sel -}} }[5m])) > {{ $r.errorRatio }}
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: 'Mem0 answers {{ "{{" }} $value | humanizePercentage {{ "}}" }} of API requests with 5xx'
+            description: Usually the LLM or embedding provider (502 upstream errors) or PostgreSQL. The response body and the server log carry the request ID.
+        - alert: Mem0SlowRequests
+          expr: |
+            sum by (handler) (rate(http_request_duration_seconds_sum{ {{- $sel }}, handler=~"/memories|/search"}[10m]))
+              / sum by (handler) (rate(http_request_duration_seconds_count{ {{- $sel }}, handler=~"/memories|/search"}[10m])) > {{ $r.slowRequestSeconds }}
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: 'Mem0 {{ "{{" }} $labels.handler {{ "}}" }} takes {{ "{{" }} $value | humanizeDuration {{ "}}" }} on average'
+            description: Adding memories runs LLM fact extraction and an embedding call; search runs an embedding call and a pgvector query. Check the provider latency and the vector index.
+{{- end }}

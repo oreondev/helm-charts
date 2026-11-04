@@ -1,0 +1,42 @@
+apiVersion: v2
+name: mem0
+description: Mem0 self-hosted memory server and dashboard for AI agents on Kubernetes - pinned images built from the upstream release (non-root, read-only), database and pgvector setup, migrations and first-admin bootstrap in init containers, probes that do not write to the database, request-log pruning CronJob, OpenAI-compatible endpoints for private LLMs, Ingress or Gateway API, and Prometheus metrics, alerts and a Grafana dashboard.
+type: application
+version: 0.1.0
+appVersion: "2.2.1"
+kubeVersion: ">=1.25.0-0"
+home: https://www.oreonit.com/containerization-orchestration-management-kubernetes-openshift/
+icon: https://raw.githubusercontent.com/oreondev/helm-charts/main/icon.png
+sources:
+  - https://github.com/oreondev/helm-charts
+  - https://github.com/mem0ai/mem0
+keywords:
+  - mem0
+  - memory
+  - ai-agents
+  - llm
+  - rag
+  - pgvector
+  - ai
+maintainers:
+  - name: Oreon IT
+    email: info@oreonit.com
+    url: https://www.oreonit.com/
+annotations:
+  artifacthub.io/license: MIT
+  artifacthub.io/category: ai-machine-learning
+  artifacthub.io/prerelease: "false"
+  artifacthub.io/operator: "false"
+  artifacthub.io/images: |
+    - name: mem0-server
+      image: ghcr.io/oreondev/mem0-server:2.2.1
+    - name: mem0-dashboard
+      image: ghcr.io/oreondev/mem0-dashboard:2.2.1
+  artifacthub.io/links: |
+    - name: Mem0 open-source documentation
+      url: https://docs.mem0.ai/open-source/overview
+    - name: Image build files
+      url: https://github.com/oreondev/helm-charts/tree/main/images/mem0
+  artifacthub.io/changes: |
+    - kind: added
+      description: First release, for Mem0 2.2.1

@@ -1,0 +1,90 @@
+{{- if .Values.dashboard.enabled }}
+{{- $v := .Values }}
+{{- $d := $v.dashboard }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "mem0.dashboardName" . }}
+  labels:
+    {{- include "mem0.labels" (dict "ctx" . "component" "dashboard") | nindent 4 }}
+spec:
+  replicas: {{ $d.replicaCount }}
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      {{- include "mem0.selectorLabels" (dict "ctx" . "component" "dashboard") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "mem0.selectorLabels" (dict "ctx" . "component" "dashboard") | nindent 8 }}
+        {{- with $d.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with $d.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      serviceAccountName: {{ include "mem0.serviceAccountName" . }}
+      automountServiceAccountToken: {{ $v.automountServiceAccountToken }}
+      enableServiceLinks: false
+      {{- with $v.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml $v.podSecurityContext | nindent 8 }}
+      containers:
+        - name: dashboard
+          image: {{ include "mem0.image" (dict "ctx" . "image" $v.image.dashboard) }}
+          imagePullPolicy: {{ $v.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+          env:
+            # Called from the browser.
+            - { name: NEXT_PUBLIC_API_URL, value: {{ include "mem0.apiUrl" . | quote }} }
+            - { name: NEXT_PUBLIC_INSTANCE_NAME, value: {{ $d.instanceName | quote }} }
+            # Called by the dashboard's server-side routes (token refresh), inside the cluster.
+            - { name: API_INTERNAL_URL, value: {{ printf "http://%s:%v" (include "mem0.serverName" .) $v.server.service.port | quote }} }
+          startupProbe:
+            httpGet: { path: /api/health, port: http }
+            periodSeconds: 2
+            failureThreshold: 30
+          livenessProbe:
+            httpGet: { path: /api/health, port: http }
+            periodSeconds: 20
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet: { path: /api/health, port: http }
+            periodSeconds: 10
+            timeoutSeconds: 3
+          securityContext:
+            {{- toYaml $v.securityContext | nindent 12 }}
+          resources:
+            {{- toYaml $d.resources | nindent 12 }}
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+            - { name: next, mountPath: /app/.next }
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 128Mi
+        # The built .next with the public API URL substituted (see images/mem0/dashboard-entrypoint.sh).
+        - name: next
+          emptyDir:
+            sizeLimit: 256Mi
+      {{- with $v.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $v.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $v.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

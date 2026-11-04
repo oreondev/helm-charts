@@ -1,0 +1,293 @@
+{{- include "firecrawl.validate" . }}
+{{- $v := .Values }}
+{{- /* Upstream's container runs all of these as child processes of one harness; here each is its own
+     Deployment with its own resources, probes and scaling. */}}
+{{- $components := list
+  (dict "key" "api" "name" "api" "script" "dist/src/index.js" "port" 3002 "health" "/v0/health/liveness" "metrics" false "values" $v.api "enabled" true)
+  (dict "key" "worker" "name" "worker" "script" "dist/src/services/queue-worker.js" "port" 3005 "health" "/liveness" "metrics" false "values" $v.worker "enabled" true)
+  (dict "key" "extractWorker" "name" "extract-worker" "script" "dist/src/services/extract-worker.js" "port" 3004 "health" "/health" "metrics" true "values" $v.extractWorker "enabled" $v.extractWorker.enabled)
+  (dict "key" "nuqWorker" "name" "nuq-worker" "script" "dist/src/services/worker/nuq-worker.js" "port" 3006 "health" "/health" "metrics" true "values" $v.nuqWorker "enabled" true)
+  (dict "key" "nuqPrefetchWorker" "name" "nuq-prefetch-worker" "script" "dist/src/services/worker/nuq-prefetch-worker.js" "port" 3011 "health" "/health" "metrics" true "values" $v.nuqPrefetchWorker "enabled" true "singleton" true)
+  (dict "key" "nuqReconcilerWorker" "name" "nuq-reconciler-worker" "script" "dist/src/services/worker/nuq-reconciler-worker.js" "port" 3012 "health" "/health" "metrics" true "values" $v.nuqReconcilerWorker "enabled" true "singleton" true)
+}}
+{{- range $components }}
+{{- if .enabled }}
+{{- $c := .values }}
+{{- $ctx := dict "ctx" $ "component" .name }}
+{{- $hpa := and (hasKey $c "autoscaling") $c.autoscaling.enabled }}
+{{- $keda := and (eq .key "nuqWorker") $c.autoscaling.keda.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "firecrawl.componentName" $ctx }}
+  labels:
+    {{- include "firecrawl.labels" $ctx | nindent 4 }}
+spec:
+  {{- if not (or $hpa $keda) }}
+  replicas: {{ ternary 1 ($c.replicaCount | default 1) (hasKey . "singleton") }}
+  {{- end }}
+  revisionHistoryLimit: 3
+  {{- if hasKey . "singleton" }}
+  # One instance by design; never two during a rollout.
+  strategy:
+    type: Recreate
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "firecrawl.selectorLabels" $ctx | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "firecrawl.selectorLabels" $ctx | nindent 8 }}
+        {{- with $c.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      annotations:
+        checksum/env: {{ include "firecrawl.env" $ | sha256sum }}
+        checksum/secret: {{ include "firecrawl.secretData" $ | sha256sum }}
+        {{- if eq .name "api" }}
+        checksum/gateway: {{ include "firecrawl.gatewayConf" $ | sha256sum }}
+        {{- end }}
+        {{- with $c.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "firecrawl.serviceAccountName" $ }}
+      automountServiceAccountToken: {{ $v.automountServiceAccountToken }}
+      enableServiceLinks: false
+      {{- with $v.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $v.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
+      securityContext:
+        {{- toYaml $v.podSecurityContext | nindent 8 }}
+      terminationGracePeriodSeconds: {{ ternary (add (int $v.api.drainSeconds) 30) $v.terminationGracePeriodSeconds (eq .name "api") }}
+      {{- if $v.postgres.schema.enabled }}
+      initContainers:
+        # Wait until this release's queue schema is in place (applied by the schema Job).
+        - name: wait-for-schema
+          image: {{ include "firecrawl.image" $ }}
+          imagePullPolicy: {{ $v.image.pullPolicy }}
+          command:
+            - node
+            - -e
+            - |
+              const { Client } = require("pg");
+              const deadline = Date.now() + 600000;
+              (async function check() {
+                const c = new Client({ connectionString: process.env.NUQ_DATABASE_URL, connectionTimeoutMillis: 5000 });
+                try {
+                  await c.connect();
+                  const r = await c.query("SELECT to_regclass('nuq.queue_scrape') AS t");
+                  await c.end();
+                  if (r.rows[0].t) { console.log("queue schema present"); process.exit(0); }
+                  console.log("waiting for the queue schema");
+                } catch (e) { console.log("waiting for PostgreSQL: " + e.message); try { await c.end(); } catch (_) {} }
+                if (Date.now() > deadline) process.exit(1);
+                setTimeout(check, 3000);
+              })();
+          envFrom:
+            {{- include "firecrawl.envFrom" $ | nindent 12 }}
+          env:
+            {{- include "firecrawl.connectionEnv" $ | nindent 12 }}
+          securityContext:
+            {{- toYaml $v.securityContext | nindent 12 }}
+          resources:
+            requests: { cpu: 10m, memory: 64Mi }
+            limits: { memory: 128Mi }
+      {{- end }}
+      containers:
+        - name: {{ .name }}
+          image: {{ include "firecrawl.image" $ }}
+          imagePullPolicy: {{ $v.image.pullPolicy }}
+          command: ["node", "{{ .script }}"]
+          ports:
+            - name: {{ ternary "metrics" "app" .metrics }}
+              containerPort: {{ .port }}
+              protocol: TCP
+            {{- if and (eq .name "api") $v.metrics.enabled }}
+            # Internal admin listener: /admin/nuq-metrics (queue depth) and /admin/metrics, no key.
+            - name: admin
+              containerPort: 3010
+              protocol: TCP
+            {{- end }}
+          envFrom:
+            {{- include "firecrawl.envFrom" $ | nindent 12 }}
+          env:
+            {{- include "firecrawl.connectionEnv" $ | nindent 12 }}
+            - name: NUQ_POD_NAME
+              valueFrom: { fieldRef: { fieldPath: metadata.name } }
+            - name: NUQ_REDUCE_NOISE
+              value: "true"
+            {{- if eq .name "api" }}
+            # IS_KUBERNETES makes the API sleep 60s on SIGTERM "for GCE load balancer drain" before closing,
+            # so every rollout waited a minute per pod. The API uses it for nothing else (the workers keep it
+            # for cgroup-aware memory checks); the preStop sleep below gives endpoints time to update instead.
+            - name: IS_KUBERNETES
+              value: "false"
+            {{- end }}
+            {{- with include "firecrawl.nodeOptions" $c.resources }}
+            - name: NODE_OPTIONS
+              value: {{ . | quote }}
+            {{- end }}
+            {{- with $v.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          startupProbe:
+            httpGet: { path: {{ .health }}, port: {{ .port }} }
+            periodSeconds: 2
+            failureThreshold: 90
+          livenessProbe:
+            httpGet: { path: {{ .health }}, port: {{ .port }} }
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet: { path: {{ .health }}, port: {{ .port }} }
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          {{- if eq .name "api" }}
+          lifecycle:
+            preStop:
+              exec: { command: ["sleep", "{{ $v.api.drainSeconds }}"] }
+          {{- end }}
+          securityContext:
+            {{- toYaml $v.securityContext | nindent 12 }}
+          resources:
+            {{- toYaml $c.resources | nindent 12 }}
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+        {{- if and (eq .name "api") $v.auth.enabled }}
+        # Token gate: only requests with a configured API key reach the API.
+        - name: gateway
+          image: {{ include "firecrawl.imageRef" (dict "image" $v.auth.gateway.image "default" "latest") }}
+          imagePullPolicy: {{ $v.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          readinessProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 20
+          lifecycle:
+            preStop:
+              exec: { command: ["sleep", "{{ $v.api.drainSeconds }}"] }
+          securityContext:
+            {{- toYaml $v.securityContext | nindent 12 }}
+          resources:
+            {{- toYaml $v.auth.gateway.resources | nindent 12 }}
+          volumeMounts:
+            - { name: gateway-conf, mountPath: /etc/nginx/nginx.conf, subPath: nginx.conf, readOnly: true }
+            - { name: gateway-keys, mountPath: /etc/nginx/keys, readOnly: true }
+            - { name: gateway-tmp, mountPath: /tmp }
+        {{- end }}
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 1Gi
+        {{- if and (eq .name "api") $v.auth.enabled }}
+        - name: gateway-conf
+          configMap:
+            name: {{ include "firecrawl.fullname" $ }}-gateway
+        - name: gateway-keys
+          secret:
+            secretName: {{ include "firecrawl.fullname" $ }}-gateway-keys
+        - name: gateway-tmp
+          emptyDir:
+            sizeLimit: 64Mi
+        {{- end }}
+      {{- with $v.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $v.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $v.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if not (hasKey . "singleton") }}
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              {{- include "firecrawl.selectorLabels" $ctx | nindent 14 }}
+      {{- end }}
+{{- if not (hasKey . "singleton") }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "firecrawl.componentName" $ctx }}
+  labels:
+    {{- include "firecrawl.labels" $ctx | nindent 4 }}
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      {{- include "firecrawl.selectorLabels" $ctx | nindent 6 }}
+{{- end }}
+{{- if $hpa }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "firecrawl.componentName" $ctx }}
+  labels:
+    {{- include "firecrawl.labels" $ctx | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "firecrawl.componentName" $ctx }}
+  minReplicas: {{ $c.autoscaling.minReplicas }}
+  maxReplicas: {{ $c.autoscaling.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ $c.autoscaling.targetCPUUtilizationPercentage }}
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+{{- end }}
+{{- if $keda }}
+{{- $k := $c.autoscaling.keda }}
+---
+# Scale on the queue: queued scrape jobs / queuedJobsPerWorker.
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: {{ include "firecrawl.componentName" $ctx }}
+  labels:
+    {{- include "firecrawl.labels" $ctx | nindent 4 }}
+spec:
+  scaleTargetRef:
+    name: {{ include "firecrawl.componentName" $ctx }}
+  minReplicaCount: {{ $c.autoscaling.minReplicas }}
+  maxReplicaCount: {{ $c.autoscaling.maxReplicas }}
+  pollingInterval: {{ $k.pollingInterval }}
+  cooldownPeriod: {{ $k.cooldownPeriod }}
+  triggers:
+    - type: prometheus
+      metadata:
+        serverAddress: {{ $k.prometheusAddress }}
+        query: max(nuq_queue_scrape_job_count{namespace="{{ $.Release.Namespace }}", pod=~"{{ include "firecrawl.fullname" $ }}-api-.*", status="queued"}) or vector(0)
+        threshold: {{ $k.queuedJobsPerWorker | quote }}
+{{- end }}
+{{- end }}
+{{- end }}

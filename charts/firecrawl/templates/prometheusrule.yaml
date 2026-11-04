@@ -1,0 +1,57 @@
+{{- if and .Values.metrics.enabled .Values.metrics.prometheusRule.enabled }}
+{{- $r := .Values.metrics.prometheusRule }}
+{{- $ns := .Release.Namespace }}
+{{- $full := include "firecrawl.fullname" . }}
+{{- $api := printf "namespace=%q, pod=~%q" $ns (printf "%s-api-.*" $full) }}
+{{- $workers := printf "namespace=%q, pod=~%q" $ns (printf "%s-nuq-worker-.*" $full) }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ $full }}
+  labels:
+    {{- include "firecrawl.labels" (dict "ctx" . "component" "api") | nindent 4 }}
+    {{- with $r.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  groups:
+    - name: firecrawl
+      rules:
+        - alert: FirecrawlQueueBacklog
+          expr: max(nuq_queue_scrape_job_count{ {{- $api }}, status="queued"}) > {{ $r.queuedJobs }}
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: 'Firecrawl has {{ "{{" }} $value {{ "}}" }} scrape jobs queued'
+            description: The nuq-workers are not keeping up. Add replicas (or enable nuqWorker.autoscaling.keda), or check that they are not failing.
+        - alert: FirecrawlQueueStalled
+          expr: |
+            max(nuq_queue_scrape_job_count{ {{- $api }}, status="queued"}) > 0
+              and sum(rate(job_duration_seconds_count{ {{- $workers -}} }[15m])) == 0
+          for: 15m
+          labels:
+            severity: critical
+          annotations:
+            summary: Firecrawl scrape jobs are queued but no worker finished one in 15 minutes
+            description: Check the nuq-worker pods, their connection to PostgreSQL, and the prefetch worker that moves jobs out of the backlog.
+        - alert: FirecrawlJobFailureRate
+          expr: |
+            sum(rate(job_duration_seconds_count{ {{- $workers }}, status="failed"}[15m]))
+              / sum(rate(job_duration_seconds_count{ {{- $workers -}} }[15m])) > {{ $r.failedRatio }}
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: 'Firecrawl fails {{ "{{" }} $value | humanizePercentage {{ "}}" }} of scrape jobs'
+            description: Often blocked targets, the Playwright service failing, or timeouts. Check the nuq-worker logs for the error codes.
+        - alert: FirecrawlComponentDown
+          expr: |
+            sum by (deployment) (kube_deployment_status_replicas_available{namespace="{{ $ns }}", deployment=~"{{ $full }}-(api|worker|nuq-worker|nuq-prefetch-worker|nuq-reconciler-worker|playwright)"}) == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: 'Firecrawl {{ "{{" }} $labels.deployment {{ "}}" }} has no available pods'
+            description: Every component is needed for scrapes to complete. Check the pods and their wait-for-schema init container.
+{{- end }}

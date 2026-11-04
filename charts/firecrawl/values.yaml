@@ -1,0 +1,354 @@
+# Firecrawl (web scraping and crawling API for LLMs) on Kubernetes: the API, its workers and the
+# Playwright browser service as separate Deployments, a token gate in front of the API, the NuQ job
+# queue on PostgreSQL (bundled, or yours with pg_cron) and Redis (bundled, or yours).
+
+image:
+  repository: ghcr.io/firecrawl/firecrawl
+  # Defaults to appVersion. Upstream also pushes "-staging" and "-production" tags; use the plain release.
+  tag: ""
+  digest: ""
+  pullPolicy: IfNotPresent
+imagePullSecrets: []
+
+nameOverride: ""
+fullnameOverride: ""
+
+# Self-hosted Firecrawl has no authentication: with USE_DB_AUTHENTICATION=false every request is
+# accepted whatever key it carries. The chart puts a small nginx in front of the API that only lets
+# through "Authorization: Bearer <key>" for the keys below. The SDKs send exactly that header.
+auth:
+  enabled: true
+  # Empty: one key ("fc-" + 32 characters) is generated once and kept across upgrades.
+  apiKeys: []
+  # Your own Secret with one key per line (key below), instead of apiKeys.
+  existingSecret: ""
+  existingSecretKey: api-keys
+  gateway:
+    image:
+      repository: nginxinc/nginx-unprivileged
+      tag: 1.29-alpine
+      digest: ""
+    resources:
+      requests:
+        cpu: 10m
+        memory: 16Mi
+      limits:
+        memory: 64Mi
+
+# Firecrawl settings shared by every component (environment variables).
+firecrawl:
+  logLevel: INFO
+  # Jobs each nuq-worker runs at once.
+  numWorkersPerQueue: 8
+  # Pages a crawl fetches in parallel.
+  crawlConcurrentRequests: 10
+  maxConcurrentJobs: 5
+  # LISTEN/NOTIFY on the queue database instead of polling it (or RabbitMQ, which the chart does not need).
+  waitMode: listen
+  # Proxies in front of the API whose X-Forwarded-* headers are trusted (EXPRESS_TRUST_PROXY), for
+  # client addresses in rate limits and https URLs in responses. Empty: 2 with the token gate
+  # (gate + Ingress/Gateway), 1 without.
+  trustProxyHops: ""
+  # Crawl private, link-local and cluster addresses in webhooks (ALLOW_LOCAL_WEBHOOKS).
+  allowLocalWebhooks: false
+  # Optional integrations, as plain values; keys go in secretEnv.
+  # OPENAI_BASE_URL / MODEL_NAME / MODEL_EMBEDDING_NAME for /extract with a private model,
+  # SEARXNG_ENDPOINT for /search, PROXY_SERVER for outbound requests.
+  env: {}
+
+# Secret variables for every component: OPENAI_API_KEY, PROXY_PASSWORD, SLACK_WEBHOOK_URL, ...
+secretEnv: {}
+extraEnv: []
+extraEnvFrom: []
+
+# --- Components. All but playwright run the Firecrawl image with a different entry point. ---
+
+api:
+  replicaCount: 2
+  # Seconds a terminating API pod keeps serving while endpoints and load balancers drop it.
+  drainSeconds: 10
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      memory: 2Gi
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+  podAnnotations: {}
+  podLabels: {}
+
+# Crawl orchestration (queue-worker).
+worker:
+  replicaCount: 1
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      memory: 2Gi
+  podAnnotations: {}
+  podLabels: {}
+
+# /extract jobs (LLM extraction). Needs RabbitMQ (rabbitmq.mode) and an LLM key in secretEnv.
+extractWorker:
+  enabled: false
+  replicaCount: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 384Mi
+    limits:
+      memory: 1536Mi
+  podAnnotations: {}
+  podLabels: {}
+
+# Scrape jobs from the NuQ queue: the workers that do the work.
+nuqWorker:
+  replicaCount: 2
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      memory: 3Gi
+  autoscaling:
+    # CPU-based HPA.
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    # Or scale on the queue itself with KEDA (needs KEDA and the metrics below in Prometheus):
+    # replicas = queued jobs / queuedJobsPerWorker, between minReplicas and maxReplicas.
+    keda:
+      enabled: false
+      prometheusAddress: http://kube-prometheus-stack-prometheus.monitoring:9090
+      queuedJobsPerWorker: 20
+      pollingInterval: 15
+      cooldownPeriod: 300
+  podAnnotations: {}
+  podLabels: {}
+
+# Moves jobs from the backlog into the queue. Runs once.
+nuqPrefetchWorker:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 256Mi
+    limits:
+      memory: 768Mi
+  podAnnotations: {}
+  podLabels: {}
+
+# Requeues jobs whose concurrency slot was lost. Runs once.
+nuqReconcilerWorker:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 256Mi
+    limits:
+      memory: 768Mi
+  podAnnotations: {}
+  podLabels: {}
+
+# Headless Chromium for JavaScript-heavy pages.
+playwright:
+  enabled: true
+  image:
+    repository: ghcr.io/firecrawl/playwright-service
+    # Upstream publishes only "latest" for this image, so the chart pins the digest that was current
+    # with appVersion (multi-arch index). Clear digest to follow "latest".
+    tag: latest
+    digest: sha256:637fb8c8399634b02c2179da72566ce11644435e5d93e895bdbde4b1f9b0882a
+  replicaCount: 2
+  # Pages each pod renders at once (MAX_CONCURRENT_PAGES).
+  maxConcurrentPages: 10
+  # Skip images, fonts and media (BLOCK_MEDIA): faster, less bandwidth, same text.
+  blockMedia: true
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      memory: 2Gi
+  shmSize: 1Gi
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 8
+    targetCPUUtilizationPercentage: 70
+  podAnnotations: {}
+  podLabels: {}
+
+# --- State ---
+
+redis:
+  # bundled: a Redis Deployment in the release (no persistence; in-flight crawl state is lost on
+  # restart). external: yours (Memorystore, ElastiCache, a Redis chart).
+  mode: bundled
+  external:
+    url: ""
+    existingSecret: ""
+    existingSecretKey: REDIS_URL
+  bundled:
+    image:
+      repository: redis
+      tag: 7.4-alpine
+    maxmemory: 512mb
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        memory: 768Mi
+
+# Only the extract worker needs RabbitMQ (its queue is AMQP). When set, the scrape queue also uses it
+# for job notifications instead of PostgreSQL LISTEN.
+rabbitmq:
+  # none | bundled (a RabbitMQ Deployment, no persistence) | external
+  mode: none
+  external:
+    url: ""
+    existingSecret: ""
+    existingSecretKey: NUQ_RABBITMQ_URL
+  bundled:
+    image:
+      repository: rabbitmq
+      tag: 4.1-alpine
+    resources:
+      requests:
+        cpu: 50m
+        memory: 192Mi
+      limits:
+        memory: 512Mi
+
+# The NuQ job queue. Needs pg_cron (the queue's cleanup, lock reaper and reindex jobs run in it).
+postgres:
+  # bundled: a PostgreSQL StatefulSet with pg_cron from upstream's nuq-postgres image.
+  # external: yours. pg_cron must be in shared_preload_libraries with cron.database_name set to
+  # this database (Cloud SQL: flag cloudsql.enable_pg_cron; RDS/Aurora: parameter group; AlloyDB: flag).
+  mode: bundled
+  database: postgres
+  user: postgres
+  password: ""            # bundled: generated once and kept
+  existingSecret: ""
+  existingSecretKey: password
+  external:
+    host: ""
+    port: 5432
+    sslMode: require
+  bundled:
+    image:
+      repository: ghcr.io/firecrawl/nuq-postgres
+      # Only "latest" upstream: pinned to the digest current with appVersion (PostgreSQL 17 + pg_cron).
+      tag: latest
+      digest: sha256:d719b36160eac2fcbe16dc7e7360ddb9c82c40ea5da183d07bf4a755c6a0b2ae
+    persistence:
+      size: 20Gi
+      storageClass: ""
+    # Upstream's nuq.sql sets min_wal_size 4GB and max_wal_size 16GB with ALTER SYSTEM, sized for its
+    # own cloud disks: on a small volume the WAL alone fills it. These override it (command line wins
+    # over ALTER SYSTEM).
+    walSize:
+      min: 256MB
+      max: 4GB
+    sharedBuffers: 256MB
+    resources:
+      requests:
+        cpu: 250m
+        memory: 512Mi
+      limits:
+        memory: 1Gi
+  # Apply the queue schema (files/nuq.sql from the Firecrawl release) on install and every upgrade.
+  # ALTER SYSTEM lines are skipped on external databases (managed services refuse them).
+  schema:
+    enabled: true
+
+# --- Access ---
+
+service:
+  type: ClusterIP
+  port: 3002
+  annotations: {}
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  # nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+  hosts:
+    - host: firecrawl.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+httpRoute:
+  enabled: false
+  annotations: {}
+  parentRefs: []
+  hostnames: []
+  timeouts:
+    request: 300s
+
+# NetworkPolicy for the API pods: the gateway port from anywhere, the API port itself only from
+# this release's pods, and the internal admin port (queue metrics, unauthenticated admin routes)
+# only from the namespaces below.
+networkPolicy:
+  enabled: true
+  metricsNamespaceSelector:
+    matchLabels:
+      kubernetes.io/metadata.name: monitoring
+
+metrics:
+  # Worker /metrics and the API's internal admin listener (queue depth), scraped by a PodMonitor.
+  enabled: true
+  podMonitor:
+    enabled: false
+    interval: 30s
+    labels: {}
+  prometheusRule:
+    enabled: false
+    labels: {}
+    # Queued scrape jobs above this for 15 minutes: workers are not keeping up.
+    queuedJobs: 500
+    # Share of finished jobs that failed.
+    failedRatio: 0.2
+  dashboard:
+    enabled: false
+    labels:
+      grafana_dashboard: "1"
+    annotations: {}
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+automountServiceAccountToken: false
+
+priorityClassName: ""
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+  fsGroupChangePolicy: OnRootMismatch
+  seccompProfile:
+    type: RuntimeDefault
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: [ALL]
+
+# Seconds a worker gets to finish its jobs on shutdown.
+terminationGracePeriodSeconds: 60
+
+extraObjects: []

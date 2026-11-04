@@ -1,0 +1,212 @@
+# Mem0 (self-hosted memory layer for AI agents): API server, dashboard, PostgreSQL with pgvector.
+# Bring your own PostgreSQL (Cloud SQL, RDS, CloudNativePG, ...) with the pgvector extension available.
+
+# Upstream publishes no maintained images, so the chart uses images built from the upstream release
+# by images/mem0 in this repository (pinned mem0ai version, non-root, read-only root filesystem).
+image:
+  server:
+    repository: ghcr.io/oreondev/mem0-server
+    tag: ""            # default: appVersion
+    digest: ""
+  dashboard:
+    repository: ghcr.io/oreondev/mem0-dashboard
+    tag: ""
+    digest: ""
+  pullPolicy: IfNotPresent
+imagePullSecrets: []
+
+nameOverride: ""
+fullnameOverride: ""
+
+database:
+  host: ""
+  port: 5432
+  user: mem0
+  password: ""
+  existingSecret: ""
+  existingSecretKey: POSTGRES_PASSWORD
+  # Memories and their embeddings (pgvector).
+  name: mem0
+  # Users, API keys, request logs and runtime settings.
+  appName: mem0_app
+  # Table (collection) for the memories.
+  collection: memories
+  # libpq sslmode for every connection (disable, prefer, require, verify-full).
+  sslMode: prefer
+  # Create both databases if missing (needs CREATEDB), then CREATE EXTENSION vector (needs the
+  # extension to be allowed for this user: superuser, or cloudsqlsuperuser on Cloud SQL).
+  # false: create them yourself; the init container still checks they are reachable.
+  createDatabases: true
+  # Database used to run CREATE DATABASE from.
+  maintenanceDatabase: postgres
+  # Apply the app database migrations (alembic upgrade head) before the server starts.
+  migrations: true
+
+auth:
+  # Signs dashboard logins (JWT_SECRET). Generated once (64 characters) and kept across upgrades.
+  jwtSecret: ""
+  # Global admin key for programmatic access (ADMIN_API_KEY, header X-API-Key). Generated once
+  # and kept. Per-user keys can be created in the dashboard.
+  adminApiKey: ""
+  # Your own Secret with JWT_SECRET and/or ADMIN_API_KEY (keys below), instead of the generated ones.
+  existingSecret: ""
+  jwtSecretKey: JWT_SECRET
+  adminApiKeyKey: ADMIN_API_KEY
+  # First dashboard admin, created by an init container. Until an admin exists, the dashboard's
+  # /setup page lets whoever reaches it first register as admin. Empty email: not created.
+  admin:
+    email: ""
+    name: Admin
+    # Empty: generated once and kept (read it from the Secret, key ADMIN_PASSWORD).
+    password: ""
+
+llm:
+  # Default models for the bundled OpenAI provider (MEM0_DEFAULT_LLM_MODEL / _EMBEDDER_MODEL).
+  # Anthropic and Gemini can be selected at runtime in the dashboard (Configuration) or POST /configure.
+  model: gpt-5-mini
+  embedderModel: text-embedding-3-small
+  # OpenAI-compatible endpoint (OPENAI_BASE_URL): vLLM, Ollama, LiteLLM, Azure OpenAI proxy, ...
+  # for private models. Must also serve embeddings, with the dimensions your collection was created with.
+  openaiBaseUrl: ""
+  # OPENAI_API_KEY and the like go in secretEnv (or extraEnvFrom).
+
+server:
+  replicaCount: 1
+  # Memory change history (GET /memories/{id}/history) is a SQLite file per pod; keep it on a
+  # volume so it survives restarts. Memories themselves are in PostgreSQL.
+  persistence:
+    enabled: true
+    existingClaim: ""
+    storageClass: ""
+    size: 1Gi
+  # Trust X-Forwarded-For/-Proto from these addresses (uvicorn FORWARDED_ALLOW_IPS), so the
+  # rate limit on login and registration counts clients, not the proxy.
+  forwardedAllowIps: ""
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 1Gi
+  podAnnotations: {}
+  podLabels: {}
+  service:
+    type: ClusterIP
+    port: 8000
+    annotations: {}
+
+dashboard:
+  enabled: true
+  replicaCount: 1
+  # Shown in the dashboard header (NEXT_PUBLIC_INSTANCE_NAME).
+  instanceName: Mem0
+  resources:
+    requests:
+      cpu: 20m
+      memory: 96Mi
+    limits:
+      memory: 256Mi
+  podAnnotations: {}
+  podLabels: {}
+  service:
+    type: ClusterIP
+    port: 3000
+    annotations: {}
+
+# The dashboard runs in the browser and calls the API directly, so both need a public URL.
+# Empty: https://<first ingress/HTTPRoute host of each>.
+apiUrl: ""
+dashboardUrl: ""
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  api:
+    host: mem0-api.example.com
+  dashboard:
+    host: mem0.example.com
+  tls: []
+  # - secretName: mem0-tls
+  #   hosts: [mem0-api.example.com, mem0.example.com]
+
+httpRoute:
+  enabled: false
+  annotations: {}
+  parentRefs: []
+  api:
+    hostnames: []
+  dashboard:
+    hostnames: []
+  # LLM extraction on POST /memories can take tens of seconds.
+  timeouts:
+    request: 120s
+
+# Delete request_logs rows older than retentionDays (upstream: "~864k rows/day at 10 req/s",
+# pruned only if you wire a cron job yourself).
+requestLogPruning:
+  enabled: true
+  schedule: "17 3 * * *"
+  retentionDays: 30
+
+# Anonymous telemetry to PostHog (upstream default on).
+telemetry: false
+
+# Any other environment variable (non-secret) for the server.
+env: {}
+# Secret variables for the server, e.g. OPENAI_API_KEY, ANTHROPIC_API_KEY, GOOGLE_API_KEY.
+secretEnv: {}
+extraEnv: []
+# Loaded after the chart's ConfigMap and Secret, so keys here win.
+extraEnvFrom: []
+
+metrics:
+  # Prometheus metrics for every API route on a separate port (9090), never on the API port.
+  enabled: true
+  serviceMonitor:
+    enabled: false
+    interval: 30s
+    scrapeTimeout: 10s
+    labels: {}
+  prometheusRule:
+    enabled: false
+    labels: {}
+    # Share of API requests answered with 5xx (often the LLM or embedding provider failing).
+    errorRatio: 0.05
+    # Mean latency of POST /memories and /search above this many seconds.
+    slowRequestSeconds: 10
+  dashboard:
+    enabled: false
+    labels:
+      grafana_dashboard: "1"
+    annotations: {}
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+automountServiceAccountToken: false
+
+priorityClassName: ""
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroup: 10001
+  fsGroupChangePolicy: OnRootMismatch
+  seccompProfile:
+    type: RuntimeDefault
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: [ALL]
+
+extraVolumes: []
+extraVolumeMounts: []
+# Arbitrary manifests rendered with the release (templated), e.g. a NetworkPolicy.
+extraObjects: []

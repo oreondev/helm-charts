@@ -1,0 +1,9 @@
+{{- include "mem0.validate" . }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "mem0.fullname" . }}-env
+  labels:
+    {{- include "mem0.labels" (dict "ctx" . "component" "server") | nindent 4 }}
+data:
+  {{- include "mem0.env" . | trim | nindent 2 }}

@@ -1,0 +1,92 @@
+{{- if .Values.postgres.schema.enabled }}
+{{- $v := .Values }}
+{{- $ctx := dict "ctx" . "component" "schema" }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "firecrawl.fullname" . }}-schema
+  labels:
+    {{- include "firecrawl.labels" $ctx | nindent 4 }}
+data:
+  # apps/nuq-postgres/nuq.sql from the Firecrawl release (AGPL-3.0, unmodified).
+  nuq.sql: |
+    {{- .Files.Get "files/nuq.sql" | nindent 4 }}
+---
+# One Job per release revision (not a hook, so it runs alongside the bundled database and `helm --wait`
+# does not deadlock); the workers wait for its result in their init container.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "firecrawl.fullname" . }}-schema-{{ .Release.Revision }}
+  labels:
+    {{- include "firecrawl.labels" $ctx | nindent 4 }}
+spec:
+  backoffLimit: 6
+  activeDeadlineSeconds: 900
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        {{- include "firecrawl.selectorLabels" $ctx | nindent 8 }}
+    spec:
+      restartPolicy: OnFailure
+      serviceAccountName: {{ include "firecrawl.serviceAccountName" . }}
+      automountServiceAccountToken: {{ $v.automountServiceAccountToken }}
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        runAsGroup: 999
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: schema
+          image: {{ include "firecrawl.imageRef" (dict "image" $v.postgres.bundled.image "default" "latest") }}
+          imagePullPolicy: {{ $v.image.pullPolicy }}
+          command: ["/bin/sh", "-ec"]
+          args:
+            - |
+              until pg_isready -q; do echo "waiting for PostgreSQL at $PGHOST:$PGPORT"; sleep 3; done
+              preload=$(psql -XAtc "SHOW shared_preload_libraries")
+              case "$preload" in
+                *pg_cron*) ;;
+                *) echo "pg_cron is not in shared_preload_libraries ($preload). The Firecrawl queue needs it:"
+                   echo "Cloud SQL: flag cloudsql.enable_pg_cron=on; RDS/Aurora: shared_preload_libraries=pg_cron and"
+                   echo "cron.database_name=$PGDATABASE in the parameter group; then restart the instance."
+                   exit 1 ;;
+              esac
+              {{- if eq $v.postgres.mode "external" }}
+              # Managed PostgreSQL refuses ALTER SYSTEM; tune those settings in the provider's flags instead.
+              grep -v -E '^(ALTER SYSTEM|SELECT pg_reload_conf)' /schema/nuq.sql > /tmp/nuq.sql
+              {{- else }}
+              cp /schema/nuq.sql /tmp/nuq.sql
+              {{- end }}
+              psql -X -q -v ON_ERROR_STOP=1 -f /tmp/nuq.sql
+              psql -XAtc "SELECT 'queue schema ready: ' || count(*) || ' pg_cron jobs' FROM cron.job WHERE jobname LIKE 'nuq%'"
+          env:
+            - { name: PGHOST, value: {{ include "firecrawl.postgresHost" . | quote }} }
+            - { name: PGPORT, value: {{ include "firecrawl.postgresPort" . | quote }} }
+            - { name: PGDATABASE, value: {{ $v.postgres.database | quote }} }
+            - { name: PGUSER, value: {{ $v.postgres.user | quote }} }
+            - name: PGPASSWORD
+              valueFrom: { secretKeyRef: { name: {{ include "firecrawl.postgresSecretName" . }}, key: {{ include "firecrawl.postgresSecretKey" . }} } }
+            {{- if eq $v.postgres.mode "external" }}
+            - { name: PGSSLMODE, value: {{ $v.postgres.external.sslMode | quote }} }
+            {{- end }}
+            - { name: HOME, value: /tmp }
+          securityContext:
+            {{- toYaml $v.securityContext | nindent 12 }}
+          resources:
+            requests: { cpu: 10m, memory: 32Mi }
+            limits: { memory: 128Mi }
+          volumeMounts:
+            - { name: schema, mountPath: /schema, readOnly: true }
+            - { name: tmp, mountPath: /tmp }
+      volumes:
+        - name: schema
+          configMap:
+            name: {{ include "firecrawl.fullname" . }}-schema
+        - name: tmp
+          emptyDir:
+            sizeLimit: 32Mi
+{{- end }}
