@@ -161,7 +161,7 @@ client = OpenAI(base_url=&quot;http://embeddings-tei-bge-m3.ai.svc:8080/v1&quot;
 client.embeddings.create(model=&quot;bge-m3&quot;, input=[&quot;Kubernetes autoscaling&quot;, &quot;Prometheus alerting&quot;])
 </code></pre>
 <ul>
-<li><strong>Mem0:</strong> <code>llm.openaiBaseUrl</code> pointing at the model's <code>/v1</code>. Set the collection's embedding dimensions to the model's: 1024 for bge-m3, 384 for MiniLM.</li>
+<li><strong><a href="../mem0/">Mem0</a>:</strong> <code>llm.openaiBaseUrl</code> pointing at the model's <code>/v1</code>. Set the collection's embedding dimensions to the model's: 1024 for bge-m3, 384 for MiniLM.</li>
 <li><strong>LiteLLM:</strong> a model with <code>api_base: http://...:8080/v1</code>.</li>
 <li><strong>Rerankers:</strong> answer <code>POST /rerank</code> with <code>{"query": ..., "texts": [...]}</code>.</li>
 <li><strong>Classifiers:</strong> answer <code>POST /predict</code>.</li>

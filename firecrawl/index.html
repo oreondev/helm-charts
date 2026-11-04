@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>firecrawl Helm chart | Oreon IT</title>
+<meta name="description" content="Firecrawl (web scraping and crawling API for LLMs) on Kubernetes - API, queue workers and Playwright as separate Deployments with their own resources, prob">
+<link rel="canonical" href="https://www.oreonit.com/helm-charts/firecrawl/">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<style>
+:root{--bg:#fff;--fg:#14213d;--muted:#5b6478;--line:#e3e6ee;--code:#f3f5f9;--accent:#e8590c}
+@media (prefers-color-scheme:dark){:root{--bg:#0b1220;--fg:#e8ecf4;--muted:#9aa3b5;--line:#1f2a40;--code:#141d30;--accent:#ff8a3d}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:980px;margin:0 auto;padding:40px 16px 56px}
+h1{margin:0 0 6px;font-size:30px;letter-spacing:-.01em}
+.badges{margin:4px 0 12px} .badges img{display:block}
+.lead{color:var(--muted);margin:0 0 20px}
+a{color:var(--accent)}
+pre{background:var(--code);border:1px solid var(--line);padding:14px 16px;border-radius:10px;overflow-x:auto;margin:0}
+table{width:100%;border-collapse:collapse;margin:24px 0 40px}
+td,th{text-align:left;padding:11px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+td:nth-child(1){white-space:nowrap}
+td:nth-child(2){white-space:nowrap;color:var(--muted)}
+td a{text-decoration:none} td a:hover{text-decoration:underline}
+.card{position:relative;overflow:hidden;border-radius:18px;padding:32px;color:#e8ecf4;
+  background:radial-gradient(120% 140% at 100% 0%,rgba(245,130,21,.28) 0,rgba(245,130,21,0) 45%),linear-gradient(135deg,#0f1d3a 0%,#14274d 60%,#0b1430 100%);
+  box-shadow:0 20px 50px -25px rgba(10,20,45,.6)}
+.card:before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:linear-gradient(#fdb813,#e23b26)}
+.brand{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.brand img{height:52px;width:auto}
+.card h2{margin:0;font-size:22px;color:#fff}
+.card p{color:#b9c3d6;margin:10px 0 0;max-width:680px}
+.tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:24px 0}
+.tile{display:block;padding:16px 18px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
+  color:#fff;text-decoration:none;transition:background .15s,border-color .15s,transform .15s}
+.tile:hover{background:rgba(255,255,255,.1);border-color:rgba(253,184,19,.55);transform:translateY(-2px)}
+.tile strong{display:block;font-size:16px}
+.tile em{display:block;font-style:normal;color:#b9c3d6;font-size:14px;margin:4px 0 10px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips span{font:12px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;padding:4px 7px;border-radius:6px;background:rgba(253,184,19,.12);color:#fdd27a}
+.cta{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.btn{display:inline-block;padding:12px 18px;border-radius:10px;font-weight:600;text-decoration:none}
+.btn.primary{background:linear-gradient(90deg,#f58215,#e23b26);color:#fff}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.ghost{color:#fff;border:1px solid rgba(255,255,255,.3)}
+.btn.ghost:hover{border-color:#fff}
+footer{margin-top:28px;font-size:14px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px 18px}
+footer a{color:var(--muted)}
+@media (max-width:700px){.tiles{grid-template-columns:1fr} .card{padding:24px 20px} td:nth-child(3),th:nth-child(3){display:none}}
+
+.crumb{font-size:14px;color:var(--muted);margin:0 0 10px} .crumb a{color:var(--muted)}
+.meta{color:var(--muted);margin:0 0 22px}
+.doc h2{margin:34px 0 10px;font-size:22px} .doc h3{margin:24px 0 8px;font-size:18px}
+.doc table{margin:16px 0 24px;display:block;overflow-x:auto} .doc td,.doc th{white-space:normal}
+.doc code{background:var(--code);padding:1px 5px;border-radius:5px;font-size:.92em} .doc pre code{padding:0;background:none}
+.doc pre{margin:12px 0 18px}
+.card.small{padding:24px;margin-top:40px}
+</style></head><body><main>
+<p class="crumb"><a href="../">Oreon IT Helm charts</a> / firecrawl</p>
+<h1>firecrawl Helm chart</h1>
+<p class="meta">Version 0.1.0 · app 2.11.621 · MIT · <a href="https://github.com/oreondev/helm-charts/tree/main/charts/firecrawl">source</a> · <a href="https://artifacthub.io/packages/helm/oreonit/firecrawl">Artifact Hub</a></p>
+<article class="doc">
+
+<p><a href="https://github.com/firecrawl/firecrawl">Firecrawl</a> (turns websites into clean Markdown and structured data for LLMs: scrape, crawl, map, search, extract) on Kubernetes, built for running it in production rather than as the upstream all-in-one container.</p>
+<p>Upstream's self-hosted container starts the API and every worker as child processes of one harness, and its own Kubernetes example chart says it is a starting point, not a production setup. What this chart does differently (measured on 2.11.621 against the upstream Docker Compose stack and the upstream Kubernetes manifests):</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Upstream</th>
+<th>This chart</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Authentication</td>
+<td>none: with <code>USE_DB_AUTHENTICATION=false</code> every request is served, with any key or none</td>
+<td>token gate in the API pods: only <code>Authorization: Bearer &lt;key&gt;</code> with a configured key, else 401 (keys generated, kept across upgrades)</td>
+</tr>
+<tr>
+<td>Process layout</td>
+<td>API, crawl worker, extract worker, 5 scrape workers, prefetch and reconciler in one 2.49 GiB container, scaled as a whole</td>
+<td>one Deployment per component, each with its own requests, probes, heap cap and scaling</td>
+</tr>
+<tr>
+<td>Scaling scrape workers</td>
+<td>fixed count per container</td>
+<td>CPU HPA, or KEDA on the queue itself (<code>nuq_queue_scrape_job_count{status="queued"}</code>)</td>
+</tr>
+<tr>
+<td>API pod shutdown on Kubernetes</td>
+<td>sleeps 60 s "for GCE load balancer drain" on every SIGTERM (<code>IS_KUBERNETES</code>)</td>
+<td>10 s preStop drain (<code>api.drainSeconds</code>), then closes in about 0.1 s</td>
+</tr>
+<tr>
+<td>Playwright service</td>
+<td><code>pnpm start</code> (pnpm plus node), 248 MiB; the service only handles SIGINT</td>
+<td>node directly, 140 MiB; SIGTERM is passed on as SIGINT so it closes its browser cleanly</td>
+</tr>
+<tr>
+<td>Queue schema on managed PostgreSQL</td>
+<td><code>nuq.sql</code> runs <code>ALTER SYSTEM</code>, which Cloud SQL and RDS refuse (<code>permission denied to set parameter</code>)</td>
+<td>applied by a Job on every release, <code>ALTER SYSTEM</code> skipped for external databases, pg_cron checked first with a clear message (tested as a non-superuser: all 36 pg_cron jobs created)</td>
+</tr>
+<tr>
+<td>Queue database WAL</td>
+<td><code>min_wal_size 4GB</code>, <code>max_wal_size 16GB</code> via <code>ALTER SYSTEM</code>, sized for upstream's cloud disks</td>
+<td>256 MB / 4 GB on the bundled StatefulSet (<code>postgres.bundled.walSize</code>), so a 20 GiB volume does not fill with WAL</td>
+</tr>
+<tr>
+<td>Images</td>
+<td>the Playwright and queue database images are published only as <code>latest</code></td>
+<td>pinned to the multi-arch digests current with the release</td>
+</tr>
+<tr>
+<td>RabbitMQ and FoundationDB</td>
+<td>both started by the compose file (184 MiB), RabbitMQ required by the queue settings</td>
+<td>not needed: the queue waits on PostgreSQL LISTEN/NOTIFY; RabbitMQ only when the extract worker is on</td>
+</tr>
+<tr>
+<td>Security</td>
+<td>API and workers as root, writable, every port reachable</td>
+<td>non-root, read-only root filesystem, no capabilities; NetworkPolicy: gate open, API port only within the release, admin listener only from the monitoring namespace (tested)</td>
+</tr>
+<tr>
+<td>Monitoring</td>
+<td>metrics on internal ports, nothing scrapes them</td>
+<td>PodMonitor (worker metrics and queue depth), alerts (backlog, stalled queue, job failure ratio, component down), Grafana dashboard</td>
+</tr>
+</tbody>
+</table>
+<h2 id="install">Install</h2>
+<pre><code class="language-bash">helm repo add oreonit https://oreondev.github.io/helm-charts
+helm install firecrawl oreonit/firecrawl -n firecrawl --create-namespace -f firecrawl.yaml
+kubectl -n firecrawl get secret firecrawl-gateway-keys -o jsonpath='{.data.api-keys}' | base64 -d
+</code></pre>
+<p>Everything is bundled by default (PostgreSQL with pg_cron, Redis), so an empty <code>firecrawl.yaml</code> works. A production setup on GKE with Cloud SQL and Memorystore:</p>
+<pre><code class="language-yaml">postgres:
+  mode: external
+  user: firecrawl
+  database: firecrawl
+  existingSecret: firecrawl-db          # key &quot;password&quot;
+  external:
+    host: 10.40.0.3                     # Cloud SQL with cloudsql.enable_pg_cron=on, cron.database_name=firecrawl
+redis:
+  mode: external
+  external:
+    url: redis://10.40.0.12:6379
+
+nuqWorker:
+  autoscaling:
+    keda:
+      enabled: true                     # 2-10 workers, one per 20 queued jobs
+playwright:
+  autoscaling:
+    enabled: true
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: &quot;300&quot;
+  hosts:
+    - host: firecrawl.example.com
+      paths: [{ path: /, pathType: Prefix }]
+  tls:
+    - secretName: firecrawl-tls
+      hosts: [firecrawl.example.com]
+
+metrics:
+  podMonitor: { enabled: true }
+  prometheusRule: { enabled: true }
+  dashboard: { enabled: true }
+</code></pre>
+<p>Then point any Firecrawl SDK at it:</p>
+<pre><code class="language-python">from firecrawl import Firecrawl
+app = Firecrawl(api_key=&quot;fc-...&quot;, api_url=&quot;https://firecrawl.example.com&quot;)
+print(app.scrape(&quot;https://example.com&quot;, formats=[&quot;markdown&quot;]).markdown)
+</code></pre>
+<h3 id="components">Components</h3>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Runs</th>
+<th>Scale with</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>api</code> + <code>gateway</code></td>
+<td>HTTP API and the token gate</td>
+<td><code>api.replicaCount</code>, <code>api.autoscaling</code></td>
+</tr>
+<tr>
+<td><code>worker</code></td>
+<td>crawl orchestration</td>
+<td><code>worker.replicaCount</code></td>
+</tr>
+<tr>
+<td><code>nuq-worker</code></td>
+<td>scrape jobs from the queue</td>
+<td><code>nuqWorker.replicaCount</code>, <code>.autoscaling</code> (CPU) or <code>.autoscaling.keda</code> (queue depth)</td>
+</tr>
+<tr>
+<td><code>nuq-prefetch-worker</code>, <code>nuq-reconciler-worker</code></td>
+<td>backlog and concurrency housekeeping</td>
+<td>one each, by design</td>
+</tr>
+<tr>
+<td><code>playwright</code></td>
+<td>headless Chromium for JavaScript pages</td>
+<td><code>playwright.replicaCount</code>, <code>.autoscaling</code>, <code>.maxConcurrentPages</code></td>
+</tr>
+<tr>
+<td><code>extract-worker</code></td>
+<td><code>/extract</code> with an LLM</td>
+<td>off by default; needs <code>rabbitmq.mode</code> and an LLM key in <code>secretEnv</code></td>
+</tr>
+<tr>
+<td><code>postgres</code>, <code>redis</code>, <code>rabbitmq</code></td>
+<td>bundled state</td>
+<td>or <code>mode: external</code></td>
+</tr>
+</tbody>
+</table>
+<p>A scrape job's throughput is set by <code>nuqWorker</code> replicas times <code>firecrawl.numWorkersPerQueue</code> (8), and JavaScript pages by <code>playwright</code> replicas times <code>maxConcurrentPages</code> (10).</p>
+<h3 id="postgresql-requirements-external">PostgreSQL requirements (external)</h3>
+<p>The queue's cleanup, lock reaper and nightly reindexing run in pg_cron, so the database needs <code>pg_cron</code> in <code>shared_preload_libraries</code> and <code>cron.database_name</code> set to <code>postgres.database</code>: Cloud SQL flag <code>cloudsql.enable_pg_cron</code>, an RDS or Aurora parameter group, or an AlloyDB flag. The schema Job checks this before touching anything. Use a direct connection, not PgBouncer in transaction mode: the workers rely on LISTEN/NOTIFY.</p>
+<h3 id="private-models">Private models</h3>
+<p><code>/extract</code> and the JSON format use an LLM. With <code>secretEnv.OPENAI_API_KEY</code> they use OpenAI; for a private model set <code>firecrawl.env.OPENAI_BASE_URL</code> to an OpenAI-compatible endpoint (vLLM, LiteLLM) and <code>MODEL_NAME</code>, or <code>OLLAMA_BASE_URL</code>.</p>
+<h2 id="values">Values</h2>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Default</th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>image.tag</code> / <code>image.digest</code></td>
+<td>appVersion</td>
+<td>the plain release tag (upstream also pushes <code>-staging</code> builds)</td>
+</tr>
+<tr>
+<td><code>auth.enabled</code> / <code>.apiKeys</code> / <code>.existingSecret</code></td>
+<td>on / generated /</td>
+<td>token gate</td>
+</tr>
+<tr>
+<td><code>firecrawl.numWorkersPerQueue</code> / <code>.crawlConcurrentRequests</code> / <code>.maxConcurrentJobs</code></td>
+<td>8 / 10 / 5</td>
+<td></td>
+</tr>
+<tr>
+<td><code>firecrawl.waitMode</code></td>
+<td><code>listen</code></td>
+<td>PostgreSQL LISTEN/NOTIFY instead of polling</td>
+</tr>
+<tr>
+<td><code>firecrawl.trustProxyHops</code></td>
+<td>2 with the gate</td>
+<td><code>EXPRESS_TRUST_PROXY</code>, for https URLs in responses</td>
+</tr>
+<tr>
+<td><code>firecrawl.env</code> / <code>secretEnv</code> / <code>extraEnv</code> / <code>extraEnvFrom</code></td>
+<td></td>
+<td>more variables (proxy, SearXNG, LLM)</td>
+</tr>
+<tr>
+<td><code>api.*</code>, <code>worker.*</code>, <code>nuqWorker.*</code>, <code>nuqPrefetchWorker.*</code>, <code>nuqReconcilerWorker.*</code>, <code>extractWorker.*</code>, <code>playwright.*</code></td>
+<td>see values.yaml</td>
+<td>replicas, resources (heap cap at 75% of the limit), autoscaling</td>
+</tr>
+<tr>
+<td><code>postgres.mode</code> / <code>redis.mode</code> / <code>rabbitmq.mode</code></td>
+<td>bundled / bundled / none</td>
+<td></td>
+</tr>
+<tr>
+<td><code>postgres.bundled.persistence.size</code> / <code>.walSize</code> / <code>.sharedBuffers</code></td>
+<td>20Gi / 256MB-4GB / 256MB</td>
+<td></td>
+</tr>
+<tr>
+<td><code>postgres.schema.enabled</code></td>
+<td>on</td>
+<td>queue schema Job per release</td>
+</tr>
+<tr>
+<td><code>ingress.*</code>, <code>httpRoute.*</code></td>
+<td>off</td>
+<td></td>
+</tr>
+<tr>
+<td><code>networkPolicy.enabled</code> / <code>.metricsNamespaceSelector</code></td>
+<td>on / <code>monitoring</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>metrics.enabled</code>, <code>.podMonitor</code>, <code>.prometheusRule</code>, <code>.dashboard</code></td>
+<td>on, off, off, off</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>Everything is validated by <code>values.schema.json</code>.</p>
+<h2 id="credits-and-licence">Credits and licence</h2>
+<p>Firecrawl is developed by the <a href="https://github.com/firecrawl/firecrawl">Firecrawl team</a> under the AGPL-3.0. The chart deploys the upstream images unmodified; <code>files/nuq.sql</code> is the upstream queue schema from the release, unmodified and under its AGPL-3.0 licence.</p>
+<p>The chart itself is MIT licensed and maintained by <a href="https://www.oreonit.com/?utm_source=helm-chart&amp;utm_medium=readme&amp;utm_campaign=firecrawl">Oreon IT</a>, a DevOps, SRE and cloud consultancy in London. If you run crawling, RAG pipelines or other AI workloads on Kubernetes and want them scaled, monitored and kept up to date, <a href="https://www.oreonit.com/containerization-orchestration-management-kubernetes-openshift/?utm_source=helm-chart&amp;utm_medium=readme&amp;utm_campaign=firecrawl">that is the day job</a>.</p>
+</article>
+<section class="card small" aria-labelledby="by">
+  <div class="brand"><img src="../oreon-logo.svg" alt="Oreon IT"><h2 id="by">Maintained by Oreon IT</h2></div>
+  <p>A London cloud, DevOps and SRE consultancy. If you want this chart rolled out and tuned for your platform, we can help.</p>
+  <div class="cta" style="margin-top:18px"><a class="btn primary" href="https://www.oreonit.com/book-a-consultation/?utm_source=helm-charts&utm_medium=referral&utm_campaign=oss">Book a free 30-minute call</a>
+  <a class="btn ghost" href="../">All charts</a></div>
+</section>
+<footer><span>MIT licence</span><a href="https://github.com/oreondev/helm-charts">Source</a><a href="https://github.com/oreondev/helm-charts/issues">Report an issue</a><a href="https://www.oreonit.com/?utm_source=helm-charts&utm_medium=referral&utm_campaign=oss">oreonit.com</a></footer>
+</main></body></html>
