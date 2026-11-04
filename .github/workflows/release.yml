@@ -9,6 +9,7 @@ on:
       - "dashboards/build.py"
       - "artifacthub-repo.yml"
       - ".github/workflows/release.yml"
+      - ".github/pages/**"
   workflow_dispatch: {}
 
 permissions:
@@ -51,17 +52,18 @@ jobs:
 
       - name: Regenerate the landing page from index.yaml
         run: |
-          python3 -c "import yaml" 2>/dev/null || python3 -m pip install --quiet --user --break-system-packages pyyaml
+          python3 -c "import yaml, markdown" 2>/dev/null || python3 -m pip install --quiet --user --break-system-packages pyyaml markdown
           git checkout -- . 2>/dev/null || true
           git show origin/main:.github/pages/render.py > /tmp/render.py
           mkdir -p /tmp/pages && for f in oreon-logo.svg favicon.svg; do git show origin/main:.github/pages/$f > /tmp/pages/$f; done
           cp /tmp/render.py /tmp/pages/render.py
           git fetch origin gh-pages && git checkout gh-pages && git reset --hard origin/gh-pages
           python3 /tmp/pages/render.py .
-          # only the generated files: chart-releaser leaves .cr-release-packages/ untracked here
-          if [ -n "$(git status --porcelain -- index.html oreon-logo.svg favicon.svg)" ]; then
-            git add index.html oreon-logo.svg favicon.svg
-            git commit -m "Regenerate landing page"
+          # only the files render.py wrote (listed in .generated): chart-releaser leaves .cr-release-packages/ untracked here
+          mapfile -t gen < .generated && rm .generated
+          if [ -n "$(git status --porcelain -- "${gen[@]}")" ]; then
+            git add -- "${gen[@]}"
+            git commit -m "Regenerate landing page and chart docs"
             git push origin gh-pages
           fi
 

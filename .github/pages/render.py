@@ -1,20 +1,32 @@
 #!/usr/bin/env python3
-"""Render the GitHub Pages landing page from the Helm repository index.
+"""Render the GitHub Pages site from the Helm repository index.
 
-    python3 .github/pages/render.py <gh-pages checkout>
+    python3 .github/pages/render.py <gh-pages checkout> [<main checkout>]
 
-Reads index.yaml in that directory, writes index.html and copies the logo and favicon next to it. The release
-workflow runs it after chart-releaser, so the chart table always shows the latest version of every chart.
+Reads index.yaml in that directory and writes:
+- index.html: the landing page with the chart table;
+- <chart>/index.html: one docs page per released chart, from charts/<chart>/README.md on main;
+- sitemap.xml, plus the logo and favicon.
+Every page carries a canonical link to https://www.oreonit.com/helm-charts/, where a Cloudflare Worker serves this
+site, so search engines treat oreonit.com as the original and the github.io copy as a duplicate.
+READMEs come from <main checkout> when given, otherwise from `git show origin/main:...` (the release workflow).
+The paths written are listed in .generated (one per line) so the workflow commits only those.
 """
 import html
 import os
+import posixpath
+import re
 import shutil
+import subprocess
 import sys
 
+import markdown
 import yaml
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SITE = "https://www.oreonit.com/"
+BASE = SITE + "helm-charts/"
+REPO = "https://github.com/oreondev/helm-charts"
 UTM = "?utm_source=helm-charts&utm_medium=referral&utm_campaign=oss"
 
 # Which charts each service builds on, so the card reads as "the people who wrote these", not an advert.
@@ -38,13 +50,13 @@ def esc(s):
     return html.escape(str(s), quote=True)
 
 
-def main(out):
+def main(out, src=None):
     idx = yaml.safe_load(open(os.path.join(out, "index.yaml")))
     rows = []
     for name in sorted(idx["entries"]):
         e = sorted(idx["entries"][name], key=lambda x: x["created"], reverse=True)[0]
         rows.append(
-            f'<tr><td><a href="https://github.com/oreondev/helm-charts/tree/main/charts/{esc(name)}"><code>{esc(name)}</code></a></td>'
+            f'<tr><td><a href="{esc(name)}/"><code>{esc(name)}</code></a></td>'
             f'<td>{esc(e["version"])}</td><td>{esc(e.get("description", ""))}</td></tr>')
     tiles = []
     for title, path, line, charts in SERVICES:
@@ -56,6 +68,7 @@ def main(out):
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Oreon IT Helm charts</title>
 <meta name="description" content="Helm charts for Kubernetes reliability: SLO burn-rate alerts, OpenTelemetry collectors, alert routing, probes, policies, guardrails, cost and backups. Maintained by Oreon IT.">
+<link rel="canonical" href="{BASE}">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <style>
 :root{{--bg:#fff;--fg:#14213d;--muted:#5b6478;--line:#e3e6ee;--code:#f3f5f9;--accent:#e8590c}}
@@ -133,7 +146,96 @@ helm search repo oreonit/</code></pre>
     open(os.path.join(out, "index.html"), "w").write(page)
     for f in ("oreon-logo.svg", "favicon.svg"):
         shutil.copy(os.path.join(HERE, f), os.path.join(out, f))
+    generated = ["index.html", "oreon-logo.svg", "favicon.svg", "sitemap.xml"]
+
+    css = page[page.index("<style>") + 7:page.index("</style>")]
+    released = set(idx["entries"])
+    urls = [(BASE, max(str(v[0]["created"])[:10] for v in idx["entries"].values()))]
+    for name in sorted(released):
+        e = sorted(idx["entries"][name], key=lambda x: x["created"], reverse=True)[0]
+        readme = read_readme(name, src)
+        if readme is None:
+            continue
+        os.makedirs(os.path.join(out, name), exist_ok=True)
+        open(os.path.join(out, name, "index.html"), "w").write(chart_page(name, e, readme, released, css))
+        generated.append(f"{name}/index.html")
+        urls.append((f"{BASE}{name}/", str(e["created"])[:10]))
+
+    sm = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
+    sm += [f"  <url><loc>{esc(u)}</loc><lastmod>{d}</lastmod></url>" for u, d in urls]
+    sm.append("</urlset>")
+    open(os.path.join(out, "sitemap.xml"), "w").write("\n".join(sm) + "\n")
+    open(os.path.join(out, ".generated"), "w").write("\n".join(generated) + "\n")
+
+
+def read_readme(name, src):
+    path = f"charts/{name}/README.md"
+    if src:
+        f = os.path.join(src, path)
+        return open(f).read() if os.path.exists(f) else None
+    r = subprocess.run(["git", "show", f"origin/main:{path}"], capture_output=True, text=True)
+    return r.stdout if r.returncode == 0 else None
+
+
+def fix_link(href, name, released):
+    """README links are relative to charts/<name>/ in the repo; point them at the docs site or GitHub."""
+    if re.match(r"^[a-z]+:|^#|^//", href):
+        return href
+    target, _, frag = href.partition("#")
+    resolved = posixpath.normpath(posixpath.join("charts", name, target))
+    m = re.fullmatch(r"charts/([a-z0-9-]+)/?(README\.md)?", resolved)
+    if m and m.group(1) in released:
+        url = "./" if m.group(1) == name else f"../{m.group(1)}/"
+    elif m:
+        return None  # a chart that is not released yet: no page and maybe not on main, so no link
+    else:
+        kind = "blob" if posixpath.splitext(resolved)[1] else "tree"
+        url = f"{REPO}/{kind}/main/{resolved}"
+    return url + (f"#{frag}" if frag else "")
+
+
+def chart_page(name, e, readme, released, css):
+    body = markdown.markdown(readme, extensions=["tables", "fenced_code", "toc"], output_format="html5")
+    def relink(m):
+        url = fix_link(html.unescape(m.group(2)), name, released)
+        return m.group(1) + esc(url) + m.group(3) if url else m.group(1) + "#" + m.group(3)
+    body = re.sub(r'(<(?:a|img)\b[^>]*?\b(?:href|src)=")([^"]+)(")', relink, body)
+    body = re.sub(r'<a href="#">(.*?)</a>', r"\1", body)  # unreleased-chart links become plain text
+    body = re.sub(r"^\s*<h1[^>]*>.*?</h1>", "", body, count=1, flags=re.S)  # the page has its own h1
+    desc = e.get("description", "")
+    title = f"{name} Helm chart"
+    app = f' · app {esc(e["appVersion"])}' if e.get("appVersion") else ""
+    return f"""<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{esc(title)} | Oreon IT</title>
+<meta name="description" content="{esc(desc)[:155]}">
+<link rel="canonical" href="{BASE}{esc(name)}/">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<style>{css}
+.crumb{{font-size:14px;color:var(--muted);margin:0 0 10px}} .crumb a{{color:var(--muted)}}
+.meta{{color:var(--muted);margin:0 0 22px}}
+.doc h2{{margin:34px 0 10px;font-size:22px}} .doc h3{{margin:24px 0 8px;font-size:18px}}
+.doc table{{margin:16px 0 24px;display:block;overflow-x:auto}} .doc td,.doc th{{white-space:normal}}
+.doc code{{background:var(--code);padding:1px 5px;border-radius:5px;font-size:.92em}} .doc pre code{{padding:0;background:none}}
+.doc pre{{margin:12px 0 18px}}
+.card.small{{padding:24px;margin-top:40px}}
+</style></head><body><main>
+<p class="crumb"><a href="../">Oreon IT Helm charts</a> / {esc(name)}</p>
+<h1>{esc(title)}</h1>
+<p class="meta">Version {esc(e["version"])}{app} · MIT · <a href="{REPO}/tree/main/charts/{esc(name)}">source</a> · <a href="https://artifacthub.io/packages/helm/oreonit/{esc(name)}">Artifact Hub</a></p>
+<article class="doc">
+{body}
+</article>
+<section class="card small" aria-labelledby="by">
+  <div class="brand"><img src="../oreon-logo.svg" alt="Oreon IT"><h2 id="by">Maintained by Oreon IT</h2></div>
+  <p>A London cloud, DevOps and SRE consultancy. If you want this chart rolled out and tuned for your platform, we can help.</p>
+  <div class="cta" style="margin-top:18px"><a class="btn primary" href="{SITE}book-a-consultation/{UTM}">Book a free 30-minute call</a>
+  <a class="btn ghost" href="../">All charts</a></div>
+</section>
+<footer><span>MIT licence</span><a href="{REPO}">Source</a><a href="{REPO}/issues">Report an issue</a><a href="{SITE}{UTM}">oreonit.com</a></footer>
+</main></body></html>
+"""
 
 
 if __name__ == "__main__":
-    main(sys.argv[1] if len(sys.argv) > 1 else ".")
+    main(sys.argv[1] if len(sys.argv) > 1 else ".", sys.argv[2] if len(sys.argv) > 2 else None)
