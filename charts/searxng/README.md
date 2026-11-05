@@ -101,4 +101,4 @@ Everything is validated by `values.schema.json`.
 
 SearXNG is developed by the [SearXNG project](https://github.com/searxng/searxng) under the AGPL-3.0; the chart deploys the upstream image unmodified.
 
-The chart is MIT licensed and maintained by [Oreon IT](https://www.oreonit.com/?utm_source=helm-chart&utm_medium=readme&utm_campaign=searxng), a DevOps, SRE and cloud consultancy in London. If you run search, crawling or RAG pipelines for AI agents on Kubernetes and want them scaled and monitored properly, [that is the day job](https://www.oreonit.com/containerization-orchestration-management-kubernetes-openshift/?utm_source=helm-chart&utm_medium=readme&utm_campaign=searxng).
+The chart is MIT licensed and maintained by [Oreon IT](https://www.oreonit.com/?utm_source=helm-chart&utm_medium=readme&utm_campaign=searxng), a DevOps, SRE and cloud consultancy in London. If you run search, crawling or RAG pipelines for AI agents on Kubernetes and want them scaled and monitored properly, [that is the day job](https://www.oreonit.com/private-llm-hosting-and-operations/?utm_source=helm-chart&utm_medium=readme&utm_campaign=searxng).

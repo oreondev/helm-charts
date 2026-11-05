@@ -110,4 +110,4 @@ Everything is validated by `values.schema.json`.
 
 ## Licence
 
-MIT. Maintained by [Oreon IT](https://www.oreonit.com/?utm_source=helm-chart&utm_medium=readme&utm_campaign=llm-serving-observability), a DevOps, SRE and cloud consultancy in London. Running private models on GPUs and want them [monitored](https://www.oreonit.com/observability-and-monitoring-consultancy-services/?utm_source=helm-chart&utm_medium=readme&utm_campaign=llm-serving-observability), sized and kept busy? That is the day job.
+MIT. Maintained by [Oreon IT](https://www.oreonit.com/?utm_source=helm-chart&utm_medium=readme&utm_campaign=llm-serving-observability), a DevOps, SRE and cloud consultancy in London. Running private models on GPUs and want them [monitored](https://www.oreonit.com/private-llm-hosting-and-operations/?utm_source=helm-chart&utm_medium=readme&utm_campaign=llm-serving-observability), sized and kept busy? That is the day job.

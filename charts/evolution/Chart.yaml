@@ -2,7 +2,7 @@ apiVersion: v2
 name: evolution
 description: Evolution API (WhatsApp via Baileys or the Cloud API) for Kubernetes - migrations in an init container, Node as PID 1 with a heap cap sized from the memory limit, non-root and read-only, probes that do not call WhatsApp, Redis-backed sessions without a volume, generated API key, Ingress or Gateway API, and Prometheus metrics, ServiceMonitor and alerts.
 type: application
-version: 0.2.0
+version: 0.2.1
 appVersion: "2.3.7"
 kubeVersion: ">=1.25.0-0"
 home: https://www.oreonit.com/containerization-orchestration-management-kubernetes-openshift/
@@ -32,14 +32,12 @@ annotations:
     - name: evolution-api
       image: evoapicloud/evolution-api:v2.3.7
   artifacthub.io/links: |
+    - name: Documentation
+      url: https://www.oreonit.com/helm-charts/evolution/
     - name: Evolution API documentation
       url: https://doc.evolution-api.com
-    - name: Kubernetes production readiness checklist
-      url: https://www.oreonit.com/kubernetes-production-readiness-checklist/
   artifacthub.io/changes: |
-    - kind: changed
-      description: Rewritten for Evolution API 2.3.7 (evoapicloud image); one replica with Recreate, HPA removed (sessions cannot be shared between pods)
     - kind: added
-      description: Migrations in an init container, generated API key, database/Redis/metrics settings, Prometheus metrics with ServiceMonitor and alerts, HTTPRoute, values schema
-    - kind: security
-      description: Runs as non-root with a read-only root filesystem; masks the image's example .env (example API key, telemetry); no database URL in logs
+      description: Documentation link to https://www.oreonit.com/helm-charts/evolution/
+    - kind: changed
+      description: Dropped the unrelated Kubernetes readiness checklist link

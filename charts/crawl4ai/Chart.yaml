@@ -2,10 +2,10 @@ apiVersion: v2
 name: crawl4ai
 description: Crawl4AI (LLM-friendly web crawler, REST API and MCP) for Kubernetes - gunicorn as PID 1 with Redis as a native sidecar or external, generated API token, shutdown in seconds instead of a 30s hang, memory threshold below the OOM line, non-root and read-only, horizontal scaling with external Redis, Ingress or Gateway API, and a ServiceMonitor, alerts and Grafana dashboard.
 type: application
-version: 0.2.0
+version: 0.2.1
 appVersion: "0.9.5"
 kubeVersion: ">=1.29.0-0"
-home: https://www.oreonit.com/containerization-orchestration-management-kubernetes-openshift/
+home: https://www.oreonit.com/private-llm-hosting-and-operations/
 icon: https://raw.githubusercontent.com/oreondev/helm-charts/main/icon.png
 sources:
   - https://github.com/oreondev/helm-charts
@@ -32,12 +32,14 @@ annotations:
     - name: crawl4ai
       image: ghcr.io/oreondev/crawl4ai-server:0.9.5
   artifacthub.io/links: |
+    - name: Documentation
+      url: https://www.oreonit.com/helm-charts/crawl4ai/
     - name: Crawl4AI self-hosting documentation
       url: https://docs.crawl4ai.com/core/self-hosting/
-    - name: Kubernetes production readiness checklist
-      url: https://www.oreonit.com/kubernetes-production-readiness-checklist/
+    - name: Running self-hosted AI models in production on Kubernetes
+      url: https://www.oreonit.com/self-hosted-llm-in-production-vllm-kubernetes/
   artifacthub.io/changes: |
+    - kind: added
+      description: Documentation link to https://www.oreonit.com/helm-charts/crawl4ai/
     - kind: changed
-      description: Default image is ghcr.io/oreondev/crawl4ai-server, the upstream release rebuilt on a slim base (Trivy 5,929 findings down to 481, none with a fix available); unclecode/crawl4ai still works
-    - kind: security
-      description: Python packages with fixes within Crawl4AI's ranges upgraded in the image (pillow 13, PyJWT 2.15, pypdf 6.21, nltk 3.10.4, brotli, certifi, filelock)
+      description: Homepage and README now link to private LLM hosting and operations instead of the general Kubernetes page

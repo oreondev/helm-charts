@@ -2,10 +2,10 @@ apiVersion: v2
 name: firecrawl
 description: Firecrawl (web scraping and crawling API for LLMs) on Kubernetes - API, queue workers and Playwright as separate Deployments with their own resources, probes and scaling, a token gate (self-hosted Firecrawl accepts any key), NuQ queue on bundled or managed PostgreSQL with the schema applied per release and WAL sized for the volume, KEDA scaling on queue depth, pinned image digests, non-root and read-only, NetworkPolicy, PodMonitor, alerts and a Grafana dashboard.
 type: application
-version: 0.1.0
+version: 0.1.1
 appVersion: "2.11.621"
 kubeVersion: ">=1.25.0-0"
-home: https://www.oreonit.com/containerization-orchestration-management-kubernetes-openshift/
+home: https://www.oreonit.com/private-llm-hosting-and-operations/
 icon: https://raw.githubusercontent.com/oreondev/helm-charts/main/icon.png
 sources:
   - https://github.com/oreondev/helm-charts
@@ -40,10 +40,14 @@ annotations:
     - name: redis
       image: redis:7.4-alpine
   artifacthub.io/links: |
+    - name: Documentation
+      url: https://www.oreonit.com/helm-charts/firecrawl/
     - name: Firecrawl self-hosting documentation
       url: https://docs.firecrawl.dev/contributing/self-host
-    - name: Kubernetes production readiness checklist
-      url: https://www.oreonit.com/kubernetes-production-readiness-checklist/
+    - name: Running self-hosted AI models in production on Kubernetes
+      url: https://www.oreonit.com/self-hosted-llm-in-production-vllm-kubernetes/
   artifacthub.io/changes: |
     - kind: added
-      description: First release, for Firecrawl 2.11.621
+      description: Documentation link to https://www.oreonit.com/helm-charts/firecrawl/
+    - kind: changed
+      description: Homepage and README now link to private LLM hosting and operations instead of the general Kubernetes page

@@ -4,22 +4,22 @@ Every chart is versioned on its own ([SemVer](https://semver.org/): patch for fi
 
 | Chart | Version | App version | Status |
 |---|---|---|---|
-| alertmanager-routing-baseline | 0.1.0 | - | released |
-| blackbox-slo-probes | 0.1.1 | - | released |
-| crawl4ai | 0.2.0 | Crawl4AI 0.9.5 | released |
-| evolution | 0.2.0 | Evolution API 2.3.7 | released |
-| firecrawl | 0.1.0 | Firecrawl 2.11.621 | released |
-| gateway-api-baseline | 0.1.0 | - | released |
-| k8s-cost-waste-alerts | 0.2.1 | - | released |
-| kyverno-production-policies | 0.1.1 | - | released |
-| llm-serving-observability | 0.1.0 | - | released |
-| mem0 | 0.1.0 | Mem0 2.2.1 | released |
-| namespace-baseline | 0.1.0 | - | released |
-| otel-collector-baseline | 0.1.3 | - | released |
-| searxng | 0.1.0 | SearXNG 2026.10.29-cff884f98 | released |
-| slo-burn-rate-alerts | 0.3.2 | - | released |
-| text-embeddings-inference | 0.1.0 | TEI 1.9.4 | released |
-| velero-backup-schedules | 0.1.0 | - | released |
+| alertmanager-routing-baseline | 0.1.1 | - | released |
+| blackbox-slo-probes | 0.1.2 | - | released |
+| crawl4ai | 0.2.1 | Crawl4AI 0.9.5 | released |
+| evolution | 0.2.1 | Evolution API 2.3.7 | released |
+| firecrawl | 0.1.1 | Firecrawl 2.11.621 | released |
+| gateway-api-baseline | 0.1.1 | - | released |
+| k8s-cost-waste-alerts | 0.2.2 | - | released |
+| kyverno-production-policies | 0.1.2 | - | released |
+| llm-serving-observability | 0.1.1 | - | released |
+| mem0 | 0.1.1 | Mem0 2.2.1 | released |
+| namespace-baseline | 0.1.1 | - | released |
+| otel-collector-baseline | 0.1.4 | - | released |
+| searxng | 0.1.1 | SearXNG 2026.10.29-cff884f98 | released |
+| slo-burn-rate-alerts | 0.3.3 | - | released |
+| text-embeddings-inference | 0.1.1 | TEI 1.9.4 | released |
+| velero-backup-schedules | 0.1.1 | - | released |
 
 Images built here ([images/](images)):
 
@@ -28,6 +28,12 @@ Images built here ([images/](images)):
 | ghcr.io/oreondev/crawl4ai-server | 0.9.5 | crawl4ai |
 | ghcr.io/oreondev/mem0-server | 2.2.1 | mem0 |
 | ghcr.io/oreondev/mem0-dashboard | 2.2.1 | mem0 |
+
+## 2026-11-05
+
+Patch release of all 16 charts; no template or values changes.
+- **Documentation link:** each chart's Artifact Hub links now start with its page at `https://www.oreonit.com/helm-charts/<chart>/`.
+- **AI charts** (crawl4ai, firecrawl, mem0, searxng, text-embeddings-inference, llm-serving-observability): homepage and README link now point to [private LLM hosting and operations](https://www.oreonit.com/private-llm-hosting-and-operations/), with the [self-hosted LLM guide](https://www.oreonit.com/self-hosted-llm-in-production-vllm-kubernetes/) in the links. The Kubernetes readiness checklist link is gone from crawl4ai, firecrawl and evolution.
 
 ## 2026-11-04
 

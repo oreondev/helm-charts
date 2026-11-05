@@ -2,10 +2,10 @@ apiVersion: v2
 name: mem0
 description: Mem0 self-hosted memory server and dashboard for AI agents on Kubernetes - pinned images built from the upstream release (non-root, read-only), database and pgvector setup, migrations and first-admin bootstrap in init containers, probes that do not write to the database, request-log pruning CronJob, OpenAI-compatible endpoints for private LLMs, Ingress or Gateway API, and Prometheus metrics, alerts and a Grafana dashboard.
 type: application
-version: 0.1.0
+version: 0.1.1
 appVersion: "2.2.1"
 kubeVersion: ">=1.25.0-0"
-home: https://www.oreonit.com/containerization-orchestration-management-kubernetes-openshift/
+home: https://www.oreonit.com/private-llm-hosting-and-operations/
 icon: https://raw.githubusercontent.com/oreondev/helm-charts/main/icon.png
 sources:
   - https://github.com/oreondev/helm-charts
@@ -33,10 +33,16 @@ annotations:
     - name: mem0-dashboard
       image: ghcr.io/oreondev/mem0-dashboard:2.2.1
   artifacthub.io/links: |
+    - name: Documentation
+      url: https://www.oreonit.com/helm-charts/mem0/
     - name: Mem0 open-source documentation
       url: https://docs.mem0.ai/open-source/overview
     - name: Image build files
       url: https://github.com/oreondev/helm-charts/tree/main/images/mem0
+    - name: Running self-hosted AI models in production on Kubernetes
+      url: https://www.oreonit.com/self-hosted-llm-in-production-vllm-kubernetes/
   artifacthub.io/changes: |
     - kind: added
-      description: First release, for Mem0 2.2.1
+      description: Documentation link to https://www.oreonit.com/helm-charts/mem0/
+    - kind: changed
+      description: Homepage and README now link to private LLM hosting and operations instead of the general Kubernetes page

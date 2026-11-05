@@ -2,7 +2,7 @@ apiVersion: v2
 name: velero-backup-schedules
 description: A backup policy for Velero as values - daily, weekly and monthly Schedules with retention, optional BackupStorageLocation and VolumeSnapshotLocation, a scheduled restore test that restores the latest backup into a scratch namespace and checks the pods come up, and alerts for failed, partial or stale backups. Velero itself is not included.
 type: application
-version: 0.1.0
+version: 0.1.1
 appVersion: "0.1.0"
 kubeVersion: ">=1.25.0-0"
 home: https://www.oreonit.com/disaster-recovery-planning-services/
@@ -28,10 +28,12 @@ annotations:
   artifacthub.io/prerelease: "false"
   artifacthub.io/operator: "false"
   artifacthub.io/links: |
+    - name: Documentation
+      url: https://www.oreonit.com/helm-charts/velero-backup-schedules/
     - name: Disaster recovery plan template for cloud teams
       url: https://www.oreonit.com/disaster-recovery-plan-template-for-cloud-teams/
     - name: Disaster recovery planning by the maintainers
       url: https://www.oreonit.com/disaster-recovery-planning-services/
   artifacthub.io/changes: |
     - kind: added
-      description: Initial release
+      description: Documentation link to https://www.oreonit.com/helm-charts/velero-backup-schedules/
