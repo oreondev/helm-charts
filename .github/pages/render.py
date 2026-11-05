@@ -29,6 +29,22 @@ BASE = SITE + "helm-charts/"
 REPO = "https://github.com/oreondev/helm-charts"
 UTM = "?utm_source=helm-charts&utm_medium=referral&utm_campaign=oss"
 
+# Bar linking the Oreon IT open-source docs sites; same markup and colours as the Harbor Operator and
+# Harbor MCP sites (oreondev/harbor-resource-operator overrides/partials/products.html). Full URLs, so the
+# links also work on oreondev.github.io. A new site goes into all three.
+PRODUCT_BAR = """<nav class="oreon-products" aria-label="Oreon IT open source">
+  <div class="oreon-products__inner">
+    <a class="oreon-products__home" href="https://www.oreonit.com/">Oreon IT</a>
+    <span class="oreon-products__sep" aria-hidden="true">/</span>
+    <span class="oreon-products__label">Open source</span>
+    <ul class="oreon-products__list">
+      <li><a href="https://www.oreonit.com/harbor-operator/">Harbor Operator</a></li>
+      <li><a href="https://www.oreonit.com/harbor-mcp/">Harbor MCP</a></li>
+      <li><a href="https://www.oreonit.com/helm-charts/" class="oreon-products__current" aria-current="page">Helm charts</a></li>
+    </ul>
+  </div>
+</nav>"""
+
 # Which charts each service builds on, so the card reads as "the people who wrote these", not an advert.
 SERVICES = [
     ("SRE as a service", "sre-as-a-service/",
@@ -111,8 +127,20 @@ td a{{text-decoration:none}} td a:hover{{text-decoration:underline}}
 .btn.ghost:hover{{border-color:#fff}}
 footer{{margin-top:28px;font-size:14px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px 18px}}
 footer a{{color:var(--muted)}}
-@media (max-width:700px){{.tiles{{grid-template-columns:1fr}} .card{{padding:24px 20px}} td:nth-child(3),th:nth-child(3){{display:none}}}}
-</style></head><body><main>
+@media (max-width:700px){{.tiles{{grid-template-columns:1fr}} .card{{padding:24px 20px}} td:nth-child(3),th:nth-child(3){{display:none}} td:nth-child(1){{white-space:normal;overflow-wrap:anywhere}}}}
+.oreon-products{{background-color:#0b1323;color:#c9d1e0;font-size:13px;line-height:36px}}
+.oreon-products__inner{{display:flex;align-items:center;gap:12px;max-width:1220px;margin:0 auto;padding:0 16px;white-space:nowrap;overflow-x:auto}}
+.oreon-products a{{color:inherit;text-decoration:none}}
+.oreon-products a:hover,.oreon-products a:focus{{color:#fdb813}}
+.oreon-products__home{{font-weight:700;color:#ffffff !important}}
+.oreon-products__sep,.oreon-products__label{{opacity:.6}}
+.oreon-products__list{{display:flex;gap:24px;margin:0 0 0 auto;padding:0;list-style:none}}
+.oreon-products__current{{color:#f58215 !important;font-weight:700;box-shadow:inset 0 -2px 0 #f58215}}
+@media screen and (max-width:720px){{.oreon-products__label,.oreon-products__sep{{display:none}} .oreon-products__list{{gap:14px}} .oreon-products__inner{{gap:10px;padding:0 12px}}}}
+@media screen and (max-width:380px){{.oreon-products{{font-size:12px}} .oreon-products__list{{gap:12px}}}}
+</style></head><body>
+{PRODUCT_BAR}
+<main>
 <h1>Oreon IT Helm charts</h1>
 <p class="badges"><a href="https://artifacthub.io/packages/search?repo=oreonit"><img src="https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/oreonit" alt="Artifact Hub" height="20"></a></p>
 <p class="lead">Production building blocks for Kubernetes reliability, observability and cost. Tested against the real controllers they target. Source, docs and issues on <a href="https://github.com/oreondev/helm-charts">GitHub</a>.</p>
@@ -221,7 +249,9 @@ def chart_page(name, e, readme, released, css):
 .doc code{{background:var(--code);padding:1px 5px;border-radius:5px;font-size:.92em}} .doc pre code{{padding:0;background:none}}
 .doc pre{{margin:12px 0 18px}}
 .card.small{{padding:24px;margin-top:40px}}
-</style></head><body><main>
+</style></head><body>
+{PRODUCT_BAR}
+<main>
 <p class="crumb"><a href="../">Oreon IT Helm charts</a> / {esc(name)}</p>
 <h1>{esc(title)}</h1>
 <p class="meta">Version {esc(e["version"])}{app} · MIT · <a href="{REPO}/tree/main/charts/{esc(name)}">source</a> · <a href="https://artifacthub.io/packages/helm/oreonit/{esc(name)}">Artifact Hub</a></p>
