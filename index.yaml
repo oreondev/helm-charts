@@ -5,6 +5,57 @@ entries:
       artifacthub.io/category: monitoring-logging
       artifacthub.io/changes: |
         - kind: added
+          description: Documentation link to https://www.oreonit.com/helm-charts/alertmanager-routing-baseline/
+      artifacthub.io/license: MIT
+      artifacthub.io/links: |
+        - name: Documentation
+          url: https://www.oreonit.com/helm-charts/alertmanager-routing-baseline/
+        - name: Alerting strategies that avoid alert fatigue
+          url: https://www.oreonit.com/advanced-alerting-strategies-how-to-avoid-alert-fatigue-in-monitoring-systems/
+        - name: SLO burn-rate alerts chart (pairs with this one)
+          url: https://artifacthub.io/packages/helm/oreonit/slo-burn-rate-alerts
+        - name: SRE as a service by the maintainers
+          url: https://www.oreonit.com/sre-as-a-service/
+      artifacthub.io/operator: "false"
+      artifacthub.io/prerelease: "false"
+    apiVersion: v2
+    appVersion: 0.1.0
+    created: "2026-11-05T11:43:07.973781644Z"
+    description: Alertmanager routing from one values file - teams, page and ticket
+      receivers (Slack, PagerDuty, Opsgenie, email, Teams, webhook), severity routing,
+      critical-inhibits-warning and page-inhibits-ticket rules, business-hours mute
+      windows and a Watchdog sink. Rendered as an AlertmanagerConfig for the Prometheus
+      Operator.
+    digest: fd8baee388415ab688108c78f2b9670e898b58c0597057da283034957f61c2d4
+    home: https://www.oreonit.com/sre-as-a-service/
+    icon: https://raw.githubusercontent.com/oreondev/helm-charts/main/icon.png
+    keywords:
+    - alertmanager
+    - alerting
+    - on-call
+    - pagerduty
+    - slack
+    - opsgenie
+    - prometheus-operator
+    - kube-prometheus-stack
+    - sre
+    - incident-response
+    kubeVersion: '>=1.25.0-0'
+    maintainers:
+    - email: info@oreonit.com
+      name: Oreon IT
+      url: https://www.oreonit.com/
+    name: alertmanager-routing-baseline
+    sources:
+    - https://github.com/oreondev/helm-charts
+    type: application
+    urls:
+    - https://github.com/oreondev/helm-charts/releases/download/alertmanager-routing-baseline-0.1.1/alertmanager-routing-baseline-0.1.1.tgz
+    version: 0.1.1
+  - annotations:
+      artifacthub.io/category: monitoring-logging
+      artifacthub.io/changes: |
+        - kind: added
           description: Initial release
       artifacthub.io/license: MIT
       artifacthub.io/links: |
@@ -51,6 +102,56 @@ entries:
     - https://github.com/oreondev/helm-charts/releases/download/alertmanager-routing-baseline-0.1.0/alertmanager-routing-baseline-0.1.0.tgz
     version: 0.1.0
   blackbox-slo-probes:
+  - annotations:
+      artifacthub.io/category: monitoring-logging
+      artifacthub.io/changes: |
+        - kind: added
+          description: Documentation link to https://www.oreonit.com/helm-charts/blackbox-slo-probes/
+      artifacthub.io/license: MIT
+      artifacthub.io/links: |
+        - name: Documentation
+          url: https://www.oreonit.com/helm-charts/blackbox-slo-probes/
+        - name: 12 SLO and SLI examples with PromQL
+          url: https://www.oreonit.com/slo-sli-examples-targets-promql/
+        - name: Disaster recovery plan template (uptime objectives)
+          url: https://www.oreonit.com/disaster-recovery-plan-template-for-cloud-teams/
+        - name: Observability consulting by the maintainers
+          url: https://www.oreonit.com/observability-and-monitoring-consultancy-services/
+      artifacthub.io/operator: "false"
+      artifacthub.io/prerelease: "false"
+    apiVersion: v2
+    appVersion: 0.1.0
+    created: "2026-11-05T11:43:08.119578167Z"
+    description: Synthetic monitoring with SLOs - a list of URLs becomes Prometheus
+      Operator Probe objects for the blackbox exporter, availability and latency SLOs
+      with multi-window burn-rate page and ticket alerts, probe-down and TLS-expiry
+      alerts, and a Grafana dashboard.
+    digest: 0d4f11a7b03f8bdfe699c4e36d1b75528b38009756ae33d08bfdf8ab12f8febf
+    home: https://www.oreonit.com/observability-and-monitoring-consultancy-services/
+    icon: https://raw.githubusercontent.com/oreondev/helm-charts/main/icon.png
+    keywords:
+    - blackbox-exporter
+    - synthetic-monitoring
+    - uptime
+    - probe
+    - slo
+    - burn-rate
+    - tls
+    - prometheus-operator
+    - kube-prometheus-stack
+    - sre
+    kubeVersion: '>=1.25.0-0'
+    maintainers:
+    - email: info@oreonit.com
+      name: Oreon IT
+      url: https://www.oreonit.com/
+    name: blackbox-slo-probes
+    sources:
+    - https://github.com/oreondev/helm-charts
+    type: application
+    urls:
+    - https://github.com/oreondev/helm-charts/releases/download/blackbox-slo-probes-0.1.2/blackbox-slo-probes-0.1.2.tgz
+    version: 0.1.2
   - annotations:
       artifacthub.io/category: monitoring-logging
       artifacthub.io/changes: |
@@ -150,6 +251,59 @@ entries:
     - https://github.com/oreondev/helm-charts/releases/download/blackbox-slo-probes-0.1.0/blackbox-slo-probes-0.1.0.tgz
     version: 0.1.0
   crawl4ai:
+  - annotations:
+      artifacthub.io/category: ai-machine-learning
+      artifacthub.io/changes: |
+        - kind: added
+          description: Documentation link to https://www.oreonit.com/helm-charts/crawl4ai/
+        - kind: changed
+          description: Homepage and README now link to private LLM hosting and operations instead of the general Kubernetes page
+      artifacthub.io/images: |
+        - name: crawl4ai
+          image: ghcr.io/oreondev/crawl4ai-server:0.9.5
+      artifacthub.io/license: MIT
+      artifacthub.io/links: |
+        - name: Documentation
+          url: https://www.oreonit.com/helm-charts/crawl4ai/
+        - name: Crawl4AI self-hosting documentation
+          url: https://docs.crawl4ai.com/core/self-hosting/
+        - name: Running self-hosted AI models in production on Kubernetes
+          url: https://www.oreonit.com/self-hosted-llm-in-production-vllm-kubernetes/
+      artifacthub.io/operator: "false"
+      artifacthub.io/prerelease: "false"
+    apiVersion: v2
+    appVersion: 0.9.5
+    created: "2026-11-05T11:43:08.406064738Z"
+    description: Crawl4AI (LLM-friendly web crawler, REST API and MCP) for Kubernetes
+      - gunicorn as PID 1 with Redis as a native sidecar or external, generated API
+      token, shutdown in seconds instead of a 30s hang, memory threshold below the
+      OOM line, non-root and read-only, horizontal scaling with external Redis, Ingress
+      or Gateway API, and a ServiceMonitor, alerts and Grafana dashboard.
+    digest: d4091655e28ec8fcdee0de14070d3f3e91051e541fa3a2e1e08859a182414889
+    home: https://www.oreonit.com/private-llm-hosting-and-operations/
+    icon: https://raw.githubusercontent.com/oreondev/helm-charts/main/icon.png
+    keywords:
+    - crawl4ai
+    - web-crawler
+    - scraper
+    - llm
+    - rag
+    - mcp
+    - playwright
+    - ai
+    kubeVersion: '>=1.29.0-0'
+    maintainers:
+    - email: info@oreonit.com
+      name: Oreon IT
+      url: https://www.oreonit.com/
+    name: crawl4ai
+    sources:
+    - https://github.com/oreondev/helm-charts
+    - https://github.com/unclecode/crawl4ai
+    type: application
+    urls:
+    - https://github.com/oreondev/helm-charts/releases/download/crawl4ai-0.2.1/crawl4ai-0.2.1.tgz
+    version: 0.2.1
   - annotations:
       artifacthub.io/category: ai-machine-learning
       artifacthub.io/changes: |
@@ -254,6 +408,57 @@ entries:
   - annotations:
       artifacthub.io/category: integration-delivery
       artifacthub.io/changes: |
+        - kind: added
+          description: Documentation link to https://www.oreonit.com/helm-charts/evolution/
+        - kind: changed
+          description: Dropped the unrelated Kubernetes readiness checklist link
+      artifacthub.io/images: |
+        - name: evolution-api
+          image: evoapicloud/evolution-api:v2.3.7
+      artifacthub.io/license: MIT
+      artifacthub.io/links: |
+        - name: Documentation
+          url: https://www.oreonit.com/helm-charts/evolution/
+        - name: Evolution API documentation
+          url: https://doc.evolution-api.com
+      artifacthub.io/operator: "false"
+      artifacthub.io/prerelease: "false"
+    apiVersion: v2
+    appVersion: 2.3.7
+    created: "2026-11-05T11:43:08.636307522Z"
+    description: Evolution API (WhatsApp via Baileys or the Cloud API) for Kubernetes
+      - migrations in an init container, Node as PID 1 with a heap cap sized from
+      the memory limit, non-root and read-only, probes that do not call WhatsApp,
+      Redis-backed sessions without a volume, generated API key, Ingress or Gateway
+      API, and Prometheus metrics, ServiceMonitor and alerts.
+    digest: 3d80bb4d222db8387ec53f3a5118d6f8c84609128d612f4764eb683076d6b54b
+    home: https://www.oreonit.com/containerization-orchestration-management-kubernetes-openshift/
+    icon: https://raw.githubusercontent.com/oreondev/helm-charts/main/icon.png
+    keywords:
+    - evolution-api
+    - whatsapp
+    - whatsapp-api
+    - baileys
+    - chatbot
+    - n8n
+    - chatwoot
+    - messaging
+    kubeVersion: '>=1.25.0-0'
+    maintainers:
+    - email: info@oreonit.com
+      name: Oreon IT
+      url: https://www.oreonit.com/
+    name: evolution
+    sources:
+    - https://github.com/oreondev/helm-charts
+    - https://github.com/evolution-foundation/evolution-api
+    type: application
+    urls:
+    - https://github.com/oreondev/helm-charts/releases/download/evolution-0.2.1/evolution-0.2.1.tgz
+    version: 0.2.1
+  - annotations:
+      artifacthub.io/category: integration-delivery
+      artifacthub.io/changes: |
         - kind: changed
           description: Rewritten for Evolution API 2.3.7 (evoapicloud image); one replica with Recreate, HPA removed (sessions cannot be shared between pods)
         - kind: added
@@ -305,6 +510,68 @@ entries:
     - https://github.com/oreondev/helm-charts/releases/download/evolution-0.2.0/evolution-0.2.0.tgz
     version: 0.2.0
   firecrawl:
+  - annotations:
+      artifacthub.io/category: ai-machine-learning
+      artifacthub.io/changes: |
+        - kind: added
+          description: Documentation link to https://www.oreonit.com/helm-charts/firecrawl/
+        - kind: changed
+          description: Homepage and README now link to private LLM hosting and operations instead of the general Kubernetes page
+      artifacthub.io/images: |
+        - name: firecrawl
+          image: ghcr.io/firecrawl/firecrawl:2.11.621
+        - name: playwright-service
+          image: ghcr.io/firecrawl/playwright-service@sha256:637fb8c8399634b02c2179da72566ce11644435e5d93e895bdbde4b1f9b0882a
+        - name: nuq-postgres
+          image: ghcr.io/firecrawl/nuq-postgres@sha256:d719b36160eac2fcbe16dc7e7360ddb9c82c40ea5da183d07bf4a755c6a0b2ae
+        - name: nginx-unprivileged
+          image: nginxinc/nginx-unprivileged:1.29-alpine
+        - name: redis
+          image: redis:7.4-alpine
+      artifacthub.io/license: MIT
+      artifacthub.io/links: |
+        - name: Documentation
+          url: https://www.oreonit.com/helm-charts/firecrawl/
+        - name: Firecrawl self-hosting documentation
+          url: https://docs.firecrawl.dev/contributing/self-host
+        - name: Running self-hosted AI models in production on Kubernetes
+          url: https://www.oreonit.com/self-hosted-llm-in-production-vllm-kubernetes/
+      artifacthub.io/operator: "false"
+      artifacthub.io/prerelease: "false"
+    apiVersion: v2
+    appVersion: 2.11.621
+    created: "2026-11-05T11:43:08.852540493Z"
+    description: Firecrawl (web scraping and crawling API for LLMs) on Kubernetes
+      - API, queue workers and Playwright as separate Deployments with their own resources,
+      probes and scaling, a token gate (self-hosted Firecrawl accepts any key), NuQ
+      queue on bundled or managed PostgreSQL with the schema applied per release and
+      WAL sized for the volume, KEDA scaling on queue depth, pinned image digests,
+      non-root and read-only, NetworkPolicy, PodMonitor, alerts and a Grafana dashboard.
+    digest: 5acc68c0d6d457fe94b6bca3bf846180cdcbeadc76cde757f22ab420c579fa53
+    home: https://www.oreonit.com/private-llm-hosting-and-operations/
+    icon: https://raw.githubusercontent.com/oreondev/helm-charts/main/icon.png
+    keywords:
+    - firecrawl
+    - web-scraping
+    - crawler
+    - llm
+    - rag
+    - playwright
+    - keda
+    - ai
+    kubeVersion: '>=1.25.0-0'
+    maintainers:
+    - email: info@oreonit.com
+      name: Oreon IT
+      url: https://www.oreonit.com/
+    name: firecrawl
+    sources:
+    - https://github.com/oreondev/helm-charts
+    - https://github.com/firecrawl/firecrawl
+    type: application
+    urls:
+    - https://github.com/oreondev/helm-charts/releases/download/firecrawl-0.1.1/firecrawl-0.1.1.tgz
+    version: 0.1.1
   - annotations:
       artifacthub.io/category: ai-machine-learning
       artifacthub.io/changes: |
@@ -368,6 +635,60 @@ entries:
       artifacthub.io/category: networking
       artifacthub.io/changes: |
         - kind: added
+          description: Documentation link to https://www.oreonit.com/helm-charts/gateway-api-baseline/
+      artifacthub.io/license: MIT
+      artifacthub.io/links: |
+        - name: Documentation
+          url: https://www.oreonit.com/helm-charts/gateway-api-baseline/
+        - name: Kubernetes production readiness checklist
+          url: https://www.oreonit.com/kubernetes-production-readiness-checklist/
+        - name: Production readiness audit for Kubernetes
+          url: https://www.oreonit.com/production-readiness-audit-for-kubernetes/
+        - name: Kubernetes platform engineering by the maintainers
+          url: https://www.oreonit.com/containerization-orchestration-management-kubernetes-openshift/
+      artifacthub.io/operator: "false"
+      artifacthub.io/prerelease: "false"
+    apiVersion: v2
+    appVersion: 0.1.0
+    created: "2026-11-05T11:43:09.062125087Z"
+    description: A shared Kubernetes Gateway API ingress baseline - one Gateway per
+      cluster or environment with HTTP-to-HTTPS redirect, TLS listeners per hostname,
+      namespace-scoped route attachment, HTTPRoutes and GRPCRoutes from values with
+      timeouts and security headers filled in, automatic ReferenceGrants, a catch-all
+      backend and BackendTLSPolicies. Works with GKE Gateway, Envoy Gateway, NGINX
+      Gateway Fabric, Istio, Cilium and Traefik.
+    digest: bde3c69f8456eabf351f362e1b5982b68edaf95ca48638da0bdf424661f731de
+    home: https://www.oreonit.com/containerization-orchestration-management-kubernetes-openshift/
+    icon: https://raw.githubusercontent.com/oreondev/helm-charts/main/icon.png
+    keywords:
+    - gateway-api
+    - httproute
+    - grpcroute
+    - ingress
+    - gke-gateway
+    - envoy-gateway
+    - nginx-gateway-fabric
+    - istio
+    - cilium
+    - tls
+    - platform-engineering
+    - kubernetes
+    kubeVersion: '>=1.25.0-0'
+    maintainers:
+    - email: info@oreonit.com
+      name: Oreon IT
+      url: https://www.oreonit.com/
+    name: gateway-api-baseline
+    sources:
+    - https://github.com/oreondev/helm-charts
+    type: application
+    urls:
+    - https://github.com/oreondev/helm-charts/releases/download/gateway-api-baseline-0.1.1/gateway-api-baseline-0.1.1.tgz
+    version: 0.1.1
+  - annotations:
+      artifacthub.io/category: networking
+      artifacthub.io/changes: |
+        - kind: added
           description: Initial release
       artifacthub.io/license: MIT
       artifacthub.io/links: |
@@ -417,6 +738,60 @@ entries:
     - https://github.com/oreondev/helm-charts/releases/download/gateway-api-baseline-0.1.0/gateway-api-baseline-0.1.0.tgz
     version: 0.1.0
   k8s-cost-waste-alerts:
+  - annotations:
+      artifacthub.io/category: monitoring-logging
+      artifacthub.io/changes: |
+        - kind: added
+          description: Documentation link to https://www.oreonit.com/helm-charts/k8s-cost-waste-alerts/
+      artifacthub.io/license: MIT
+      artifacthub.io/links: |
+        - name: Documentation
+          url: https://www.oreonit.com/helm-charts/k8s-cost-waste-alerts/
+        - name: GKE cost optimisation levers that work
+          url: https://www.oreonit.com/gke-cost-optimization-levers-that-work/
+        - name: EKS cost optimisation, 12 levers
+          url: https://www.oreonit.com/eks-cost-optimization-12-levers-that-actually-work/
+        - name: Cost observability and FinOps
+          url: https://www.oreonit.com/cost-observability-finops/
+        - name: Cloud cost optimisation review by the maintainers
+          url: https://www.oreonit.com/cloud-cost-optimization-review/
+      artifacthub.io/operator: "false"
+      artifacthub.io/prerelease: "false"
+    apiVersion: v2
+    appVersion: 0.1.0
+    created: "2026-11-05T11:43:09.217750524Z"
+    description: What a Kubernetes cluster costs and where the money is wasted - cluster
+      cost and showback per namespace with node prices from flat rates, an instance-type
+      price list or OpenCost, requests far above usage, unrequested node capacity,
+      savings levers (right-sizing, consolidation, spot, commitments), idle volumes
+      and load balancers, and HPAs at their limits. Recording rules, alerts and a
+      Grafana dashboard.
+    digest: 228ee1950de70aa426fda5c68bd6f0a7a771e50054075e9eb0eb017c15bb93f5
+    home: https://www.oreonit.com/cloud-cost-optimization-review/
+    icon: https://raw.githubusercontent.com/oreondev/helm-charts/main/icon.png
+    keywords:
+    - finops
+    - cost
+    - cost-optimization
+    - kubernetes
+    - right-sizing
+    - waste
+    - prometheus
+    - kube-state-metrics
+    - grafana
+    - alerting
+    kubeVersion: '>=1.25.0-0'
+    maintainers:
+    - email: info@oreonit.com
+      name: Oreon IT
+      url: https://www.oreonit.com/
+    name: k8s-cost-waste-alerts
+    sources:
+    - https://github.com/oreondev/helm-charts
+    type: application
+    urls:
+    - https://github.com/oreondev/helm-charts/releases/download/k8s-cost-waste-alerts-0.2.2/k8s-cost-waste-alerts-0.2.2.tgz
+    version: 0.2.2
   - annotations:
       artifacthub.io/category: monitoring-logging
       artifacthub.io/changes: |
@@ -577,6 +952,55 @@ entries:
       artifacthub.io/category: security
       artifacthub.io/changes: |
         - kind: added
+          description: Documentation link to https://www.oreonit.com/helm-charts/kyverno-production-policies/
+      artifacthub.io/license: MIT
+      artifacthub.io/links: |
+        - name: Documentation
+          url: https://www.oreonit.com/helm-charts/kyverno-production-policies/
+        - name: Kubernetes production readiness checklist (the list these policies implement)
+          url: https://www.oreonit.com/kubernetes-production-readiness-checklist/
+        - name: Kubernetes operators every cluster needs
+          url: https://www.oreonit.com/common-kubernetes-operators-every-cluster-needs/
+        - name: Production readiness audit by the maintainers
+          url: https://www.oreonit.com/production-readiness-audit-for-kubernetes/
+      artifacthub.io/operator: "false"
+      artifacthub.io/prerelease: "false"
+    apiVersion: v2
+    appVersion: 0.1.0
+    created: "2026-11-05T11:43:09.434311745Z"
+    description: The Kubernetes production-readiness checklist as Kyverno policies
+      - requests and limits, probes, owner labels, no latest tags, PodDisruptionBudgets
+      and spread for multi-replica workloads, no NodePorts, nothing in the default
+      namespace. Audit mode by default, enforce per namespace.
+    digest: bc8673258761267e41a4786a48a6337357b55c1852ee57917a8233ffdad9f648
+    home: https://www.oreonit.com/production-readiness-audit-for-kubernetes/
+    icon: https://raw.githubusercontent.com/oreondev/helm-charts/main/icon.png
+    keywords:
+    - kyverno
+    - policy
+    - policy-as-code
+    - production-readiness
+    - best-practices
+    - kubernetes
+    - governance
+    - guardrails
+    - audit
+    kubeVersion: '>=1.25.0-0'
+    maintainers:
+    - email: info@oreonit.com
+      name: Oreon IT
+      url: https://www.oreonit.com/
+    name: kyverno-production-policies
+    sources:
+    - https://github.com/oreondev/helm-charts
+    type: application
+    urls:
+    - https://github.com/oreondev/helm-charts/releases/download/kyverno-production-policies-0.1.2/kyverno-production-policies-0.1.2.tgz
+    version: 0.1.2
+  - annotations:
+      artifacthub.io/category: security
+      artifacthub.io/changes: |
+        - kind: added
           description: Initial release
       artifacthub.io/license: MIT
       artifacthub.io/links: |
@@ -625,6 +1049,58 @@ entries:
       artifacthub.io/category: monitoring-logging
       artifacthub.io/changes: |
         - kind: added
+          description: Documentation link to https://www.oreonit.com/helm-charts/llm-serving-observability/
+        - kind: changed
+          description: Homepage and README now link to private LLM hosting and operations instead of the general Kubernetes page
+      artifacthub.io/license: MIT
+      artifacthub.io/links: |
+        - name: Documentation
+          url: https://www.oreonit.com/helm-charts/llm-serving-observability/
+        - name: vLLM metrics
+          url: https://docs.vllm.ai/en/latest/design/metrics.html
+        - name: DCGM exporter
+          url: https://github.com/NVIDIA/dcgm-exporter
+        - name: Running self-hosted AI models in production on Kubernetes
+          url: https://www.oreonit.com/self-hosted-llm-in-production-vllm-kubernetes/
+      artifacthub.io/operator: "false"
+      artifacthub.io/prerelease: "false"
+    apiVersion: v2
+    appVersion: 0.1.0
+    created: "2026-11-05T11:43:09.56081025Z"
+    description: Alerts, recording rules and Grafana dashboards for self-hosted LLM
+      serving on Kubernetes - vLLM (queue, KV cache, preemptions, errors, time to
+      first token, inter-token latency, tokens per second, prefix cache) and NVIDIA
+      GPUs via DCGM (XID errors, temperature, memory, row remap failures, GPUs assigned
+      but idle), with optional PodMonitors and SLO examples for slo-burn-rate-alerts.
+    digest: 30021c6f077048e0cc0f7e843554193f7c64a78919b09a1f4d16bb92d046af0a
+    home: https://www.oreonit.com/private-llm-hosting-and-operations/
+    icon: https://raw.githubusercontent.com/oreondev/helm-charts/main/icon.png
+    keywords:
+    - vllm
+    - llm
+    - gpu
+    - dcgm
+    - nvidia
+    - prometheus
+    - alerting
+    - grafana
+    - observability
+    kubeVersion: '>=1.25.0-0'
+    maintainers:
+    - email: info@oreonit.com
+      name: Oreon IT
+      url: https://www.oreonit.com/
+    name: llm-serving-observability
+    sources:
+    - https://github.com/oreondev/helm-charts
+    type: application
+    urls:
+    - https://github.com/oreondev/helm-charts/releases/download/llm-serving-observability-0.1.1/llm-serving-observability-0.1.1.tgz
+    version: 0.1.1
+  - annotations:
+      artifacthub.io/category: monitoring-logging
+      artifacthub.io/changes: |
+        - kind: added
           description: First release; tested against a real vLLM 0.32.0 (CPU image) and dcgm-exporter's default counters
       artifacthub.io/license: MIT
       artifacthub.io/links: |
@@ -668,6 +1144,63 @@ entries:
     - https://github.com/oreondev/helm-charts/releases/download/llm-serving-observability-0.1.0/llm-serving-observability-0.1.0.tgz
     version: 0.1.0
   mem0:
+  - annotations:
+      artifacthub.io/category: ai-machine-learning
+      artifacthub.io/changes: |
+        - kind: added
+          description: Documentation link to https://www.oreonit.com/helm-charts/mem0/
+        - kind: changed
+          description: Homepage and README now link to private LLM hosting and operations instead of the general Kubernetes page
+      artifacthub.io/images: |
+        - name: mem0-server
+          image: ghcr.io/oreondev/mem0-server:2.2.1
+        - name: mem0-dashboard
+          image: ghcr.io/oreondev/mem0-dashboard:2.2.1
+      artifacthub.io/license: MIT
+      artifacthub.io/links: |
+        - name: Documentation
+          url: https://www.oreonit.com/helm-charts/mem0/
+        - name: Mem0 open-source documentation
+          url: https://docs.mem0.ai/open-source/overview
+        - name: Image build files
+          url: https://github.com/oreondev/helm-charts/tree/main/images/mem0
+        - name: Running self-hosted AI models in production on Kubernetes
+          url: https://www.oreonit.com/self-hosted-llm-in-production-vllm-kubernetes/
+      artifacthub.io/operator: "false"
+      artifacthub.io/prerelease: "false"
+    apiVersion: v2
+    appVersion: 2.2.1
+    created: "2026-11-05T11:43:09.692800777Z"
+    description: Mem0 self-hosted memory server and dashboard for AI agents on Kubernetes
+      - pinned images built from the upstream release (non-root, read-only), database
+      and pgvector setup, migrations and first-admin bootstrap in init containers,
+      probes that do not write to the database, request-log pruning CronJob, OpenAI-compatible
+      endpoints for private LLMs, Ingress or Gateway API, and Prometheus metrics,
+      alerts and a Grafana dashboard.
+    digest: 2347a03d31ea8d590f459440ebd8142ca94992f760911f9a223f2ded9c18b6ff
+    home: https://www.oreonit.com/private-llm-hosting-and-operations/
+    icon: https://raw.githubusercontent.com/oreondev/helm-charts/main/icon.png
+    keywords:
+    - mem0
+    - memory
+    - ai-agents
+    - llm
+    - rag
+    - pgvector
+    - ai
+    kubeVersion: '>=1.25.0-0'
+    maintainers:
+    - email: info@oreonit.com
+      name: Oreon IT
+      url: https://www.oreonit.com/
+    name: mem0
+    sources:
+    - https://github.com/oreondev/helm-charts
+    - https://github.com/mem0ai/mem0
+    type: application
+    urls:
+    - https://github.com/oreondev/helm-charts/releases/download/mem0-0.1.1/mem0-0.1.1.tgz
+    version: 0.1.1
   - annotations:
       artifacthub.io/category: ai-machine-learning
       artifacthub.io/changes: |
@@ -724,6 +1257,56 @@ entries:
       artifacthub.io/category: security
       artifacthub.io/changes: |
         - kind: added
+          description: Documentation link to https://www.oreonit.com/helm-charts/namespace-baseline/
+      artifacthub.io/license: MIT
+      artifacthub.io/links: |
+        - name: Documentation
+          url: https://www.oreonit.com/helm-charts/namespace-baseline/
+        - name: Kubernetes production readiness checklist
+          url: https://www.oreonit.com/kubernetes-production-readiness-checklist/
+        - name: Kubernetes operators every cluster needs
+          url: https://www.oreonit.com/common-kubernetes-operators-every-cluster-needs/
+        - name: Kubernetes consulting by the maintainers
+          url: https://www.oreonit.com/containerization-orchestration-management-kubernetes-openshift/
+      artifacthub.io/operator: "false"
+      artifacthub.io/prerelease: "false"
+    apiVersion: v2
+    appVersion: 0.1.0
+    created: "2026-11-05T11:43:09.944693834Z"
+    description: Guardrails for every team namespace from one values file - Pod Security
+      Admission labels, ResourceQuota, LimitRange, default-deny NetworkPolicies with
+      the usual allows (DNS, same namespace, ingress controller, monitoring), RBAC
+      bindings for team groups and optional quota alerts.
+    digest: c38817642892ddc6758783186c9694aea068632b2b4f8e5d7716007d3fd8df55
+    home: https://www.oreonit.com/containerization-orchestration-management-kubernetes-openshift/
+    icon: https://raw.githubusercontent.com/oreondev/helm-charts/main/icon.png
+    keywords:
+    - namespace
+    - multi-tenancy
+    - network-policy
+    - resource-quota
+    - limit-range
+    - pod-security
+    - pod-security-admission
+    - rbac
+    - platform-engineering
+    - guardrails
+    kubeVersion: '>=1.25.0-0'
+    maintainers:
+    - email: info@oreonit.com
+      name: Oreon IT
+      url: https://www.oreonit.com/
+    name: namespace-baseline
+    sources:
+    - https://github.com/oreondev/helm-charts
+    type: application
+    urls:
+    - https://github.com/oreondev/helm-charts/releases/download/namespace-baseline-0.1.1/namespace-baseline-0.1.1.tgz
+    version: 0.1.1
+  - annotations:
+      artifacthub.io/category: security
+      artifacthub.io/changes: |
+        - kind: added
           description: Initial release
       artifacthub.io/license: MIT
       artifacthub.io/links: |
@@ -769,6 +1352,60 @@ entries:
     - https://github.com/oreondev/helm-charts/releases/download/namespace-baseline-0.1.0/namespace-baseline-0.1.0.tgz
     version: 0.1.0
   otel-collector-baseline:
+  - annotations:
+      artifacthub.io/category: monitoring-logging
+      artifacthub.io/changes: |
+        - kind: added
+          description: Documentation link to https://www.oreonit.com/helm-charts/otel-collector-baseline/
+      artifacthub.io/license: MIT
+      artifacthub.io/links: |
+        - name: Documentation
+          url: https://www.oreonit.com/helm-charts/otel-collector-baseline/
+        - name: 10 observability metrics every DevOps engineer should track
+          url: https://www.oreonit.com/10-essential-observability-metrics-every-devops-engineer-should-track/
+        - name: How to avoid alert fatigue
+          url: https://www.oreonit.com/advanced-alerting-strategies-how-to-avoid-alert-fatigue-in-monitoring-systems/
+        - name: Observability consulting by the maintainers
+          url: https://www.oreonit.com/observability-and-monitoring-consultancy-services/
+      artifacthub.io/operator: "false"
+      artifacthub.io/prerelease: "false"
+    apiVersion: v2
+    appVersion: 0.1.0
+    created: "2026-11-05T11:43:10.211689696Z"
+    description: A production OpenTelemetry Collector layout for Kubernetes as values
+      for the OpenTelemetry Operator - a node agent (OTLP, kubelet and host metrics,
+      container logs, Kubernetes metadata) feeding a gateway (health-check filtering,
+      attribute redaction, tail sampling) that exports to OTLP backends, Google Cloud,
+      Prometheus remote write, Datadog or Elasticsearch, plus auto-instrumentation,
+      RBAC, alerts and a dashboard.
+    digest: 6232a877f66952f3e5e9ae75d04217b525fdfb422957a77fb382082c10ba41bc
+    home: https://www.oreonit.com/observability-and-monitoring-consultancy-services/
+    icon: https://raw.githubusercontent.com/oreondev/helm-charts/main/icon.png
+    keywords:
+    - opentelemetry
+    - otel-collector
+    - opentelemetry-operator
+    - tracing
+    - logs
+    - metrics
+    - tail-sampling
+    - k8sattributes
+    - grafana-cloud
+    - google-cloud-observability
+    - observability
+    - sre
+    kubeVersion: '>=1.25.0-0'
+    maintainers:
+    - email: info@oreonit.com
+      name: Oreon IT
+      url: https://www.oreonit.com/
+    name: otel-collector-baseline
+    sources:
+    - https://github.com/oreondev/helm-charts
+    type: application
+    urls:
+    - https://github.com/oreondev/helm-charts/releases/download/otel-collector-baseline-0.1.4/otel-collector-baseline-0.1.4.tgz
+    version: 0.1.4
   - annotations:
       artifacthub.io/category: monitoring-logging
       artifacthub.io/changes: |
@@ -878,6 +1515,61 @@ entries:
       artifacthub.io/category: ai-machine-learning
       artifacthub.io/changes: |
         - kind: added
+          description: Documentation link to https://www.oreonit.com/helm-charts/searxng/
+        - kind: changed
+          description: Homepage and README now link to private LLM hosting and operations instead of the general Kubernetes page
+      artifacthub.io/images: |
+        - name: searxng
+          image: searxng/searxng:2026.10.29-cff884f98
+        - name: valkey
+          image: valkey/valkey:8.1-alpine
+      artifacthub.io/license: MIT
+      artifacthub.io/links: |
+        - name: Documentation
+          url: https://www.oreonit.com/helm-charts/searxng/
+        - name: SearXNG documentation
+          url: https://docs.searxng.org/
+        - name: Running self-hosted AI models in production on Kubernetes
+          url: https://www.oreonit.com/self-hosted-llm-in-production-vllm-kubernetes/
+      artifacthub.io/operator: "false"
+      artifacthub.io/prerelease: "false"
+    apiVersion: v2
+    appVersion: 2026.10.29-cff884f98
+    created: "2026-11-05T11:43:10.513836812Z"
+    description: SearXNG metasearch on Kubernetes as the search backend for LLM tools
+      and agents (Firecrawl, Open WebUI, Perplexica, LangChain) or as a public instance
+      - JSON API mode, a curated engine set instead of 120 default engines, stable
+      secret key across replicas, rate limiter with Valkey sidecar or external, non-root
+      and read-only, NetworkPolicy, per-engine Prometheus metrics, alerts and a Grafana
+      dashboard.
+    digest: 38fb936d00c93ddfbe8c5ffb004968aed510834d9382139fb557ae5a76229c9d
+    home: https://www.oreonit.com/private-llm-hosting-and-operations/
+    icon: https://raw.githubusercontent.com/oreondev/helm-charts/main/icon.png
+    keywords:
+    - searxng
+    - search
+    - metasearch
+    - llm
+    - rag
+    - ai-agents
+    - privacy
+    kubeVersion: '>=1.29.0-0'
+    maintainers:
+    - email: info@oreonit.com
+      name: Oreon IT
+      url: https://www.oreonit.com/
+    name: searxng
+    sources:
+    - https://github.com/oreondev/helm-charts
+    - https://github.com/searxng/searxng
+    type: application
+    urls:
+    - https://github.com/oreondev/helm-charts/releases/download/searxng-0.1.1/searxng-0.1.1.tgz
+    version: 0.1.1
+  - annotations:
+      artifacthub.io/category: ai-machine-learning
+      artifacthub.io/changes: |
+        - kind: added
           description: First release, for SearXNG 2026.10.29
       artifacthub.io/images: |
         - name: searxng
@@ -924,6 +1616,57 @@ entries:
     - https://github.com/oreondev/helm-charts/releases/download/searxng-0.1.0/searxng-0.1.0.tgz
     version: 0.1.0
   slo-burn-rate-alerts:
+  - annotations:
+      artifacthub.io/category: monitoring-logging
+      artifacthub.io/changes: |
+        - kind: added
+          description: Documentation link to https://www.oreonit.com/helm-charts/slo-burn-rate-alerts/
+      artifacthub.io/license: MIT
+      artifacthub.io/links: |
+        - name: Documentation
+          url: https://www.oreonit.com/helm-charts/slo-burn-rate-alerts/
+        - name: How multi-window burn-rate alerts work
+          url: https://www.oreonit.com/advanced-alerting-strategies-how-to-avoid-alert-fatigue-in-monitoring-systems/
+        - name: 12 SLO and SLI examples with PromQL
+          url: https://www.oreonit.com/slo-sli-examples-targets-promql/
+        - name: SRE consulting by the maintainers
+          url: https://www.oreonit.com/site-reliability-engineering-sre-consulting-services/
+      artifacthub.io/operator: "false"
+      artifacthub.io/prerelease: "false"
+    apiVersion: v2
+    appVersion: 0.3.0
+    created: "2026-11-05T11:43:10.764300996Z"
+    description: SLOs as values. Generates Prometheus recording rules, multi-window
+      multi-burn-rate page and ticket alerts, and a Grafana SLO / error-budget dashboard
+      for Prometheus Operator and kube-prometheus-stack.
+    digest: 9ec4cad47d5c4040687e2af915cb5db73310235f9ac6aa5a34b13c0448f4ffae
+    home: https://www.oreonit.com/observability-and-monitoring-consultancy-services/
+    icon: https://raw.githubusercontent.com/oreondev/helm-charts/main/icon.png
+    keywords:
+    - slo
+    - sli
+    - error-budget
+    - burn-rate
+    - sre
+    - prometheus
+    - prometheus-operator
+    - kube-prometheus-stack
+    - alerting
+    - grafana
+    - observability
+    - openslo
+    kubeVersion: '>=1.25.0-0'
+    maintainers:
+    - email: info@oreonit.com
+      name: Oreon IT
+      url: https://www.oreonit.com/
+    name: slo-burn-rate-alerts
+    sources:
+    - https://github.com/oreondev/helm-charts
+    type: application
+    urls:
+    - https://github.com/oreondev/helm-charts/releases/download/slo-burn-rate-alerts-0.3.3/slo-burn-rate-alerts-0.3.3.tgz
+    version: 0.3.3
   - annotations:
       artifacthub.io/category: monitoring-logging
       artifacthub.io/changes: |
@@ -1126,6 +1869,62 @@ entries:
       artifacthub.io/category: ai-machine-learning
       artifacthub.io/changes: |
         - kind: added
+          description: Documentation link to https://www.oreonit.com/helm-charts/text-embeddings-inference/
+        - kind: changed
+          description: Homepage and README now link to private LLM hosting and operations instead of the general Kubernetes page
+      artifacthub.io/images: |
+        - name: text-embeddings-inference-cpu
+          image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.9.4
+        - name: text-embeddings-inference-ada
+          image: ghcr.io/huggingface/text-embeddings-inference:89-1.9.4
+      artifacthub.io/license: MIT
+      artifacthub.io/links: |
+        - name: Documentation
+          url: https://www.oreonit.com/helm-charts/text-embeddings-inference/
+        - name: TEI documentation
+          url: https://huggingface.co/docs/text-embeddings-inference
+        - name: Running self-hosted AI models in production on Kubernetes
+          url: https://www.oreonit.com/self-hosted-llm-in-production-vllm-kubernetes/
+      artifacthub.io/operator: "false"
+      artifacthub.io/prerelease: "false"
+    apiVersion: v2
+    appVersion: 1.9.4
+    created: "2026-11-05T11:43:11.074042766Z"
+    description: Hugging Face Text Embeddings Inference on Kubernetes - several embedding,
+      reranker and classifier models per release on CPU or NVIDIA GPUs (image variant
+      picked from the accelerator), model cache kept across restarts (StatefulSet
+      PVCs or a shared volume), generated API key, non-root and read-only, OpenAI-compatible
+      /v1/embeddings for Mem0, LangChain and LiteLLM, KEDA scaling on the request
+      queue, ServiceMonitor, alerts and a Grafana dashboard.
+    digest: f0b3659a93d74a3321e92ba104452a998771ee9a9b2ffffda379f119c2a650f7
+    home: https://www.oreonit.com/private-llm-hosting-and-operations/
+    icon: https://raw.githubusercontent.com/oreondev/helm-charts/main/icon.png
+    keywords:
+    - text-embeddings-inference
+    - tei
+    - embeddings
+    - reranker
+    - rag
+    - llm
+    - gpu
+    - huggingface
+    kubeVersion: '>=1.25.0-0'
+    maintainers:
+    - email: info@oreonit.com
+      name: Oreon IT
+      url: https://www.oreonit.com/
+    name: text-embeddings-inference
+    sources:
+    - https://github.com/oreondev/helm-charts
+    - https://github.com/huggingface/text-embeddings-inference
+    type: application
+    urls:
+    - https://github.com/oreondev/helm-charts/releases/download/text-embeddings-inference-0.1.1/text-embeddings-inference-0.1.1.tgz
+    version: 0.1.1
+  - annotations:
+      artifacthub.io/category: ai-machine-learning
+      artifacthub.io/changes: |
+        - kind: added
           description: First release, for Text Embeddings Inference 1.9.4
       artifacthub.io/images: |
         - name: text-embeddings-inference-cpu
@@ -1177,6 +1976,53 @@ entries:
       artifacthub.io/category: storage
       artifacthub.io/changes: |
         - kind: added
+          description: Documentation link to https://www.oreonit.com/helm-charts/velero-backup-schedules/
+      artifacthub.io/license: MIT
+      artifacthub.io/links: |
+        - name: Documentation
+          url: https://www.oreonit.com/helm-charts/velero-backup-schedules/
+        - name: Disaster recovery plan template for cloud teams
+          url: https://www.oreonit.com/disaster-recovery-plan-template-for-cloud-teams/
+        - name: Disaster recovery planning by the maintainers
+          url: https://www.oreonit.com/disaster-recovery-planning-services/
+      artifacthub.io/operator: "false"
+      artifacthub.io/prerelease: "false"
+    apiVersion: v2
+    appVersion: 0.1.0
+    created: "2026-11-05T11:43:11.293835483Z"
+    description: A backup policy for Velero as values - daily, weekly and monthly
+      Schedules with retention, optional BackupStorageLocation and VolumeSnapshotLocation,
+      a scheduled restore test that restores the latest backup into a scratch namespace
+      and checks the pods come up, and alerts for failed, partial or stale backups.
+      Velero itself is not included.
+    digest: b570be8f2c4b82c2a5bda9ec8d7040c7a8f80f5b787cfec24acf9e728d0dfb45
+    home: https://www.oreonit.com/disaster-recovery-planning-services/
+    icon: https://raw.githubusercontent.com/oreondev/helm-charts/main/icon.png
+    keywords:
+    - velero
+    - backup
+    - disaster-recovery
+    - restore-test
+    - kubernetes
+    - business-continuity
+    - prometheus
+    - alerting
+    kubeVersion: '>=1.25.0-0'
+    maintainers:
+    - email: info@oreonit.com
+      name: Oreon IT
+      url: https://www.oreonit.com/
+    name: velero-backup-schedules
+    sources:
+    - https://github.com/oreondev/helm-charts
+    type: application
+    urls:
+    - https://github.com/oreondev/helm-charts/releases/download/velero-backup-schedules-0.1.1/velero-backup-schedules-0.1.1.tgz
+    version: 0.1.1
+  - annotations:
+      artifacthub.io/category: storage
+      artifacthub.io/changes: |
+        - kind: added
           description: Initial release
       artifacthub.io/license: MIT
       artifacthub.io/links: |
@@ -1218,4 +2064,4 @@ entries:
     urls:
     - https://github.com/oreondev/helm-charts/releases/download/velero-backup-schedules-0.1.0/velero-backup-schedules-0.1.0.tgz
     version: 0.1.0
-generated: "2026-11-04T22:11:44.169574774Z"
+generated: "2026-11-05T11:43:11.293934403Z"
