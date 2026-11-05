@@ -57,7 +57,7 @@ footer a{color:var(--muted)}
 </style></head><body><main>
 <p class="crumb"><a href="../">Oreon IT Helm charts</a> / mem0</p>
 <h1>mem0 Helm chart</h1>
-<p class="meta">Version 0.1.0 · app 2.2.1 · MIT · <a href="https://github.com/oreondev/helm-charts/tree/main/charts/mem0">source</a> · <a href="https://artifacthub.io/packages/helm/oreonit/mem0">Artifact Hub</a></p>
+<p class="meta">Version 0.1.1 · app 2.2.1 · MIT · <a href="https://github.com/oreondev/helm-charts/tree/main/charts/mem0">source</a> · <a href="https://artifacthub.io/packages/helm/oreonit/mem0">Artifact Hub</a></p>
 <article class="doc">
 
 <p><a href="https://github.com/mem0ai/mem0">Mem0</a> (the memory layer for AI agents: facts extracted from conversations, stored as embeddings in PostgreSQL with pgvector, searched per user, agent or run) on Kubernetes: the self-hosted API server and its dashboard, set up for production. Bring your own PostgreSQL with pgvector (Cloud SQL, AlloyDB, RDS, Azure Database for PostgreSQL, CloudNativePG).</p>
@@ -281,7 +281,7 @@ curl -s https://mem0-api.example.com/search -H &quot;X-API-Key: $KEY&quot; -H 'c
 <p>Everything that matters is in PostgreSQL (memories and embeddings in <code>database.name</code>, users, keys and settings in <code>database.appName</code>), so back up the database the way you back up PostgreSQL: Cloud SQL backups and point-in-time recovery, or CloudNativePG's barman backups. The history volume can be covered with <a href="../velero-backup-schedules/">velero-backup-schedules</a>.</p>
 <h2 id="credits-and-licence">Credits and licence</h2>
 <p>Mem0 is developed by <a href="https://github.com/mem0ai/mem0">Mem0</a> under the Apache-2.0 licence; the images are built from its release source without changes to the upstream code.</p>
-<p>The chart is MIT licensed and maintained by <a href="https://www.oreonit.com/?utm_source=helm-chart&amp;utm_medium=readme&amp;utm_campaign=mem0">Oreon IT</a>, a DevOps, SRE and cloud consultancy in London. If you run agents and their memory, vector databases or private models on Kubernetes and want them operated properly, <a href="https://www.oreonit.com/containerization-orchestration-management-kubernetes-openshift/?utm_source=helm-chart&amp;utm_medium=readme&amp;utm_campaign=mem0">that is the day job</a>.</p>
+<p>The chart is MIT licensed and maintained by <a href="https://www.oreonit.com/?utm_source=helm-chart&amp;utm_medium=readme&amp;utm_campaign=mem0">Oreon IT</a>, a DevOps, SRE and cloud consultancy in London. If you run agents and their memory, vector databases or private models on Kubernetes and want them operated properly, <a href="https://www.oreonit.com/private-llm-hosting-and-operations/?utm_source=helm-chart&amp;utm_medium=readme&amp;utm_campaign=mem0">that is the day job</a>.</p>
 </article>
 <section class="card small" aria-labelledby="by">
   <div class="brand"><img src="../oreon-logo.svg" alt="Oreon IT"><h2 id="by">Maintained by Oreon IT</h2></div>
