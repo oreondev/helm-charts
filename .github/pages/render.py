@@ -66,14 +66,28 @@ def esc(s):
     return html.escape(str(s), quote=True)
 
 
+# Charts published elsewhere (not in this repository's index), listed so the table covers every Oreon IT chart.
+# They link to their own docs site; the version cell says where to install from instead of a version that would go stale.
+EXTERNAL = [
+    ("harbor-resource-operator", "https://www.oreonit.com/harbor-operator/", "OCI",
+     "Kubernetes operator for Harbor: projects, robot accounts, members, replication, webhooks, retention and "
+     "garbage collection as custom resources. Installed from oci://ghcr.io/oreondev/charts/harbor-resource-operator."),
+]
+
+
 def main(out, src=None):
     idx = yaml.safe_load(open(os.path.join(out, "index.yaml")))
     rows = []
     for name in sorted(idx["entries"]):
         e = sorted(idx["entries"][name], key=lambda x: x["created"], reverse=True)[0]
-        rows.append(
+        rows.append((name,
             f'<tr><td><a href="{esc(name)}/"><code>{esc(name)}</code></a></td>'
-            f'<td>{esc(e["version"])}</td><td>{esc(e.get("description", ""))}</td></tr>')
+            f'<td>{esc(e["version"])}</td><td>{esc(e.get("description", ""))}</td></tr>'))
+    for name, url, version, desc in EXTERNAL:
+        rows.append((name,
+            f'<tr><td><a href="{esc(url)}"><code>{esc(name)}</code></a></td>'
+            f'<td>{esc(version)}</td><td>{esc(desc)}</td></tr>'))
+    rows = [r for _, r in sorted(rows)]
     tiles = []
     for title, path, line, charts in SERVICES:
         chips = "".join(f"<span>{esc(c)}</span>" for c in charts)
